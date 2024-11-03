@@ -17,10 +17,12 @@ import timerRoutes from './src/routes/timerRoutes.js';
 import leaderboardRoutes from './src/routes/leaderboardRoutes.js';
 import discussRoutes from './src/routes/discussionRoutes.js';
 import favoriteRoutes from './src/routes/favoriteRoute.js';
+//import paymentRoutes from './src/routes/paymentRoutes.js';
 import { authenticateToken } from './src/middleware/authMiddleware.js';
-//import checkStatusTransactionRoutes from './src/routes/checkStatusRoutes.js';
+// import checkStatusTransactionRoutes from './src/routes/checkStatusRoutes.js';
 import editProfile from './src/routes/editProfileUser.js';
 import riwayattransaksiRoutes from './src/routes/riwayattransaksiRoutes.js';
+import testimoni from './src/routes/testimoniRoutes.js';
 
 dotenv.config();
 const app = express();
@@ -60,6 +62,8 @@ app.use('/api', discussRoutes);
 app.use('/api/favorites', authenticateToken, favoriteRoutes);
 app.use("/user", editProfile);
 app.use('/api', riwayattransaksiRoutes);
+app.use('/api', testimoni);
+//app.use("/api/payment", paymentRoutes);
 
 // Mulai server
 const PORT = process.env.PORT || 2000;

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 
 export default function Home() {
   const [popularTests, setPopularTests] = useState([]);
@@ -11,6 +12,57 @@ export default function Home() {
   const [loading, setLoading] = useState([true]);
   const [error, setError] = useState([null]);
   const [isDropdownOpen, setDropdownOpen] = useState(false);
+  const [authorTests, setAuthorTests] = useState([]);
+  const [authorData, setAuthorData] = useState([]);
+  
+  useEffect(() => {
+    const fetchAuthorTests = async () => {
+      try {
+        setLoading(true);
+        // Ambil token dari localStorage atau dari state management Anda
+        const token = localStorage.getItem('token');
+        
+        const response = await axios.get('http://localhost:2000/api/tests/author-tests', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        
+        setAuthorTests(response.data);
+        setLoading(false);
+      } catch (err) {
+        setError('Failed to fetch author tests');
+        setLoading(false);
+        console.error('Error fetching author tests:', err);
+      }
+    };
+  
+    fetchAuthorTests();
+  }, []);
+
+  useEffect(() => {
+    const fetchAuthorData = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem('token');
+        
+        const response = await axios.get('http://localhost:2000/author/author-data', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        
+        setAuthorData([response.data]);
+        setLoading(false);
+      } catch (err) {
+        setError('Failed to fetch author data');
+        setLoading(false);
+        console.error('Error fetching author data:', err);
+      }
+    };
+  
+    fetchAuthorData();
+  }, []);
 
   
   const author = [
@@ -184,12 +236,12 @@ export default function Home() {
           <nav>
             <ul className="space-y-3">
               <li className="text-white cursor-pointer bg-[#0B61AA] hover:bg-deepBlue bg-opacity-50 rounded-lg py-2 px-4 min-w-[200px]">
-                <Link legacyBehavior href="/">
+                <Link legacyBehavior href="/author/dashboard">
                   <a> Home</a>
                 </Link>
               </li>
               <li className="text-white cursor-pointer py-2 px-4 hover:bg-deepBlue  rounded-lg">
-                <Link legacyBehavior href="/analisis-soal">
+                <Link legacyBehavior href="/author/analisis-soal">
                   <a> Analisis Soal</a>
                 </Link>
               </li>
@@ -204,7 +256,7 @@ export default function Home() {
         </aside>
 
         {/* Main Content */}
-        {author.map((author, index) => (
+        {authorData.map((author, index) => (
         <main className="flex-1 bg-white">
           {/* Header */}
           <header className="flex justify-end items-center bg-[#0B61AA] p-4">
@@ -229,13 +281,13 @@ export default function Home() {
                     onMouseEnter={() => setDropdownOpen(true)}
                     onMouseLeave={() => setDropdownOpen(false)}
                   >
-                    <Link legacyBehavior href="/profile-edit">
-                      <a className="block px-4 py-1 text-deepBlue text-sm text-gray-700 hover:bg-deepBlue hover:text-white rounded-md border-abumuda">
+                    <Link legacyBehavior href="/author/edit-profile">
+                      <a className="block px-4 py-1 text-deepBlue text-sm  hover:bg-deepBlue hover:text-white rounded-md border-abumuda">
                         Ubah Profil
                       </a>
                     </Link>
                     <Link legacyBehavior href="/logout">
-                      <a className="block px-4 py-1 text-deepBlue text-sm text-gray-700 hover:bg-deepBlue hover:text-white rounded-md">
+                      <a className="block px-4 py-1 text-deepBlue text-sm  hover:bg-deepBlue hover:text-white rounded-md">
                         Logout
                       </a>
                     </Link>
@@ -278,11 +330,11 @@ export default function Home() {
           <div className="flex pr-4 gap-5 mt-4 ml-3">
             <div className="bg-[#F3F3F3] px-3 py-1 max-w-auto justify-between item-center rounded-[15px] shadow-lg shadow-lg text-[#0B61AA]">
               <span>Total Soal</span>
-              <span className="font-semibold ml-4">{author.totalSoal}</span>
+              <span className="font-semibold ml-4">{authorData[0].totalSoal}</span>
             </div>
             <div className="bg-[#F3F3F3] px-3 py-1 max-w-auto justify-between item-center rounded-[15px] shadow-lg shadow-lg text-[#0B61AA]">
               <span>Total Peserta</span> 
-              <span className="font-semibold ml-2">{author.totalPeserta}</span>
+              <span className="font-semibold ml-2">{authorData[0].totalPeserta}</span>
             </div>
           </div>
          
@@ -292,19 +344,19 @@ export default function Home() {
               Terbaru
               {/* Container untuk kategori, menambahkan grid layout yang konsisten */}
               <div className=" mt-5 grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {testData.slice(populercurrentIndex, populercurrentIndex + populeritemsToShow).map((test) => (
+                {authorTests.slice(populercurrentIndex, populercurrentIndex + populeritemsToShow).map((test) => (
                   <div key={test.id} className="bg-abumuda shadow-lg p-1 relative group">
                     
                 
                       <div className="flex justify-between items-center z-10">
                         <div className="flex items-center space-x-2 font-bold text-deepBlue">
                           <img src="/images/eye-icon.png" alt="Views" className="h-3 lg:h-4 object-contain" />
-                          <span className="text-[0.6rem] lg:text-sm font-poppins">{test.views}</span>
+                          <span className="text-[0.6rem] lg:text-sm font-poppins">{test.history}</span>
                         </div>
                       </div>
 
                       <div className="flex justify-center mt-2 lg:mt-4 ">
-                        <img src={test.imageUrl} alt={test.kategori} className="h-9 lg:h-20 object-contain" />
+                        <img src="/images/tes.png" alt={test.kategori} className="h-9 lg:h-20 object-contain" />
                       </div>
 
                       <div className="flex justify-center mt-2 lg:mt-4 text-deepBlue ">
@@ -325,7 +377,11 @@ export default function Home() {
                             <span className="text-[0.375rem] lg:text-sm font-semibold">{test.author}</span>
                           </div>
                           <span className="text-[0.375rem] lg:text-sm font-semibold">
-                            {test.free ? 'Gratis' : <img src="/images/lock.png" alt="Berbayar" className="h-2 lg:h-9/2 inline-block object-contain" />}
+                            {test.price === 0 ? (
+                              'Gratis'
+                            ) : (
+                              <img src="/images/lock.png" alt="Berbayar" className="h-2 lg:h-9/2 inline-block object-contain" />
+                            )}
                           </span>
                         </div>
                       </div>
@@ -357,7 +413,7 @@ export default function Home() {
               Populer
               {/* Container untuk kategori, menambahkan grid layout yang konsisten */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-5">
-                {testData.slice(gratiscurrentIndex, gratiscurrentIndex + gratisitemsToShow).map((test) => (
+                {authorTests.slice(gratiscurrentIndex, gratiscurrentIndex + gratisitemsToShow).map((test) => (
                   <div key={test.id} className="bg-abumuda shadow-lg p-1 relative group">
                     
                     <div className="flex justify-between items-center z-10">
@@ -368,7 +424,7 @@ export default function Home() {
                     </div>
 
                     <div className="flex justify-center mt-2 lg:mt-4 relative z-20 ">
-                      <img src={test.imageUrl} alt={test.kategori} className="h-9 lg:h-20 object-contain" />
+                      <img src="/images/tes.png" alt={test.kategori} className="h-9 lg:h-20 object-contain" />
                     </div>
 
                     <div className="flex justify-center mt-2 lg:mt-4 text-deepBlue relative z-20 ">
@@ -420,3 +476,4 @@ export default function Home() {
     </>
   );
 }
+

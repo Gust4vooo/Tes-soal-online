@@ -66,7 +66,7 @@ const admin = [
                   </div>
 
                   {/* Box 2 */}
-                  <div className="lg:w-[190px] lg:h-[200px] justify-center text-center p-3 bg-paleBlue  shadow-lg hover:bg-newHeaderColor m-3 rounded-lg flex flex-col justify-center items-center text-[#0B61AA] text-lg font-bold">
+                  <div className="lg:w-[190px] lg:h-[200px] justify-center text-center p-3 bg-paleBlue  shadow-lg hover:bg-newHeaderColor m-3 rounded-lg flex flex-col items-center text-[#0B61AA] text-lg font-bold">
                     <Link legacyBehavior href="/admin/kelola-author/verifikasi-author" passHref>
                       <a className="w-full h-full flex flex-col justify-center items-center animate-flyIn">
                         <img src="/images/dataAuthor.png" alt="Verifikasi Author" className="w-20 lg:w-51 object-cover" />

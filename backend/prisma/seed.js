@@ -392,7 +392,7 @@ async function main() {
     for (let i = 1; i <= 3; i++) {
       const test = await prisma.test.create({
         data: {
-          authorId: 'cm2nb37p40002kbn5qzwq3284', // Ganti dengan authorId yang sesuai
+          authorId: 'cm2ve871w0000lbza0t34v11b', // Ganti dengan authorId yang sesuai
           category: category,
           title: `${category} Test ${i}`,
           testDescription: `Ini adalah deskripsi untuk ${category} Test ${i}`,

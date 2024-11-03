@@ -199,3 +199,49 @@ export const editAuthorProfileService = async (token, profileData) => {
         throw new Error("Failed to update author profile: " + error.message);
     }
 };
+
+
+export const getAuthorDataService = async (token) => {
+  try {
+    // Decode the token
+    const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decodedToken.id;
+
+    // Find the author associated with this user ID
+    const author = await prisma.author.findFirst({
+      where: { userId: userId },
+      include: {
+        user: {
+          select: {
+            role: true,
+          }
+        },
+        test: {
+          include: {
+            history: true,
+          }
+        }
+      }
+    });
+
+    if (!author) {
+      throw new Error("Author not found for this user");
+    }
+
+    // Calculate total tests and total participants
+    const totalSoal = author.test.length;
+    const totalPeserta = author.test.reduce((sum, test) => sum + test.history.length, 0);
+
+    // Format the response
+    return {
+      id: author.id,
+      nama: author.name,
+      role: author.user.role,
+      totalSoal: totalSoal,
+      totalPeserta: totalPeserta,
+    };
+  } catch (error) {
+    console.error("Error in getAuthorDataService:", error);
+    throw new Error("Failed to retrieve author data: " + error.message);
+  }
+};

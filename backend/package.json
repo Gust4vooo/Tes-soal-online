@@ -12,7 +12,8 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@prisma/client": "^5.20.0",
+    "@google-cloud/storage": "^7.14.0",
+    "@prisma/client": "^5.21.1",
     "backend": "file:",
     "bcrypt": "^5.1.1",
     "body-parser": "^1.20.3",
@@ -21,15 +22,17 @@
     "dotenv": "^16.4.5",
     "express": "^4.21.0",
     "express-validator": "^7.2.0",
-    "firebase": "^10.13.2",
+    "firebase": "^10.14.1",
     "firebase-admin": "^12.5.0",
     "fs": "^0.0.1-security",
+    "midtrans-client": "^1.4.1",
     "multer": "^1.4.5-lts.1",
     "next": "^14.2.13",
     "node-cron": "^3.0.3",
     "path": "^0.12.7",
     "pdfkit": "^0.15.0",
-    "pg": "^8.13.0"
+    "pg": "^8.13.0",
+    "punycode": "^2.3.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.7",

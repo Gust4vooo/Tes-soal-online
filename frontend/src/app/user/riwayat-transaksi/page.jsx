@@ -7,32 +7,47 @@ export default function RiwayatTransaksiHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [token, setToken] = useState(null);
+
+  useEffect(() => {
+    console.log('Transactions updated:', transactions);
+  }, [transactions]);
+
+  useEffect(() => {
+    // Mengakses localStorage di sisi klien
+    const storedToken = localStorage.getItem('token');
+    setToken(storedToken);
+    console.log('Token:', storedToken);
+  }, []);
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
   };
 
+  // Fungsi untuk menghapus teks dalam kurung
+  const formatStatus = (status) => {
+    return status.replace(/\s*\(.*?\)\s*/g, '').trim();
+  };
+
   // Fungsi untuk mengambil riwayat transaksi dari backend
   const fetchTransactions = async () => {
-    try {
-      const token = localStorage.getItem('token'); // Ambil token dari localStorage
-      if (!token) {
-        console.error('Token tidak tersedia');
-        return;
-      }
+    if (!token) {
+      console.error('Token tidak tersedia');
+      return;
+    }
 
+    try {
       const response = await fetch('http://localhost:2000/api/riwayat-transaksi', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          // Sertakan token JWT di header Authorization
           'Authorization': `Bearer ${token}`,
         },
       });
 
       if (response.ok) {
         const data = await response.json();
-        console.log(data);
+        console.log('Fetched Transactions:', data);
         setTransactions(data);
       } else {
         console.error('Failed to fetch transactions');
@@ -45,13 +60,22 @@ export default function RiwayatTransaksiHeader() {
   };
 
   useEffect(() => {
-    fetchTransactions(); // Panggil API saat komponen pertama kali dimuat
-  }, []);
+    if (token) {
+      fetchTransactions();
+    }
+  }, [token]);
 
   // Fungsi untuk mendapatkan data sesuai dengan tab yang aktif
-  const getDataByTab = () => {
-    return transactions.filter((item) => item.status === activeTab);
-  };
+const getDataByTab = () => {
+  console.log('All Transactions:', transactions);
+  console.log('Active Tab:', activeTab);
+  const filteredTransactions = transactions.filter((item) => {
+    const itemStatus = item.customStatus || '';
+    return itemStatus.includes(activeTab);
+  });
+  console.log('Filtered Transactions:', filteredTransactions);
+  return filteredTransactions;
+};
 
   return (
     <>
@@ -70,7 +94,7 @@ export default function RiwayatTransaksiHeader() {
             </button>
             <Link href="/">
               <img
-                src="/images/Vector.png"
+                src="/images/etamtest.png"
                 alt="Etamtest"
                 className="w-[85px] h-[25px] sm:w-[190px] sm:h-[43px]"
               />
@@ -147,77 +171,99 @@ export default function RiwayatTransaksiHeader() {
       {/* Tab Menu di Bawah Header */}
       <nav className="w-[375px] h-[51px] sm:w-[1440px] sm:h-[68px] bg-white shadow-md">
         <div className="container mx-auto flex flex-wrap justify-center sm:justify-start space-x-2 py-4">
-          {['Belum Bayar', 'Berhasil', 'Selesai', 'Tidak Berhasil'].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`text-lg px-4 pb-2 text-xs sm:text-lg ${
-                activeTab === tab ? 'text-[#0B61AA] border-b-4 border-[#0B61AA]' : 'text-gray-500'
-              } hover:text-[#0B61AA]`}
-            >
-              {tab}
-            </button>
-          ))}
+      {[
+        'Belum Bayar',
+        'Berhasil (Belum Dikerjakan)',
+        'Selesai (Sudah Dikerjakan)',
+        'Tidak Berhasil'
+      ].map((tab) => (
+        <button
+          key={tab}
+          onClick={() => setActiveTab(tab)}
+          className={`text-lg px-4 pb-2 text-xs sm:text-lg ${
+            activeTab === tab ? 'text-[#0B61AA] border-b-4 border-[#0B61AA]' : 'text-gray-500'
+          } hover:text-[#0B61AA]`}
+        >
+          {formatStatus(tab)} {/* Hilangkan teks dalam kurung untuk tampilan tab */}
+        </button>
+      ))}
+
         </div>
       </nav>
 
       {/* Konten Berdasarkan Tab yang Aktif */}
-      <div className="container mx-auto p-4 space-y-4 flex justify-center items-center">
-        {loading ? (
-          <p>Loading...</p> // Menampilkan loading jika data masih diambil
-        ) : (
-          getDataByTab().map((item) => (
-            <div key={item.id} className="w-[354px] h-[141px] sm:w-[1374px] sm:h-[231px] bg-[#F3F3F3] shadow-md p-4 flex flex-col justify-between rounded-lg h-72">
-              <div className="flex-shrink-0 flex items-start">
+      <div className="container mx-auto p-4 space-y-4">
+        {getDataByTab().map((item) => (
+          <div
+            key={item.id}
+            className="w-full sm:w-[1374px] bg-[#F3F3F3] shadow-md p-4 flex rounded-lg"
+          >
+            {/* Gambar Tes dengan Kategori dan Jumlah Orang */}
+            <div className="relative w-[100px] sm:w-[150px]">
+              {/* Icon mata dan jumlah orang */}
+              <div className="absolute top-2 left-2 flex items-center space-x-1 text-sm text-gray-500">
+                <img src="/images/eye-icon.png" alt="Jumlah Dikerjakan" className="w-4 h-4" />
+                <span>{item.historyCount}</span>
+              </div>
+              {/* Gambar */}
+              <img
+                src={item.image || '/images/tes.png'}
+                alt={item.test.title}
+                className="w-full h-auto rounded-lg object-cover shadow-md"
+              />
+              {/* Kategori Tes */}
+              <div className="text-center mt-2 text-sm font-semibold text-[#0B61AA]">
+                Try Out {item.test.category}
+              </div>
+            </div>
+
+
+            {/* Detail Tes */}
+            <div className="ml-4 flex-1">
+              <h3 className="text-xl font-semibold text-[#0B61AA]">{item.test.title}</h3>
+              <p className="text-sm text-[#0B61AA]">
+                Prediksi Kemiripan {item.test.similarity}%
+              </p>
+              <div className="flex items-center mt-4">
                 <img
-                  src={item.image}
-                  alt={item.test.title}
-                  className="w-[75px] h-[85px] sm:w-[150px] sm:h-[168px]"
+                  src={item.test.author?.photo || '/images/foto.png'}
+                  alt="Foto Pembuat"
+                  className="w-10 h-10 rounded-full mr-2"
                 />
-                <div className="ml-4 text-left sm:text-left">
-                  <h3 className="pt-2 text-sm sm:text-xl font-semibold text-[#0B61AA]">{item.test.title}</h3>
-                  <p className="text-[#0B61AA] text-xs sm:text-sm">Prediksi Kemiripan {item.test.similarity}%</p>
-                  <div className="flex items-center pt-2 sm:pt-10">
-                    <img
-                      src="/images/foto.png"
-                      alt="Foto Pembuat"
-                      className="h-6 w-6 sm:h-10 sm:w-10 rounded-full mr-2"
-                    />
-                    <div className="text-[#0B61AA] ml-1">
-                      <p className="mb-1 text-xs sm:text-sm">Dibuat Oleh:</p>
-                      <strong className="block text-xs sm:text-sm">{item.test.author?.name || 'Penulis Tidak Diketahui'}</strong>
-                    </div>
-                  </div>
+                <div>
+                  <p className="text-sm">Dibuat Oleh:</p>
+                  <strong className="text-sm">{item.test.author?.name || 'Penulis Tidak Diketahui'}</strong>
                 </div>
               </div>
-
-              {/* Tautan berdasarkan status */}
-              <div className="flex justify-end mt-auto space-x-2">
-                {item.status === 'unpaid' && (
-                  <Link href="/bayar" className="bg-[#0B61AA] text-white px-4 py-2 rounded-lg text-center text-xs sm:text-sm">
+              {/* Tautan Aksi */}
+              <div className="flex justify-end mt-4 space-x-2">
+                {item.customStatus === 'Belum Bayar' && (
+                  <Link href="/bayar" className="bg-[#0B61AA] text-white px-4 py-2 rounded-lg">
                     Bayar
                   </Link>
                 )}
-                {item.status === 'Berhasil' && (
-                  <Link href="/mulai" className="bg-[#0B61AA] text-white px-4 py-2 rounded-lg text-center text-xs sm:text-sm">
+                {item.customStatus === 'Berhasil (Belum Dikerjakan)' && (
+                  <Link href="/mulai" className="bg-[#0B61AA] text-white px-4 py-2 rounded-lg">
                     Mulai
                   </Link>
                 )}
-                {item.status === 'Selesai' && (
-                  <Link href="/score" className="bg-[#0B61AA] text-white px-4 py-2 rounded-lg text-center text-xs sm:text-sm">
+                {item.customStatus === 'Selesai (Sudah Dikerjakan)' && (
+                  <Link href="/score" className="bg-[#0B61AA] text-white px-4 py-2 rounded-lg">
                     Score
                   </Link>
                 )}
-                {item.status === 'Tidak Berhasil' && (
-                  <Link href="/beli lagi" className="bg-[#0B61AA] text-white px-4 py-2 rounded-lg text-center text-xs sm:text-sm">
-                    Beli lagi
+                {item.customStatus === 'Tidak Berhasil' && (
+                  <Link href="/beli-lagi" className="bg-[#0B61AA] text-white px-4 py-2 rounded-lg">
+                    Beli Lagi
                   </Link>
                 )}
               </div>
             </div>
-          ))
-        )}
+          </div>
+        ))}
       </div>
+
     </>
   );
 }
+

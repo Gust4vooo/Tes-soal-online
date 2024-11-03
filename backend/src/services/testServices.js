@@ -92,6 +92,57 @@ const getTestResult = async (resultId) => {
   }
 };
 
+export const getAuthorTestsService = async (userId) => {
+  try {
+    // Find the author associated with this userId
+    const author = await prisma.author.findFirst({
+      where: { userId: userId }
+    });
+
+    if (!author) {
+      throw new Error('Author not found for this user');
+    }
+
+    // Fetch tests for this author
+    const tests = await prisma.test.findMany({
+      where: { authorId: author.id },
+      select: {
+        id: true,
+        title: true,
+        category: true,
+        similarity: true,
+        isPublished: true,
+        price: true,
+        _count: {
+          select: { history: true }
+        },
+        author: {
+          select: {
+            name: true,
+            authorPhoto: true,
+          }
+        }
+      }
+    });
+
+    // Format the data as required
+    return tests.map(test => ({
+      id: test.id,
+      judul: test.title,
+      kategori: test.category,
+      prediksi_kemiripan: `Prediksi kemiripan ${test.similarity}%`,
+      history: test._count.history, // This is now a number
+      author: test.author.name,
+      isPublished: test.isPublished,
+      price: test.price,
+      authorProfile: test.author.authorPhoto
+    }));
+
+  } catch (error) {
+    console.error('Error in getAuthorTestsService:', error);
+    throw error;
+  }
+};
 
 
 export { createTestService, getTestService, getTestResult }; // Menggunakan named export

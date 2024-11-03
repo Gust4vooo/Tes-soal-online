@@ -1,13 +1,22 @@
 import { body, validationResult } from 'express-validator';
 
-export const validateUserProfile = [
+// Validator khusus untuk memperbarui nama pengguna
+export const validateUserName = [
     body('name').notEmpty().withMessage('Name is required'),
+];
+
+// Validator khusus untuk memperbarui email pengguna
+export const validateUserEmail = [
     body('email').isEmail().withMessage('Valid email is required'),
+];
+
+// Validator khusus untuk memperbarui foto profil pengguna
+export const validateUserPhoto = [
     body('userPhoto').optional().isURL().withMessage('User photo must be a valid URL'),
 ];
 
+// Validator khusus untuk memperbarui kata sandi pengguna
 export const validatePasswordChange = [
-    body('currentPassword').notEmpty().withMessage('Current password is required'),
     body('newPassword').isLength({ min: 6 }).withMessage('New password must be at least 6 characters long'),
 ];
 

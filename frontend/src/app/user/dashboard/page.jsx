@@ -274,11 +274,9 @@ const gratisprevSlide = () => {
 };
 
 const menus = [
-  {href:'/', text: "Home"},
-  {href:'/fav', text: "Favorit"},
+  {href:'/user/dashboard', text: "Home"},
+  {href:'/user/favorite', text: "Favorit"},
   {href:'/user/riwayat-transaksi', text: "Transaksi"},
-  {href:'/faq', text: "FAQ"},
-
 ]
 
 const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -338,113 +336,206 @@ const [likedSearchItems, setLikedSearchItems] = useState({});
 const [likedPopulerItems, setLikedPopulerItems] = useState({});
 const [likedGratisItems, setLikedGratisItems] = useState({});
 
-const toggleLikeSearch = async (id) => {
-  const isLiked = likedSearchItems[id]; // Cek status apakah sudah di-like
 
-  try {
-    if (isLiked) {
-      // Jika sudah di-like, lakukan DELETE request
-      await fetch(`http://localhost:2000/api/favorites`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`, // Gunakan token yang sudah didefinisikan
-        },
-        body: JSON.stringify({ testId: id }),
-      });
-    } else {
-      // Jika belum di-like, lakukan POST request
-      await fetch(`http://localhost:2000/api/favorites`, {
+  // Ambil status like dari local storage saat komponen dimuat
+  useEffect(() => {
+    const fetchFavorites = async () => {
+      try {
+        const response = await fetch('http://localhost:2000/api/favorites', {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (!response.ok) {
+          throw new Error('Failed to fetch favorites');
+        }
+        const favoriteTests = await response.json();
+
+        // Buat objek liked items berdasarkan favoriteTests
+        const likedItems = {};
+        favoriteTests.forEach(test => {
+          likedItems[test.id] = true; // Asumsikan test.id adalah ID dari tes
+        });
+
+        // Update state dengan liked items
+        setLikedSearchItems(likedItems);
+        setLikedPopulerItems(likedItems); // Jika kamu ingin menggunakan likedPopulerItems
+        setLikedGratisItems(likedItems); // Jika kamu ingin menggunakan likedGratisItems
+      } catch (error) {
+        console.error('Error fetching favorite tests:', error);
+      }
+    };
+
+    // Memanggil fetchFavorites untuk mendapatkan favorit dari server
+    fetchFavorites();
+  }, [token]);
+
+  // Mengupdate local storage setiap kali likedSearchItems diupdate
+  useEffect(() => {
+    localStorage.setItem('likedSearchItems', JSON.stringify(likedSearchItems));
+  }, [likedSearchItems]);
+
+  // Mengupdate local storage setiap kali likedPopulerItems diupdate
+  useEffect(() => {
+    localStorage.setItem('likedPopulerItems', JSON.stringify(likedPopulerItems));
+  }, [likedPopulerItems]);
+
+  // Mengupdate local storage setiap kali likedGratisItems diupdate
+  useEffect(() => {
+    localStorage.setItem('likedGratisItems', JSON.stringify(likedGratisItems));
+  }, [likedGratisItems]);
+
+  // Mengambil status like dari local storage saat pertama kali komponen dimuat
+  useEffect(() => {
+    const storedLikedSearchItems = localStorage.getItem('likedSearchItems');
+    if (storedLikedSearchItems) {
+      setLikedSearchItems(JSON.parse(storedLikedSearchItems));
+    }
+    // Lakukan hal yang sama untuk likedPopulerItems dan likedGratisItems
+    const storedLikedPopulerItems = localStorage.getItem('likedPopulerItems');
+    if (storedLikedPopulerItems) {
+      setLikedPopulerItems(JSON.parse(storedLikedPopulerItems));
+    }
+    const storedLikedGratisItems = localStorage.getItem('likedGratisItems');
+    if (storedLikedGratisItems) {
+      setLikedGratisItems(JSON.parse(storedLikedGratisItems));
+    }
+  }, []);
+
+  const toggleLikeSearch = async (id) => {
+    const isLiked = likedSearchItems[id]; // Cek status apakah sudah di-like
+
+    try {
+      if (isLiked) {
+        // Jika sudah di-like, lakukan DELETE request
+        await fetch(`http://localhost:2000/api/favorites`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ testId: id }),
+        });
+      } else {
+        // Jika belum di-like, lakukan POST request
+        await fetch(`http://localhost:2000/api/favorites`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ testId: id }),
+        });
+      }
+
+      // Update state setelah permintaan berhasil
+      setLikedSearchItems((prevLikedItems) => ({
+        ...prevLikedItems,
+        [id]: !prevLikedItems[id], // Toggle status like
+      }));
+    } catch (error) {
+      console.error("Error handling favorite:", error);
+    }
+  };
+
+  const toggleLikePopuler = async (id) => {
+    const isLiked = likedPopulerItems[id]; // Cek status apakah sudah di-like
+
+    try {
+      if (isLiked) {
+        // Jika sudah di-like, lakukan DELETE request
+        await fetch(`http://localhost:2000/api/favorites`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ testId: id }),
+        });
+      } else {
+        // Jika belum di-like, lakukan POST request
+        await fetch(`http://localhost:2000/api/favorites`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ testId: id }),
+        });
+      }
+
+      // Update state setelah permintaan berhasil
+      setLikedPopulerItems((prevLikedItems) => ({
+        ...prevLikedItems,
+        [id]: !prevLikedItems[id], // Toggle status like
+      }));
+    } catch (error) {
+      console.error("Error handling favorite:", error);
+    }
+  };
+
+  const toggleLikeGratis = async (id) => {
+    const isLiked = likedGratisItems[id]; // Cek status apakah sudah di-like
+
+    try {
+      if (isLiked) {
+        // Jika sudah di-like, lakukan DELETE request
+        await fetch(`http://localhost:2000/api/favorites`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ testId: id }),
+        });
+      } else {
+        // Jika belum di-like, lakukan POST request
+        await fetch(`http://localhost:2000/api/favorites`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ testId: id }),
+        });
+      }
+
+      // Update state setelah permintaan berhasil
+      setLikedGratisItems((prevLikedItems) => ({
+        ...prevLikedItems,
+        [id]: !prevLikedItems[id], // Toggle status like
+      }));
+    } catch (error) {
+      console.error("Error handling favorite:", error);
+    }
+  };
+
+  // Logout function
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('http://localhost:2000/auth/logout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`, // Gunakan token yang sudah didefinisikan
+          'Authorization': `Bearer ${localStorage.getItem('token')}`, // Include token if needed
         },
-        body: JSON.stringify({ testId: id }),
       });
+
+      if (!response.ok) {
+        throw new Error('Logout failed');
+      }
+
+      // Optionally clear the token from local storage
+      localStorage.removeItem('token');
+
+      // Redirect to login page
+      window.location.href = '/auth/login';
+    } catch (error) {
+      console.error('Error during logout:', error);
+      setError(error.message);
     }
-
-    // Update state setelah permintaan berhasil
-    setLikedSearchItems((prevLikedItems) => ({
-      ...prevLikedItems,
-      [id]: !prevLikedItems[id], // Toggle status like
-    }));
-  } catch (error) {
-    console.error("Error handling favorite:", error);
-  }
-};
-
-const toggleLikePopuler = async (id) => {
-  const isLiked = likedPopulerItems[id]; // Cek status apakah sudah di-like
-
-  try {
-    if (isLiked) {
-      // Jika sudah di-like, lakukan DELETE request
-      await fetch(`http://localhost:2000/api/favorites`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`, // Gunakan token yang sudah didefinisikan
-        },
-        body: JSON.stringify({ testId: id }),
-      });
-    } else {
-      // Jika belum di-like, lakukan POST request
-      await fetch(`http://localhost:2000/api/favorites`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`, // Gunakan token yang sudah didefinisikan
-        },
-        body: JSON.stringify({ testId: id }),
-      });
-    }
-
-    // Update state setelah permintaan berhasil
-    setLikedPopulerItems((prevLikedItems) => ({
-      ...prevLikedItems,
-      [id]: !prevLikedItems[id], // Toggle status like
-    }));
-  } catch (error) {
-    console.error("Error handling favorite:", error);
-  }
-};
-
-const toggleLikeGratis = async (id) => {
-  const isLiked = likedGratisItems[id]; // Cek status apakah sudah di-like
-
-  try {
-    if (isLiked) {
-      // Jika sudah di-like, lakukan DELETE request
-      await fetch(`http://localhost:2000/api/favorites`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`, // Pastikan kamu punya token JWT
-        },
-        body: JSON.stringify({ testId: id }),
-      });
-    } else {
-      // Jika belum di-like, lakukan POST request
-      await fetch(`http://localhost:2000/api/favorites`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`, // Pastikan kamu punya token JWT
-        },
-        body: JSON.stringify({ testId: id }),
-      });
-    }
-
-    // Update state setelah permintaan berhasil
-    setLikedGratisItems((prevLikedItems) => ({
-      ...prevLikedItems,
-      [id]: !prevLikedItems[id], // Toggle status like
-    }));
-  } catch (error) {
-    console.error("Error handling favorite:", error);
-  }
-};
+  };
 
 
   return (
@@ -487,9 +578,9 @@ const toggleLikeGratis = async (id) => {
             {/* Profile */}
             <div className="relative inline-block">
                   <img 
-                  src="/images/profile.png" 
+                  src={userData?.userPhoto ||"/images/profile.png" }
                   alt="profile" 
-                  className="h-14 cursor-pointer mr-5"
+                  className="h-14 w-14 rounded-full cursor-pointer mr-5"
                   onMouseEnter={() => setDropdownOpen(true)}
                   onMouseLeave={() => setDropdownOpen(false)}
                   />
@@ -503,13 +594,13 @@ const toggleLikeGratis = async (id) => {
                   onMouseEnter={() => setDropdownOpen(true)}
                   onMouseLeave={() => setDropdownOpen(false)}
               >
-                  <Link legacyBehavior href= {`/user/edit-profile/${userId}`}       >
+                  <Link legacyBehavior href= {`/user/edit-profile/${userId}`}>
                   <a className="block px-4 py-1 text-deepBlue text-sm text-gray-700 hover:bg-deepBlue hover:text-white rounded-md border-abumuda">
                       Ubah Profil
                   </a>
                   </Link>
-                  <Link legacyBehavior href="/logout">
-                  <a className="block px-4 py-1 text-deepBlue text-sm text-gray-700 hover:bg-deepBlue hover:text-white rounded-md">
+                  <Link legacyBehavior href="/auth/login">
+                  <a onClick={handleLogout}className="block px-4 py-1 text-deepBlue text-sm text-gray-700 hover:bg-deepBlue hover:text-white rounded-md">
                       Logout
                   </a>
                   </Link>
@@ -526,13 +617,13 @@ const toggleLikeGratis = async (id) => {
         <ul className="p-4 space-y-4 text-deepblue round-lg">
           <div className="flex flex-col items-center">
             <li>
-              <img 
-                src="/images/profile-black.png" 
-                alt="profile" 
-                className="h-14 cursor-pointer mb-2" 
-              />
+            <img 
+              src={userData?.userPhoto || "/images/profile-black.png"} // Gunakan foto dari userData atau gambar default
+              alt="profile" 
+              className="h-14 cursor-pointer mb-2" 
+            />
             </li>
-            <p className="font-bold">Desti</p>
+            <p className="font-bold">{userData?.name}</p>
           </div>
           {menus.map((menu, index) => (
             <li key={index}>

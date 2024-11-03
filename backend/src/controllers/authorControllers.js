@@ -4,7 +4,8 @@ import {
     getAuthorService, 
     updateVerificationAuthorService,
     getAuthorByUserId,
-    editAuthorProfileService
+    editAuthorProfileService,
+    getAuthorDataService
     
 } from "../services/authorServices.js";
 
@@ -107,4 +108,17 @@ export const editAuthorProfile = async (req, res) => {
             error: error.message
         });
     }
+};
+
+// backend/src/controllers/authorControllers.js
+
+
+export const getAuthorData = async (req, res) => {
+  try {
+    const token = req.headers.authorization.split(' ')[1]; // Assuming Bearer token
+    const authorData = await getAuthorDataService(token);
+    res.json(authorData);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching author data', error: error.message });
+  }
 };

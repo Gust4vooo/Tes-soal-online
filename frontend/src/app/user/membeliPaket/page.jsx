@@ -14,7 +14,7 @@ const Navbar = () => {
       <div className="flex items-center space-x-4">
         {/* Vektor EtamTest */}
         <img 
-          src="/images/Vector.png" 
+          src="/images/logo.png" 
           alt="EtamTest Logo" 
           className="h-8"  // Menyesuaikan ukuran dengan teks
         />
@@ -24,7 +24,7 @@ const Navbar = () => {
           <div className="text-white text-sm">Profile</div>
           {/* Profile Picture */}
           <img 
-            src="/images/Layer_1.png" 
+            src="/images/Profil.png" 
             alt="Profile" 
             className="w-8 h-8 rounded-full"
           />

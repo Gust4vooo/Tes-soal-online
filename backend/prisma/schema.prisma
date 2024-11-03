@@ -56,6 +56,7 @@ model User {
   testimoni        Testimoni[]
   author           Author[]
   revokedTokens    RevokedToken[]
+  transaction      Transaction[]
 
 }
 
@@ -142,20 +143,23 @@ model Option {
 
 // Enum untuk status transaksi
 enum TransactionStatus {
-  unpaid
-  pending
-  success
+  Unpaid
+  Success
+  Unsuccessful
+  
 }
 
 // Model Transaksi
 model Transaction {
   id             String            @id @default(cuid())
   testId         String
+  userId           String
   paymentMethod  String
   paymentTime    DateTime          @default(now())
   total          Int
   status         TransactionStatus
   test           Test              @relation(fields: [testId], references: [id])
+  user              User         @relation(fields: [userId], references: [id])
 }
 
 
