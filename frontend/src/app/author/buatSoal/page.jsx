@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 
 const KotakNomor = () => {
   const router = useRouter();
-  const [pages, setPages] = useState([{ pageNumber: 1, questions: [1], pageName: "Beri Nama Tes" }]);
+  const [pages, setPages] = useState([{ questions: [], title: "Beri Nama TES" }]);
   const [testId, setTestId] = useState('cm2i7ml8i0001wrlj72zolmrj');
   const [multiplechoiceId, setMultiplechoiceId] = useState('');
   const [isDropdownOpen, setDropdownOpen] = useState(false);
@@ -72,11 +72,11 @@ const KotakNomor = () => {
     const newPage = { 
       pageNumber: newPageNumber, 
       questions: [lastQuestionNumber + 1],
-      pageName: "Beri Nama TES", 
+      title: "Beri Nama TES", 
       isDropdownOpen: false 
     };
-    setPages([...pages, newPage]);
-  };
+    setPages([...pages, newPage]);
+  };
 
   const toggleDropdown = (pageIndex) => {
     setPages((prevPages) => {
@@ -144,12 +144,12 @@ const KotakNomor = () => {
   
     if (multiplechoiceId === null) {
       console.log("multiplechoiceId not found. You can create a new one.");
-      router.push(`/author/buatSoal/page1?testId=${testId}&multiplechoiceId=${multiplechoiceId}&nomor=${questionNumber}`);
+      router.push(`/author/buatSoal/buatPilgan?testId=${testId}&multiplechoiceId=${multiplechoiceId}&nomor=${questionNumber}`);
     }
   
     setSelectedNumber(questionNumber);
     
-    router.push(`/author/buatSoal/page1?testId=${testId}&multiplechoiceId=${multiplechoiceId}&nomor=${questionNumber}`);
+    router.push(`/author/buatSoal/buatPilgan?testId=${testId}&multiplechoiceId=${multiplechoiceId}&nomor=${questionNumber}`);
   };  
   
 const handleSave = () => {
