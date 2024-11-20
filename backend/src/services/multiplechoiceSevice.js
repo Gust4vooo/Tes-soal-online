@@ -8,7 +8,6 @@ const createMultipleChoiceService = async (testId, questions) => {
     
     const multipleChoices = await Promise.all(
         questions.map(async (question) => {
-
             if (!/^\d+(\.\d+)?$/.test(question.weight)) {
                 throw new Error(`Invalid weight value for question number ${question.number}. Weight must be a positive number without any signs, and can contain at most one decimal point.`);
             }
@@ -21,11 +20,13 @@ const createMultipleChoiceService = async (testId, questions) => {
                     number: question.number,
                     questionPhoto: question.questionPhoto || null, 
                     weight: parseFloat(question.weight),
-                    discussion: question.discussion || "",  
+                    discussion: question.discussion || "",
+                    isWeighted: question.isWeighted || false,  
                     option: {
                         create: question.options.map((option) => ({
                             optionDescription: option.optionDescription,
-                            isCorrect: option.isCorrect,
+                            isCorrect: question.isWeighted ? null : option.isCorrect, 
+                            points: question.isWeighted ? option.points : null, 
                         })),
                     },
                 },
@@ -40,10 +41,19 @@ const createMultipleChoiceService = async (testId, questions) => {
     return multipleChoices;
 };
 
-export { createMultipleChoiceService }; 
+export { createMultipleChoiceService };
 
 const updateMultipleChoiceService = async (multiplechoiceId, updatedData) => {
-    const { pageName, question, number, questionPhoto, weight, discussion, options } = updatedData;
+    const { 
+        pageName, 
+        question, 
+        number, 
+        questionPhoto, 
+        weight, 
+        discussion, 
+        options,
+        isWeighted
+    } = updatedData;
 
     const updateMultipleChoice = await prisma.multiplechoice.update({
         where: {id: multiplechoiceId},
@@ -54,26 +64,29 @@ const updateMultipleChoiceService = async (multiplechoiceId, updatedData) => {
             questionPhoto,
             weight,
             discussion,
+            isWeighted,  
         },
     });
 
     if (options && options.length > 0) {
         await Promise.all(
             options.map(async (option) => {
+                const optionData = {
+                    optionDescription: option.optionDescription,
+                    isCorrect: isWeighted ? null : option.isCorrect,
+                    points: isWeighted ? option.points : null,
+                };
+
                 if (option.id) {
                     await prisma.option.update({
                         where: { id: option.id },
-                        data: {
-                            optionDescription: option.optionDescription,
-                            isCorrect: option.isCorrect,
-                        },
+                        data: optionData,
                     });
                 } else {
                     await prisma.option.create({
                         data: {
                             multiplechoiceId,
-                            optionDescription: option.optionDescription,
-                            isCorrect: option.isCorrect,
+                            ...optionData,
                         },
                     });
                 }
