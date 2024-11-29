@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { AiOutlineMore } from 'react-icons/ai';
 
 const KotakNomor = () => {
   const router = useRouter();
@@ -14,7 +13,7 @@ const KotakNomor = () => {
   const [selectedNumber, setSelectedNumber] = useState(null);
   const [isRenaming, setIsRenaming] = useState(null);
   const [renameValue, setRenameValue] = useState('');
-  const [activeTab, setActiveTab] = useState('buatSoal');
+  const [activeTab, setActiveTab] = useState('');
 
   useEffect(() => {
     const savedPages = localStorage.getItem(`pages-${testId}`);
@@ -195,25 +194,18 @@ const KotakNomor = () => {
     }
   };
 
-  const toggleDropdown = (index) => {
-    const updatedPages = pages.map((page, idx) =>
-      idx === index ? { ...page, isDropdownOpen: !page.isDropdownOpen } : { ...page, isDropdownOpen: false }
+  const toggleDropdown = (pageIndex) => {
+    setPages(prevPages => 
+      prevPages.map((page, index) => ({
+        ...page,
+        isDropdownOpen: index === pageIndex ? !page.isDropdownOpen : false
+      }))
     );
-    setPages(updatedPages);
   };
-
-  const closeDropdown = (index) => {
-    const updatedPages = pages.map((page, idx) =>
-      idx === index ? { ...page, isDropdownOpen: false } : page
-    );
-    setPages(updatedPages);
-  };
-  
-  
 
   const handleRename = (pageIndex) => {
-    setIsRenaming(pageIndex); // Aktifkan mode rename
-    setRenameValue(pages[pageIndex].pageName); // Isi dengan nama saat ini
+    setIsRenaming(pageIndex);
+    setRenameValue(pages[pageIndex].pageName);
   };
 
   const saveRename = async (pageIndex) => {
@@ -336,33 +328,33 @@ const KotakNomor = () => {
       return; 
     }
 
-    router.push(`/author/buatSoal/publik/syarat?testId=${testId}`);
+    router.push(`/author/buattes/publik/syarat?testId=${testId}`);
   };
 
   return (
-    <div className="container mx-auto p-0" style={{ maxWidth: '1440px' }}>
+    <div className="w-full p-4">
       <header className="bg-[#0B61AA] text-white p-4 sm:p-6 font-poppins" style={{ maxWidth: '1443px', height: '108px' }}>
         <div className="container mx-auto flex justify-start items-center p-4">
           <Link href="/">
-            <img src="/images/etamtest.png" alt="etamtest" className="h-6 ml-4" style={{ maxWidth: '279px', height: '50px' }} />
+            <img src="/img/Vector.png" alt="Vector" className="h-6 ml-4" style={{ maxWidth: '279px', height: '50px' }} />
           </Link>
         </div>
       </header>
 
       <div className="w-full p-0">
-        <nav className="bg-[#FFFFFF] text-black p-4">
-          <ul className="grid grid-cols-2 flex justify-start sm:flex sm:justify-around gap-4 sm:gap-10">
+        <nav className="bg-[#FFFF] text-black p-4 sm:p-6">
+          <ul className="flex space-x-6 sm:space-x-20">
             <li>
               <button
-                className={`w-[140px] sm:w-[180px] px-4 sm:px-8 py-2 sm:py-4 rounded-full shadow-xl font-bold font-poppins ${activeTab === 'buatSoal' ? 'bg-[#78AED6]' : ''}`}
-                onClick={() => setActiveTab('buatSoal')}
+                className={`w-[120px] sm:w-[220px] h-[48px] rounded-[20px] shadow-md font-bold font-poppins ${activeTab === 'buatTes' ? 'bg-[#78AED6]' : ''}`}
+                onClick={() => setActiveTab('buatTes')}
               >
                 Buat Soal
               </button>
             </li>
             <li>
               <button
-                className={`w-[140px] sm:w-[180px] px-4 sm:px-8 py-2 sm:py-4 rounded-full shadow-xl font-bold font-poppins ${activeTab === 'publikasi' ? 'bg-[#78AED6]' : ''}`}
+                className={`w-[120px] sm:w-[220px] h-[48px] rounded-[20px] shadow-md font-bold font-poppins ${activeTab === 'publikasi' ? 'bg-[#78AED6]' : ''}`}
                 onClick={() => setActiveTab('publikasi')}
               >
                 Publikasi
@@ -371,97 +363,89 @@ const KotakNomor = () => {
           </ul>
         </nav>
 
-      <div className="w-full p-4">
-        {Array.isArray(pages) && pages.map((page, pageIndex) => (
-          <div key={page.pageNumber} className="my-4">
-            <div className="flex justify-between items-center bg-[#0B61AA] text-white p-2" style={{ maxWidth: '1486px', height: '61px' }}>
-              {isRenaming === pageIndex ? (
-                <div className="flex items-center">
-                  <input
-                    type="text"
-                    value={renameValue}
-                    onChange={(e) => setRenameValue(e.target.value)}
-                    className="text-black p-1 border border-gray-300 rounded-md"
-                  />
+      {Array.isArray(pages) && pages.map((page, pageIndex) => (
+        <div key={page.pageNumber} className="my-4">
+          <div className="flex justify-between items-center bg-[#0B61AA] text-white p-2" style={{ maxWidth: '1376px', height: '61px' }}>
+            {isRenaming === pageIndex ? (
+              <div className="flex items-center">
+                <input
+                  type="text"
+                  value={renameValue}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  className="text-black p-1 border border-gray-300 rounded-md"
+                />
+                <button
+                  onClick={() => saveRename(pageIndex)}
+                  className="ml-2 bg-white text-black px-2 py-1 rounded-md"
+                >
+                  Save
+                </button>
+              </div>
+            ) : (
+              <h2 className="text-lg">{page.pageName}</h2>
+            )}
+
+            <div className="relative">
+              <button 
+                className="text-white font-bold text-2xl mr-2"
+                onClick={() => toggleDropdown(pageIndex)}
+              >
+                :
+              </button>
+
+              {page.isDropdownOpen && (
+                <div
+                  className="absolute right-0 mt-2 w-36 bg-white rounded-lg shadow-lg z-10 p-1
+                  before:content-[''] before:absolute before:-top-4 before:right-5 before:border-8
+                  before:border-transparent before:border-b-white"
+                  onMouseEnter={() => setDropdownOpen(true)}
+                  onMouseLeave={() => setDropdownOpen(false)}
+                >
                   <button
-                    onClick={() => {
-                      saveRename(pageIndex);
-                      closeDropdown(pageIndex); // Menutup dropdown
-                    }}
-                    className="ml-2 bg-white text-black px-2 py-1 rounded-md"
+                      onClick={() => handleRename(pageIndex)}
+                      className="block px-4 py-2 text-deepBlue text-sm text-gray-700 hover:bg-deepBlue hover:text-white rounded-md"
                   >
-                    Save
+                      Rename
+                  </button>
+                  <button
+                      onClick={() => deletePage(pageIndex)}
+                      className="block px-4 py-2 text-deepBlue text-sm text-gray-700 hover:bg-deepBlue hover:text-white rounded-md"
+                  >
+                      Delete page
                   </button>
                 </div>
-              ) : (
-                <h2 className="text-lg">{page.pageName}</h2>
               )}
-
-              <div className="relative">
-                <button
-                  className="text-white font-bold text-4xl mr-2"
-                  onClick={() => toggleDropdown(pageIndex)}
-                >
-                  <AiOutlineMore />
-                </button>
-                {page.isDropdownOpen && (
-                  <div
-                    className="absolute right-0 mt-2 w-36 bg-white rounded-lg shadow-lg z-10 p-1
-                    before:content-[''] before:absolute before:-top-4 before:right-5 before:border-8
-                    before:border-transparent before:border-b-white"
-                  >
-                    <button
-                      onClick={() => {
-                        handleRename(pageIndex);
-                        closeDropdown(pageIndex); // Tutup dropdown setelah klik Rename
-                      }}
-                      className="block px-4 py-2 text-deepBlue text-sm text-gray-700 hover:bg-deepBlue hover:text-white rounded-md"
-                    >
-                      Rename
-                    </button>
-                    <button
-                      onClick={() => {
-                        deletePage(pageIndex);
-                        closeDropdown(pageIndex); // Tutup dropdown setelah klik Delete
-                      }}
-                      className="block px-4 py-2 text-deepBlue text-sm text-gray-700 hover:bg-deepBlue hover:text-white rounded-md"
-                    >
-                      Delete page
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="flex flex-row flex-wrap items-center gap-3 justify-start border border-gray-300 
-             max-w-[100%] sm:max-w-[99.7%] px-[2%] sm:px-[4%] py-4">
-              {Array.isArray(page.questions) && page.questions.map((question, questionIndex) => (
-                <div
-                  key={`${pageIndex}-${question}`}
-                  className="flex flex-col items-center border border-gray-300 p-2 bg-white rounded-lg shadow-md cursor-pointer"
-                  style={{ width: '50px', height: '50px' }}
-                  onClick={() => handleQuestionSelect(question, pageIndex)} 
-                >
-                  <span className="bg-white border rounded-full w-8 h-8 flex items-center justify-center mb-2 rounded-[15px]">
-                    {question}
-                  </span>
-                </div>
-              ))}
-
-              <div className="flex items-center">
-                <button
-                  onClick={() => addQuestion(pageIndex)}
-                  className="bg-[#A6D0F7] text-black px-4 py-2 rounded-[15px] shadow-lg"
-                >
-                  + Soal
-                </button>
-              </div>
             </div>
           </div>
-        ))}
-      </div>
- 
-      <div className="flex justify-between mt-4 ml-6">
+
+          <div className="mt-4"></div>
+          <div className="flex flex-row flex-wrap p-4 gap-3 justify-start border" style={{ maxWidth: '100%', padding: '0 2%' }}>
+            {Array.isArray(page.questions) && page.questions.map((question, questionIndex) => (
+              <div
+                key={`${pageIndex}-${question}`}
+                className="flex flex-col items-center border border-gray-300 p-2 bg-white rounded-lg shadow-md cursor-pointer"
+                style={{ width: '80px', height: '80px' }}
+                onClick={() => handleQuestionSelect(question, pageIndex)} 
+              >
+                <span className="bg-white border rounded-full w-8 h-8 flex items-center justify-center mb-2 rounded-[15px]">
+                  {question}
+                </span>
+              </div>
+            ))}
+
+            <div className="flex items-center">
+              <button
+                onClick={() => addQuestion(pageIndex)}
+                className="bg-[#A6D0F7] text-black px-4 py-2 rounded-[15px] shadow-lg"
+              >
+                + Soal
+              </button>
+            </div>
+          </div>
+        </div>
+      ))}
+
+      <div className="flex justify-between mt-4">
         <button
           onClick={addPage}
           className="bg-[#0B61AA] border border-black flex items-center space-x-2 px-4 py-2 hover:text-white font-poppins rounded-[15px] shadow-lg"
@@ -469,7 +453,7 @@ const KotakNomor = () => {
           + Tambah Page
         </button>
         
-        <div className="flex justify-end space-x-2 mr-8">
+        <div className="flex justify-end space-x-2 mr-4">
           <button
             onClick={handleSave} 
             className="bg-[#E8F4FF] border border-black flex items-center space-x-2 px-4 py-2 hover:text-black font-poppins rounded-[15px] shadow-lg"
