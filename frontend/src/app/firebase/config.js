@@ -1,19 +1,15 @@
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import {getAuth} from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeApp } from "firebase/app";
+import {getStorage} from "firebase/storage";
 
 const firebaseConfig = {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID, 
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET, 
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: "AIzaSyBGfDvpxztqYXTrXMk5qu7lLPTQqFfiB_k",
+  authDomain: "tes-online-ippl.firebaseapp.com",
+  projectId: "tes-online-ippl",
+  storageBucket: "tes-online-ippl.appspot.com",
+  messagingSenderId: "901733415157",
+  appId: "1:901733415157:web:80899ed4302338c5966dbc",
+  measurementId: "G-5VK1HE0JNB"
 };
 
-// Initialize Firebase
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const auth =  getAuth(app);
-const db = getFirestore(app); // Initialize Firestore
-
-export {app, auth, db}
+const app = initializeApp(firebaseConfig);
+export const storage = getStorage(app);

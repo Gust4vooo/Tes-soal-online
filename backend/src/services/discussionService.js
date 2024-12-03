@@ -55,28 +55,40 @@ export const getDiscussionsByResultId = async (resultId) => {
     }
   };
 
-export const generateDiscussionPDF = async (resultId) => {
-  try {
-    const discussions = await getDiscussionsByResultId(resultId);
-    const doc = new PDFDocument({
-      size: 'A4',
-      margins: { top: 50, left: 50, right: 50, bottom: 50 }
-    });
-
-    // Tambahkan font custom (pastikan file font ada di folder yang benar)
-    doc.registerFont('Poppins', '../backend/src/public/Poppins-Regular.ttf');
-    doc.font('Poppins');
-
-    // Tambahkan header
-    doc.fontSize(24).fillColor('#0B61AA').text('Pembahasan Soal', { align: 'center' });
-    doc.moveDown();
-
-    //Tambahkan logo (jika ada)
-    const logoPath = '../../Online-Test-Platform/frontend/public/image/logofix.png';
-    doc.image(logoPath, 50, 45, { width: 50 });
-
-    doc.moveDown();
-
+  export const generateDiscussionPDF = async (resultId) => {
+    try {
+      const discussions = await getDiscussionsByResultId(resultId);
+      const doc = new PDFDocument({
+        size: 'A4',
+        margins: { top: 50, left: 50, right: 50, bottom: 50 }
+      });
+  
+      // Hapus kode yang berkaitan dengan font Poppins
+      // const fontPath = path.resolve('/usr/src/app/src/public/Poppins-Regular.ttf');
+      // doc.registerFont('Poppins', fontPath);
+  
+      // Gunakan font default (Helvetica)
+      doc.font('Helvetica');
+  
+      // Tambahkan header
+      doc.fontSize(24).fillColor('#0B61AA').text('Pembahasan Soal', { align: 'center' });
+      doc.moveDown();
+  
+      // Tambahkan logo (jika ada)
+      // Pastikan path logo benar dan file ada
+      try {
+        const logoPath = path.resolve(__dirname, '../../public/image/logofix.png');
+        if (fs.existsSync(logoPath)) {
+          doc.image(logoPath, 50, 45, { width: 50 });
+        } else {
+          console.log('Logo file not found:', logoPath);
+        }
+      } catch (error) {
+        console.error('Error adding logo:', error);
+      }
+  
+      doc.moveDown();
+  
     discussions.forEach((item, index) => {
       // Nomor soal dengan latar belakang
       doc.fillColor('#FFFFFF')
