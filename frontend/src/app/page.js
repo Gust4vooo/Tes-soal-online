@@ -1,5 +1,5 @@
 import React from 'react'
-// import LandingPage from '@/app/landingpage/landingpage'
+import LandingPage from '@/app/landingpage/landingpage'
 // import GuestDashboard from '@/app/guestDashboard/page'
 // import landingpage from './src/app/user/landingpage/page'
 // import authorAgreement from '@/app/authorAgreement/page'
@@ -9,11 +9,11 @@ import BuatTes from './author/buattes/page'
 const page = () => {
   return (
     <div>
-      {/* <LandingPage /> */}
+      <LandingPage />
       {/* <GuestDashboard /> */}
       {/* <landingpage /> */}
       {/* <BuatSoal/> */}
-      <BuatTes />
+      {/* <BuatTes /> */}
       {/* <authorAgreement /> */}
     </div>
   )

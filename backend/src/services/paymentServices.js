@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 class PaymentService {
         constructor() {
             try {
-                if (!process.env.SERVER_KEY || !process.env.PUBLIC_CLIENT_KEY) {
+                if (!process.env.MIDTRANS_SERVER_KEY || !process.env.MIDTRANS_CLIENT_KEY) {
                     throw new Error('Midtrans keys are not defined in environment variables');
                 }
     
