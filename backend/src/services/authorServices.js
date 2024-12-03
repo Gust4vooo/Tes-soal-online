@@ -240,38 +240,48 @@ export const getAuthorDataService = async (token) => {
   try {
     // Decode the token
     const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+
+    console.log("Decoded token:", decodedToken); 
+
     const userId = decodedToken.id;
 
-    // Find the author associated with this user ID
     const author = await prisma.author.findFirst({
       where: { userId: userId },
+      select: {
+        id: true,  // Ambil id dari author
+        name: true, // Ambil name dari author
+      }
+    });
+    
+    if (!author) {
+      throw new Error("Author not found for this user");
+    }
+
+    const authorWithRelations = await prisma.author.findFirst({
+      where: { id: author.id },
       include: {
         user: {
           select: {
-            role: true,
+            role: true,  // Ambil role dari user
           }
         },
         test: {
           include: {
-            history: true,
+            history: true,  // Sertakan history dari test
           }
         }
       }
     });
 
-    if (!author) {
-      throw new Error("Author not found for this user");
-    }
-
     // Calculate total tests and total participants
-    const totalSoal = author.test.length;
-    const totalPeserta = author.test.reduce((sum, test) => sum + test.history.length, 0);
+    const totalSoal = authorWithRelations.test.length;
+    const totalPeserta = authorWithRelations.test.reduce((sum, test) => sum + test.history.length, 0);
 
     // Format the response
     return {
-      id: author.id,
-      nama: author.name,
-      role: author.user.role,
+      id: authorWithRelations.id,
+      nama: authorWithRelations.name,
+      role: authorWithRelations.user.role,
       totalSoal: totalSoal,
       totalPeserta: totalPeserta,
     };

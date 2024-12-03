@@ -81,6 +81,66 @@ const getTestDetailsService = async (testId) => {
   }
 };
 
+export const getAuthorTestsService = async (userId) => {
+  try {
+    console.log("Received userId:", userId);  // Memastikan userId yang dikirim valid
+    
+    const author = await prisma.author.findFirst({
+      where: { userId: userId }
+    });
+
+    // Log data author untuk melihat hasil query
+    console.log('Author Data:', author);
+
+    if (!author) {
+      console.log('No author found for this user');
+      throw new Error('Author not found for this user');
+    }
+
+    // Fetch tests for this author
+    const test = await prisma.test.findMany({
+      where: { authorId: author.id },
+      select: {
+        id: true,
+        title: true,
+        category: true,
+        similarity: true,
+        isPublished: true,
+        price: true,
+        _count: {
+          select: { history: true }
+        },
+        author: {
+          select: {
+            name: true,
+            authorPhoto: true,
+          }
+        }
+      }
+    });
+
+    console.log('Test Data:', test);  // Log hasil query test
+
+    // Format the data as required
+    return test.map(test => ({
+      id: test.id,
+      judul: test.title,
+      kategori: test.category,
+      prediksi_kemiripan: `Prediksi kemiripan ${test.similarity}%`,
+      history: test._count.history, // This is now a number
+      author: test.author.name,
+      isPublished: test.isPublished,
+      price: test.price,
+      authorProfile: test.author.authorPhoto
+    }));
+
+  } catch (error) {
+    console.error('Error in getAuthorTestsService:', error);
+    throw error;
+  }
+};
+
+
 export { 
     createTestService,
     publishTestService,

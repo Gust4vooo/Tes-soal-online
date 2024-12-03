@@ -1,4 +1,4 @@
-import { createTestService, getTestsByCategory, getAllTestsService, publishTestService } from 'backend/src/services/testServices.js';
+import { createTestService, getTestsByCategory, getAllTestsService, publishTestService, getAuthorTestsService } from 'backend/src/services/testServices.js';
 
 // Buat tes
 const createTestController = async (req, res, next) => {
@@ -78,7 +78,6 @@ const fetchTestsByCategory = async (req, res, next) => {
 
 export const getAuthorTests = async (req, res) => {
   try {
-    // Assuming the middleware adds the user object to the request
     const userId = req.user.id;
     const tests = await getAuthorTestsService(userId);
     res.json(tests);

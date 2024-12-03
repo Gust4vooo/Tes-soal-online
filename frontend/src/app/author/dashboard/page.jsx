@@ -14,6 +14,7 @@ export default function Home() {
   const [isDropdownOpen, setDropdownOpen] = useState(false);
   const [authorTests, setAuthorTests] = useState([]);
   const [authorData, setAuthorData] = useState([]);
+  const [authorId, setAuthorId] = useState(null);
   
   useEffect(() => {
     const fetchAuthorTests = async () => {
@@ -45,14 +46,20 @@ export default function Home() {
       try {
         setLoading(true);
         const token = localStorage.getItem('token');
+        if (!token) {
+          throw new Error('No token found');
+        }
         
         const response = await axios.get('http://localhost:2000/author/author-data', {
           headers: {
             Authorization: `Bearer ${token}`
           }
         });
+
+        console.log(response.data);
         
-        setAuthorData([response.data]);
+        setAuthorData(response.data);
+        setAuthorId(response.data.id);
         setLoading(false);
       } catch (err) {
         setError('Failed to fetch author data');
@@ -63,74 +70,6 @@ export default function Home() {
   
     fetchAuthorData();
   }, []);
-
-  
-  const author = [
-    {
-      id : 1,
-      nama : "Desti Nur Irawati",
-      role : "Administrator",
-      totalSoal : 124,
-      totalPeserta : 156,
-    }]
-      
-  const testData = [
-    {
-      id: 1,
-      kategori : "Try Out UTBK  ",
-      judul : "TRY OUT UTBK 2025#1",
-      prediksi_kemiripan: "Prediksi kemiripan 45%",
-      views: 1386,
-      author: " Rania Suyati",
-      free: true,
-      imageUrl: "/images/tes.png",
-      authorProfile : " /images/authorProfile.png"
-    },
-    {
-      id: 2,
-      kategori : "Try Out PSIKOTEST",
-      judul: "TRY OUT PSIKOTEST 2025#2",
-      prediksi_kemiripan: "Prediksi kemiripan 50%",
-      views: 2000,
-      author: "Dilla Ayu",
-      free: true, // ubah ke false untuk tes menampilkan gambar kunci
-      imageUrl: "/images/tes.png",
-      authorProfile : " /images/authorProfile.png"
-    },
-    {
-      id: 3,
-      kategori : "Try Out PSIKOTEST",
-      judul: "TRY OUT PSIKOTEST 2025#3",
-      prediksi_kemiripan: "Prediksi kemiripan 55%",
-      views: 2000,
-      author: "Zhang Yixing",
-      free: true, // ubah ke false untuk tes menampilkan gambar kuci
-      imageUrl: "/images/tes.png",
-      authorProfile : " /images/authorProfile.png"
-    },
-    {
-      id: 4,
-      kategori : "Try Out PSIKOTEST",
-      judul: "TRY OUT PSIKOTEST 2025#4",
-      prediksi_kemiripan: "Prediksi kemiripan 70%",
-      views: 1994,
-      author: " Oh Sehun",
-      free: true, // ubah ke false untuk tes menampilkan kunci
-      imageUrl: "/images/tes.png",
-      authorProfile : " /images/authorProfile.png"
-    },
-    {
-      id: 5,
-      kategori : "Try Out PSIKOTEST",
-      judul: "TRY OUT PSIKOTEST 2025#5",
-      prediksi_kemiripan: "Prediksi kemiripan 40%",
-      views: 1974,
-      author: " Oh Sehun",
-      free: true, // ubah ke false untuk tes menampilkan kunci
-      imageUrl: "/images/tes.png",
-      authorProfile : " /images/authorProfile.png"
-    },
-  ];
   
   const handleSearch = async (e) => {
     
@@ -170,7 +109,7 @@ export default function Home() {
   }, []);
 
   const populernextSlide = () => {
-    if (populercurrentIndex < testData.length - populeritemsToShow) {
+    if (populercurrentIndex < authorTests.length - populeritemsToShow) {
       populersetCurrentIndex(populercurrentIndex + 1);
     }
   };
@@ -199,7 +138,7 @@ export default function Home() {
   }, []);
 
   const gratisnextSlide = () => {
-    if (gratiscurrentIndex < testData.length - gratisitemsToShow) {
+    if (gratiscurrentIndex < authorTests.length - gratisitemsToShow) {
       gratissetCurrentIndex(gratiscurrentIndex + 1);
     }
   };
@@ -251,14 +190,14 @@ export default function Home() {
 
         </aside>
 
-        {/* Main Content */}
-        {authorData.map((author, index) => (
         <main className="flex-1 bg-white">
           {/* Header */}
           <header className="flex justify-end items-center bg-[#0B61AA] p-4">
             <div className="relative flex inline-block items-center ">
               <div className="mx-auto">
-                <span className="text-white font-poppins font-bold mr-3">Hai, {author.nama}!</span>
+              <span className="text-white font-poppins font-bold mr-3">
+                Hai, {authorData.nama}!
+              </span>
               </div>
               <div className='hidden lg:block'>
                 <img 
@@ -327,11 +266,11 @@ export default function Home() {
             <div className="flex pr-4 gap-5 mt-4 ml-3 ">
               <div className="bg-[#F3F3F3] px-3 py-1 max-w-auto justify-between item-center rounded-[15px] shadow-lg shadow-lg text-[#0B61AA]">
                 <span>Total Soal</span>
-                <span className="font-semibold ml-4">{authorData[0].totalSoal}</span>
+                <span className="font-semibold ml-4">{authorData.totalSoal}</span>
               </div>
               <div className="bg-[#F3F3F3] px-3 py-1 max-w-auto justify-between item-center rounded-[15px] shadow-lg shadow-lg text-[#0B61AA]">
                 <span>Total Peserta</span> 
-                <span className="font-semibold ml-2">{authorData[0].totalPeserta}</span>
+                <span className="font-semibold ml-2">{authorData.totalPeserta}</span>
               </div>
             </div>
             
@@ -404,7 +343,7 @@ export default function Home() {
               {/* Tombol panah kanan */}
               <button
                 onClick={populernextSlide}
-                className={`absolute right-0 top-1/2 transform -translate-y-1/2 bg-white rounded-full p-2 shadow hover:bg-gray-200 ${populercurrentIndex >= testData.length - populeritemsToShow ? 'hidden' : ''}`}
+                className={`absolute right-0 top-1/2 transform -translate-y-1/2 bg-white rounded-full p-2 shadow hover:bg-gray-200 ${populercurrentIndex >= authorTests.length - populeritemsToShow ? 'hidden' : ''}`}
               >
                 &#10095;
               </button>
@@ -468,14 +407,14 @@ export default function Home() {
               {/* Tombol panah kanan */}
               <button
                 onClick={gratisnextSlide}
-                className={`absolute right-0 top-1/2 transform -translate-y-1/2 bg-white rounded-full p-2 shadow hover:bg-gray-200 ${gratiscurrentIndex >= testData.length - gratisitemsToShow ? 'hidden' : ''}`}
+                className={`absolute right-0 top-1/2 transform -translate-y-1/2 bg-white rounded-full p-2 shadow hover:bg-gray-200 ${gratiscurrentIndex >= authorTests.length - gratisitemsToShow ? 'hidden' : ''}`}
               >
                 &#10095;
               </button>
             </div>
           </section>
         </main>
-        ))}
+        ))
       </div>
     </>
   );
