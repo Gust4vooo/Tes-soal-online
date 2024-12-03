@@ -1,25 +1,17 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-
+import { useRouter } from 'next/navigation';
 
 export default function PublikasiPage() {
   const [namaTes, setNamaTes] = useState('');
   const [testId, setTestId] = useState(null);
-  const [durasiTes, setDurasiTes] = useState('');
-  // const [acakPertanyaan, setAcakPertanyaan] = useState({
-  //   waktu: false,
-  //   acak: false,
-  // });
-  // const [maksimumPercobaan, setMaksimumPercobaan] = useState('');
+  const [durasiTes, setDurasiTes] = useState('')
   const [hargaTes, setHargaTes] = useState('');
   const [prediksiKemiripan, setPrediksiKemiripan] = useState('');
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [showErrorPopup, setShowErrorPopup] = useState(false);
-
-  // const handleCheckboxChange = (event) => {
-  //   setAcakPertanyaan({ ...acakPertanyaan, [event.target.name]: event.target.checked });
-  // };
+  const router = useRouter();
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -61,7 +53,12 @@ export default function PublikasiPage() {
         if (response.ok) {
             console.log('Tes berhasil disimpan!');
             setShowSuccessPopup(true); 
-            setShowErrorPopup(false);   
+            setShowErrorPopup(false);
+            
+            // Menunggu beberapa detik sebelum redirect
+            setTimeout(() => {
+                router.push('/author/dashboard'); // Ganti dengan path yang Anda inginkan
+            }, 2000); // Menunggu 2 detik, Anda bisa menyesuaikan waktunya
         } else {
             console.error('Gagal menyimpan tes.', await response.text());
             setShowErrorPopup(true);   
@@ -82,18 +79,17 @@ export default function PublikasiPage() {
   return (
     <div>
       {/* Bar Atas */}
-      <header className="bg-[#0B61AA] text-white p-4 sm:p-6" style={{ maxWidth: '1440px', height: '108px' }}>
-        <div className="container mx-auto flex justify-between items-center">
-          <div className="flex space-x-4">
-            <Link href="/">
-              <img src="/images/menu.png" alt="Menu" className="h-7" style={{ maxWidth: '50px', height: '50px' }} />
-            </Link>
-            <Link href="/">
-              <img src="/images/Vector.png" alt="Vector" className="h-6" style={{ maxWidth: '279px', height: '50px' }} />
+      <header className="bg-[#0B61AA] text-white p-4 sm:p-6 w-auto h-[80px]">
+        <div className="container  flex items-center">
+          <div className="flex space-x-4 w-full">
+            <Link href="/homeAuthor">
+              <img src="/images/Vector.png" alt="Vector" className="h-6 sm:h-9 absolute left-16 absolute top-5" // Gunakan positioning absolute untuk posisi kiri
+                style={{ maxWidth: '279px' }} />
             </Link>
           </div>
         </div>
       </header>
+
 
       {/* Navigasi */}
       <nav className="bg-[#FFFFFF] text-black p-4">
@@ -101,7 +97,7 @@ export default function PublikasiPage() {
           <li>
             <button
               className={`px-20 py-6 rounded-full font-bold font-poppins ${activeTab === 'buatTes' ? 'bg-[#78AED6]' : ''}`}
-              onClick={() => setActiveTab('buatTes')}
+              
             >
               Buat Soal
             </button>
@@ -118,22 +114,22 @@ export default function PublikasiPage() {
       </nav>
 
       
-      <div className="bg-[#78AED6] p-8 rounded-md mx-auto" style={{ width: '1100px', height: '750px', marginTop: '20px' }}>
+      <div className="bg-[#78AED6] p-8 rounded-md mx-auto" style={{ width: '1100px', height: '700px', marginTop: '20px' }}>
         <div className="flex justify-start pr-9">
           {/* Bagian Kiri, Teks Rata Kanan */}
           <div className="text-left pr-5">
-            <h3 className="font-poppins text-black text-lg mb-8 mt-8">Nama Tes</h3>
-            <h3 className="font-poppins text-black text-lg mb-7 mt-5">Durasi Tes</h3>
+            <h3 className="font-poppins text-black sm:text-lg mb-6 mt-7 sm:pt-6">Nama Tes</h3>
+            <h3 className="font-poppins text-black sm:text-lg mb-4 mt-7 sm:pt-12">Durasi Tes</h3>
             {/* <h3 className="font-poppins text-black text-lg mb-4 mt-5">Acak Pertanyaan</h3> */}
             {/* <h3 className="font-poppins text-black text-lg mb-4 mt-5">Maksimum Percobaan Kuis</h3> */}
-            <h3 className="font-poppins text-black text-lg mb-7 mt-5">Harga Tes</h3>
-            <h3 className="font-poppins text-black text-lg mb-4 mt-5">Prediksi Kemiripan</h3>
+            <h3 className="font-poppins text-black sm:text-lg mb-4 mt-7 sm:pt-12">Harga Tes</h3>
+            <h3 className="font-poppins text-black sm:text-lg mb-4 mt-7 sm:pt-12">Prediksi Kemiripan</h3>
           </div>
 
           {/* Bar putih di samping */}
-          <div className="bg-white p-6 rounded-md shadow-lg" style={{ width: '902px', height: '654px' }}>
+          <div className="bg-white p-6 rounded-md shadow-lg" style={{ width: '902px', height: '550px' }}>
             {/* Input Nama Tes */}
-            <div className="mb-4">
+            <div className="mb-4 sm:pt-4">
               <input
                 type="text"
                 className="w-full border border-gray-300 p-2 rounded-full bg-white text-gray-500"
@@ -143,7 +139,7 @@ export default function PublikasiPage() {
               />
             </div>
 
-            <div className="mb-4">
+            <div className="mb-4 sm:pt-12">
                 <input
                     type="text"
                     className="w-full border border-gray-300 p-2 rounded-full bg-white text-gray-500"
@@ -191,7 +187,7 @@ export default function PublikasiPage() {
             </div> */}
 
             {/* Dropdown Harga Tes */}
-            <div className="mb-4">
+            <div className="mb-4 sm:pt-12">
               <input
                 type="number"
                 step="0.01" // Mengizinkan input nilai desimal
@@ -203,7 +199,7 @@ export default function PublikasiPage() {
             </div>
 
             {/* Dropdown Prediksi Kemiripan */}
-            <div className="mb-4">
+            <div className="mb-4 sm:pt-12">
               <select
                 className="w-full border border-gray-300 p-2 rounded-full bg-white text-gray-500"
                 value={prediksiKemiripan}
@@ -221,7 +217,7 @@ export default function PublikasiPage() {
         <div className='pt-4 flex justify-end pr-10'>
           <button
             onClick={handlePublish}
-            className="bg-white text-black py-2 px-4 rounded-lg hover:bg-[#0B61AA] hover:text-white"
+            className="bg-white text-black w-[180px] px-6 py-2 rounded-md hover:bg-[#0B61AA] hover:text-white transition duration-300" 
           >
             Publikasi
           </button>

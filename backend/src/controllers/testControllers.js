@@ -1,4 +1,4 @@
-import { createTestService, getTestsByCategory, getAllTestsService, publishTestService } from 'backend/src/services/testServices.js';
+import { createTestService, getTestsByCategory, getAllTestsService, publishTestService, getTestDetailsService } from 'backend/src/services/testServices.js';
 
 // Buat tes
 const createTestController = async (req, res, next) => {
@@ -74,9 +74,25 @@ const fetchTestsByCategory = async (req, res, next) => {
     }
 };
 
+const getTestDetailsController = async (req, res) => {
+    try {
+      const { testId } = req.params;
+      const testDetails = await getTestDetailsService(testId);
+      res.status(200).json(testDetails);
+    } catch (error) {
+      console.error('Error in getTestDetailsController:', error);
+      if (error.message === 'Test not found') {
+        res.status(404).json({ message: 'Test not found' });
+      } else {
+        res.status(500).json({ message: 'Internal server error' });
+      }
+    }
+  };
+
 export{ 
     createTestController,
     publishTestController,
     getAllTests,
-    fetchTestsByCategory
+    fetchTestsByCategory,
+    getTestDetailsController
 };

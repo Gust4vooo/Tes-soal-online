@@ -1,6 +1,6 @@
 // backend/routes/riwayattransaksiRoutes.js
 import express from 'express';
-import { getUserTransactionHistory, getTransactionDetails } from '../controllers/riwayattransaksiController.js';
+import { getUserTransactionHistory } from '../controllers/riwayattransaksiController.js';
 import { authenticateToken } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -9,6 +9,6 @@ const router = express.Router();
 router.get('/riwayat-transaksi', authenticateToken, getUserTransactionHistory);
 
 // Protected route to get transaction details by transaction ID, requires JWT authentication
-router.get('/riwayat-transaksi/detail/:transactionId', authenticateToken, getTransactionDetails);
+// router.get('/riwayat-transaksi/detail/:transactionId', authenticateToken, getTransactionDetails);
 
 export default router;

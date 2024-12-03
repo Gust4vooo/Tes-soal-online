@@ -95,7 +95,7 @@ const VerifikasiAuthor1 = () => {
               <div className="block lg:flex justify-center items-center p-8 rounded-lg bg-paleBlue lg:w-[837px] w-[210px] h-[440px] lg:h-[463px]">
                    {/* Box 1 */}
                     <div className="bg-[#F3F3F3] w-full h-60 m-2 p-2 rounded-lg flex flex-col justify-between items-center text-[#0B61AA] font-bold shadow-lg">
-                      <p className="font-poppins font-bold text-[20px] md:text-[28px] mt-2 p-2">Total Pengguna</p>
+                      <p className="font-poppins  text-[20px] md:text-[28px] mt-2 p-2">Total Pengguna</p>
                       <div className="flex-grow flex justify-center items-center -mt-2">
                         <img src="/images/tes.png" alt="Data Author"  className="w-20 lg:w-51 object-cover" />
                       </div>
@@ -104,7 +104,7 @@ const VerifikasiAuthor1 = () => {
 
                   {/* Box 2 */}
                   <div className="bg-[#F3F3F3] w-full h-60 m-2 p-2 rounded-lg flex flex-col justify-between items-center text-[#0B61AA] font-bold shadow-lg">
-                    <p className="font-poppins font-bold text-[20px] md:text-[28px] mt-2 p-2">Total Author</p>
+                    <p className="font-poppins text-[20px] md:text-[28px] mt-2 p-2">Total Author</p>
                     <div className="flex-grow flex justify-center items-center -mt-2">
                       <img src="/images/peserta.png" alt="Data Author"  className="w-20 lg:w-51 object-cover" />
                     </div>
@@ -113,7 +113,7 @@ const VerifikasiAuthor1 = () => {
 
                   {/* Box 3 */}
                   <div className="bg-[#F3F3F3] w-full h-60 m-2 p-2 rounded-lg flex flex-col justify-between items-center text-[#0B61AA] font-bold shadow-lg">
-                    <p className="font-poppins font-bold text-[20px] md:text-[28px] mt-2 p-2">Total Tes</p>
+                    <p className="font-poppins  text-[20px] md:text-[28px] mt-2 p-2">Total Tes</p>
                     <div className="flex-grow flex justify-center items-center -mt-2">
                       <img src="/images/dataAuthor.png" alt="Data Author"  className="w-20 lg:w-51 object-cover" />
                     </div>

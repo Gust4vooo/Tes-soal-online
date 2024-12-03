@@ -3,7 +3,11 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
+import { getAuth, updateEmail, updatePassword } from 'firebase/auth';
+import { uploadFileToStorage } from '../../firebase/firebaseBucket.js';
 dotenv.config();
+import bcrypt from 'bcrypt';
+import { bucket } from '../../firebase/firebaseAdmin.js';
 
 export const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_here';
 
@@ -159,43 +163,120 @@ export const getAuthorByUserId = async (token) => {
 };
 
 
-export const editAuthorProfileService = async (token, profileData) => {
-    try {
-        const decodedToken = jwt.verify(token, JWT_SECRET);
-        const userId = decodedToken.id;
 
-        const author = await prisma.author.findFirst({
-            where: { userId: userId }
-        });
 
-        if (!author) {
-            throw new Error("Author not found for this user");
+
+import admin from '../../firebase/firebaseAdmin.js'; // Sesuaikan path jika perlu
+
+export const editAuthorProfileService = async (token, profileData, file) => {
+  console.log('Starting editAuthorProfileService');
+  try {
+      console.log('Verifying token');
+      const decodedToken = jwt.verify(token, JWT_SECRET);
+      const userId = decodedToken.id;
+      console.log('User ID:', userId);
+
+      console.log('Finding author');
+      const author = await prisma.author.findFirst({
+          where: { userId: userId },
+          include: { user: true }
+      });
+
+      if (!author) {
+          console.log('Author not found');
+          throw new Error("Author not found for this user");
+      }
+
+      console.log('Author found:', author.id);
+
+      const authorUpdateData = {};
+      const userUpdateData = {};
+
+      if (profileData.firstName || profileData.lastName) {
+          const fullName = `${profileData.firstName} ${profileData.lastName}`.trim();
+          authorUpdateData.name = fullName;
+          userUpdateData.name = fullName;
+      }
+
+      // Handle file upload if a new photo is provided
+      if (file) {
+          console.log('Uploading new author photo');
+          const fileBuffer = file.buffer;
+          const filename = `author-photos/${userId}-${Date.now()}.jpg`;
+          const photoUrl = await uploadFileToStorage(fileBuffer, filename);
+          authorUpdateData.authorPhoto = photoUrl;
+          console.log('New photo URL:', photoUrl);
+      }
+
+      // ... rest of the existing code for email and password update ...
+
+      // Update author data
+      console.log('Updating author data');
+      const updatedAuthor = await prisma.author.update({
+          where: { id: author.id },
+          data: authorUpdateData,
+      });
+
+      // Update user data
+      console.log('Updating user data');
+      const updatedUser = await prisma.user.update({
+          where: { id: userId },
+          data: userUpdateData,
+      });
+
+      console.log('Profile update completed');
+      return {
+          ...updatedAuthor,
+          email: updatedUser.email,
+      };
+  } catch (error) {
+      console.error("Error in editAuthorProfileService:", error);
+      throw new Error("Failed to update profile: " + error.message);
+  }
+};
+
+
+export const getAuthorDataService = async (token) => {
+  try {
+    // Decode the token
+    const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decodedToken.id;
+
+    // Find the author associated with this user ID
+    const author = await prisma.author.findFirst({
+      where: { userId: userId },
+      include: {
+        user: {
+          select: {
+            role: true,
+          }
+        },
+        test: {
+          include: {
+            history: true,
+          }
         }
+      }
+    });
 
-        // Only update fields that are provided
-        const updateData = {};
-        if (profileData.name) updateData.name = profileData.name;
-        if (profileData.handphoneNum) updateData.handphoneNum = profileData.handphoneNum;
-        if (profileData.authorPhoto) updateData.authorPhoto = profileData.authorPhoto;
-        if (profileData.bank) updateData.bank = profileData.bank;
-        if (profileData.accountBank) updateData.accountBank = profileData.accountBank;
-
-        const updatedAuthor = await prisma.author.update({
-            where: { id: author.id },
-            data: updateData,
-        });
-
-        // Update user name if it's provided
-        if (profileData.name) {
-            await prisma.user.update({
-                where: { id: userId },
-                data: { name: profileData.name },
-            });
-        }
-
-        return updatedAuthor;
-    } catch (error) {
-        console.error("Error in editAuthorProfileService:", error);
-        throw new Error("Failed to update author profile: " + error.message);
+    if (!author) {
+      throw new Error("Author not found for this user");
     }
+
+    // Calculate total tests and total participants
+    const totalSoal = author.test.length;
+    const totalPeserta = author.test.reduce((sum, test) => sum + test.history.length, 0);
+
+    // Format the response
+    return {
+      id: author.id,
+      nama: author.name,
+      role: author.user.role,
+      totalSoal: totalSoal,
+      totalPeserta: totalPeserta,
+    };
+  } catch (error) {
+    console.error("Error in getAuthorDataService:", error);
+    throw new Error("Failed to retrieve author data: " + error.message);
+  }
 };

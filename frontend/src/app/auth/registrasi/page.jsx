@@ -10,6 +10,12 @@ const Registrasi = () => {
     const [role, setRole] = useState('');
     const [showPopup, setShowPopup] = useState(); 
     const router = useRouter();
+    const [showPassword, setShowPassword] = useState(false); 
+
+    // Fungsi untuk toggle tampilan sandi
+    const togglePasswordVisibility = () => {
+        setShowPassword(!showPassword);
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -62,12 +68,12 @@ const Registrasi = () => {
     };
     
     return (
-        <div className="relative min-h-screen flex justify between items-center bg-white">
-            <img 
-                src="/images/polygon.png" 
-                alt="Img 1" 
-                className="w-full max-w-xs md:max-w-sm max-w-md lg:h-max-screen object-contain"
-            />
+        <div className="flex h-screen">
+    <img 
+        src="/images/polygon.png" 
+        alt="Img 1" 
+        className="w-full md:w-auto lg:w-auto h-screen object-contain object-left"
+    />
             
             <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', padding: '20px' }}></div>
             
@@ -86,7 +92,7 @@ const Registrasi = () => {
                         />
                     </div>
                     <div>
-                        <label htmlFor='email' className="block text-sm font-medium text-black">Alamat Email:</label>
+                        <label htmlFor='email' className="block text-sm font-medium text-black">Alamat Email</label>
                         <input
                             type="text"
                             id="email"
@@ -96,17 +102,29 @@ const Registrasi = () => {
                         />
                     </div>
                     <div>
-                        <label htmlFor='password' className="block text-sm font-medium text-black">Kata Sandi:</label>
+                        <label htmlFor='password' className="block text-sm font-medium text-black">Kata Sandi</label>
+                        <div className="relative"> 
                         <input
-                            type="password"
+                            type={showPassword ? "text" : "password"}
                             id="password"
                             name="password"
                             onChange={(e) => setPassword(e.target.value)}
                             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-2xl shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
                         />
+                        <span
+                            className="absolute inset-y-0 right-3 flex items-center text-gray-500 cursor-pointer"
+                            onClick={togglePasswordVisibility} // Menambahkan event handler untuk toggle
+                        >
+                            <img
+                                src={showPassword ? '/images/eye.png' : '/images/hide.png'} // Gambar berdasarkan state
+                                alt={showPassword ? 'Show Password' : 'Hide Password'}
+                                className="w-5 h-5"
+                            />
+                        </span>
+                    </div>
                     </div>
                     <div>
-                        <label htmlFor="role" className="block text-sm font-medium text-black">Role:</label>
+                        <label htmlFor="role" className="block text-sm font-medium text-black">Role</label>
                         <select
                             id="role"
                             name="role"

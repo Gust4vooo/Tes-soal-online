@@ -5,7 +5,7 @@ const createTestService = async (newTest) => {
     try {
         return await prisma.test.create({
             data: {
-                authorId: "cm2vj4sq50001110uzxkv9q97",
+                authorId: newTest.authorId,
                 type: newTest.type,
                 category: newTest.category,
                 title: newTest.title,
@@ -53,9 +53,38 @@ const getTestsByCategory = async (category) => {
     });
 };
 
+const getTestDetailsService = async (testId) => {
+  try {
+    const testDetails = await prisma.test.findUnique({
+      where: { id: testId },
+      select: {
+        id: true,
+        title: true,
+        type: true,
+        category: true,
+        testDescription: true,
+        authorId: true,
+        isPublished: true,
+        price: true,     
+        similarity: true  
+      },
+    });
+
+    if (!testDetails) {
+      throw new Error('Test not found');
+    }
+
+    return testDetails;
+  } catch (error) {
+    console.error('Error in getTestDetailsService:', error);
+    throw error;
+  }
+};
+
 export { 
     createTestService,
     publishTestService,
     getAllTestsService,
-    getTestsByCategory
+    getTestsByCategory,
+    getTestDetailsService
 };

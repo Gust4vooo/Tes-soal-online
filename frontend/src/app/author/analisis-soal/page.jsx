@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 
 export default function Home() {
   const [popularTests, setPopularTests] = useState([]);
@@ -11,19 +12,73 @@ export default function Home() {
   const [loading, setLoading] = useState([true]);
   const [error, setError] = useState([null]);
   const [isDropdownOpen, setDropdownOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState("Kategori");
+  const [authorTests, setAuthorTests] = useState([]);
+  const [filteredTests, setFilteredTests] = useState([]);
+  const [selectedKategori, setSelectedKategori] = useState('Semua Kategori');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  
+  
+  useEffect(() => {
+    const fetchAuthorTests = async () => {
+      try {
+        setLoading(true);
+        // Ambil token dari localStorage atau dari state management Anda
+        const token = localStorage.getItem('token');
+        
+        const response = await axios.get('http://localhost:2000/api/tests/author-tests', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        
+        setAuthorTests(response.data);
+        setLoading(false);
+      } catch (err) {
+        setError('Failed to fetch author tests');
+        setLoading(false);
+        console.error('Error fetching author tests:', err);
+      }
+    };
+  
+    fetchAuthorTests();
+  }, []);
+
+  useEffect(() => {
+    const filtered = authorTests.filter(test => 
+      (selectedKategori === '' || test.kategori === selectedKategori) &&
+      (test.judul.toLowerCase().includes(searchTerm.toLowerCase()) || 
+       test.kategori.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+    setFilteredTests(filtered);
+  }, [selectedKategori, searchTerm, authorTests]);
+
+  const filterTests = () => {
+    let filtered = authorTests;
+    
+    if (selectedKategori !== 'Semua Kategori') {
+      filtered = filtered.filter(test => test.kategori === selectedKategori);
+    }
+    
+    if (searchTerm) {
+      filtered = filtered.filter(test => 
+        test.judul.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        test.kategori.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    setFilteredTests(filtered);
+  };
 
 
   const kategori = [
-    'Semua Soal',
-    'Try Out UTBK',
-    'Try Out Psikotest',
-    'Try Out Sekolah Kedinasan',
-    'Try Out Bahasa Inggris',
+    'Semua Tes',
+    'Tes UTBK',
+    'Tes Psikotest',
+    'Tes CPNS',
+    'Tes Pemograman',
   ];
 
-  // State untuk menyimpan kategori yang dipilih
-  const [selectedKategori, setSelectedKategori] = useState(kategori[0]);
 
   // Fungsi untuk menangani perubahan dropdown
   const handleKategoriChange = (e) => {
@@ -40,63 +95,6 @@ export default function Home() {
       draft : 156,
     }]
       
-  const testData = [
-    {
-      id: 1,
-      kategori : "Try Out UTBK  ",
-      judul : "TRY OUT UTBK 2025#1",
-      prediksi_kemiripan: "Prediksi kemiripan 45%",
-      views: 1386,
-      author: " Rania Suyati",
-      free: true,
-      imageUrl: "/images/tes.png",
-      authorProfile : " /images/authorProfile.png"
-    },
-    {
-      id: 2,
-      kategori : "Try Out PSIKOTEST",
-      judul: "TRY OUT PSIKOTEST 2025#2",
-      prediksi_kemiripan: "Prediksi kemiripan 50%",
-      views: 2000,
-      author: "Dilla Ayu",
-      free: true, // ubah ke false untuk tes menampilkan gambar kunci
-      imageUrl: "/images/tes.png",
-      authorProfile : " /images/authorProfile.png"
-    },
-    {
-      id: 3,
-      kategori : "Try Out PSIKOTEST",
-      judul: "TRY OUT PSIKOTEST 2025#3",
-      prediksi_kemiripan: "Prediksi kemiripan 55%",
-      views: 2000,
-      author: "Zhang Yixing",
-      free: true, // ubah ke false untuk tes menampilkan gambar kuci
-      imageUrl: "/images/tes.png",
-      authorProfile : " /images/authorProfile.png"
-    },
-    {
-      id: 4,
-      kategori : "Try Out PSIKOTEST",
-      judul: "TRY OUT PSIKOTEST 2025#4",
-      prediksi_kemiripan: "Prediksi kemiripan 70%",
-      views: 1994,
-      author: " Oh Sehun",
-      free: true, // ubah ke false untuk tes menampilkan kunci
-      imageUrl: "/images/tes.png",
-      authorProfile : " /images/authorProfile.png"
-    },
-    {
-      id: 5,
-      kategori : "Try Out PSIKOTEST",
-      judul: "TRY OUT PSIKOTEST 2025#5",
-      prediksi_kemiripan: "Prediksi kemiripan 40%",
-      views: 1974,
-      author: " Oh Sehun",
-      free: true, // ubah ke false untuk tes menampilkan kunci
-      imageUrl: "/images/tes.png",
-      authorProfile : " /images/authorProfile.png"
-    },
-  ];
   
   const handleSearch = async (e) => {
     
@@ -136,7 +134,7 @@ export default function Home() {
   }, []);
 
   const populernextSlide = () => {
-    if (populercurrentIndex < testData.length - populeritemsToShow) {
+    if (populercurrentIndex < authorTests.length - populeritemsToShow) {
       populersetCurrentIndex(populercurrentIndex + 1);
     }
   };
@@ -165,7 +163,7 @@ export default function Home() {
   }, []);
 
   const gratisnextSlide = () => {
-    if (gratiscurrentIndex < testData.length - gratisitemsToShow) {
+    if (gratiscurrentIndex < authorTests.length - gratisitemsToShow) {
       gratissetCurrentIndex(gratiscurrentIndex + 1);
     }
   };
@@ -176,12 +174,11 @@ export default function Home() {
     }
   };
 
-  // Search state
-  const [searchTerm, setSearchTerm] = useState("");
   const handleSearchChange = (event) => {
     setSearchTerm(event.target.value);
   };
   
+  const uniqueKategori = ['Semua Kategori', ...new Set(authorTests.map(test => test.kategori))];
 
   return (
     <>
@@ -202,7 +199,7 @@ export default function Home() {
           <nav>
             <ul className="space-y-3">
               <li className="text-white cursor-pointer py-2 px-4 hover:bg-deepBlue  rounded-lg">
-                <Link legacyBehavior href="/">
+                <Link legacyBehavior href="/author/dashboard">
                   <a> Home</a>
                 </Link>
               </li>
@@ -222,13 +219,13 @@ export default function Home() {
         </aside>
 
         {/* Main Content */}
-        {author.map((author, index) => (
+        {author.map((authorTest, index) => (
         <main className="flex-1 bg-white">
           {/* Header */}
           <header className="flex justify-end items-center bg-[#0B61AA] p-4">
             <div className="relative flex inline-block items-center ">
               <div className="mx-auto">
-                <span className="text-white font-poppins font-bold mr-3">Hai, {author.nama}!</span>
+                <span className="text-white font-poppins font-bold mr-3">Hai, {authorTest.nama}!</span>
               </div>
               <div className='hidden lg:block'>
                 <img 
@@ -274,8 +271,8 @@ export default function Home() {
                   type="text" 
                   placeholder="Cari Tes Soal" 
                   className="flex-grow p-1 lg:p-2  rounded-2xl focus:outline-none focus:ring-2 focus:ring-powderBlue font-poppins max-w-[130px] lg:max-w-[610px]"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  value={searchTerm}
+                  onChange={handleSearchChange}
                 />
                 <button 
                   type="submit" 
@@ -303,7 +300,7 @@ export default function Home() {
                         value={selectedKategori}
                         onChange={handleKategoriChange}
                       >
-                        {kategori.map((option, index) => (
+                        {uniqueKategori.map((option, index) => (
                           <option key={index} value={option}>
                             {option}
                           </option>
@@ -327,19 +324,19 @@ export default function Home() {
               Publish
               {/* Container untuk kategori, menambahkan grid layout yang konsisten */}
               <div className=" mt-5 grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {testData.slice(populercurrentIndex, populercurrentIndex + populeritemsToShow).map((test) => (
+                {authorTests.slice(populercurrentIndex, populercurrentIndex + populeritemsToShow).map((test) => (
                   <div key={test.id} className="bg-abumuda shadow-lg p-1 relative group">
                     
                 
                       <div className="flex justify-between items-center z-10">
                         <div className="flex items-center space-x-2 font-bold text-deepBlue">
                           <img src="/images/eye-icon.png" alt="Views" className="h-3 lg:h-4 object-contain" />
-                          <span className="text-[0.6rem] lg:text-sm font-poppins">{test.views}</span>
+                          <span className="text-[0.6rem] lg:text-sm font-poppins">{test.history}</span>
                         </div>
                       </div>
 
                       <div className="flex justify-center mt-2 lg:mt-4 ">
-                        <img src={test.imageUrl} alt={test.kategori} className="h-9 lg:h-20 object-contain" />
+                        <img src="/images/tes.png" alt={test.kategori} className="h-9 lg:h-20 object-contain" />
                       </div>
 
                       <div className="flex justify-center mt-2 lg:mt-4 text-deepBlue ">
@@ -360,7 +357,11 @@ export default function Home() {
                             <span className="text-[0.375rem] lg:text-sm font-semibold">{test.author}</span>
                           </div>
                           <span className="text-[0.375rem] lg:text-sm font-semibold">
-                            {test.free ? 'Gratis' : <img src="/images/lock.png" alt="Berbayar" className="h-2 lg:h-9/2 inline-block object-contain" />}
+                            {test.price === 0 ? (
+                              'Gratis'
+                            ) : (
+                              <img src="/images/lock.png" alt="Berbayar" className="h-2 lg:h-9/2 inline-block object-contain" />
+                            )}
                           </span>
                         </div>
                       </div>
@@ -379,7 +380,7 @@ export default function Home() {
               {/* Tombol panah kanan */}
               <button
                 onClick={populernextSlide}
-                className={`absolute right-0 top-1/2 transform -translate-y-1/2 bg-white rounded-full p-2 shadow hover:bg-gray-200 ${populercurrentIndex >= testData.length - populeritemsToShow ? 'hidden' : ''}`}
+                className={`absolute right-0 top-1/2 transform -translate-y-1/2 bg-white rounded-full p-2 shadow hover:bg-gray-200 ${populercurrentIndex >= authorTests.length - populeritemsToShow ? 'hidden' : ''}`}
               >
                 &#10095;
               </button>
@@ -392,18 +393,18 @@ export default function Home() {
               Draft
               {/* Container untuk kategori, menambahkan grid layout yang konsisten */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-5">
-                {testData.slice(gratiscurrentIndex, gratiscurrentIndex + gratisitemsToShow).map((test) => (
+                {authorTests.slice(gratiscurrentIndex, gratiscurrentIndex + gratisitemsToShow).map((test) => (
                   <div key={test.id} className="bg-abumuda shadow-lg p-1 relative group">
                     
                     <div className="flex justify-between items-center z-10">
                       <div className="flex items-center space-x-2 font-bold text-deepBlue">
                         <img src="/images/eye-icon.png" alt="Views" className="h-3 lg:h-4 object-contain" />
-                        <span className="text-[0.6rem] lg:text-sm font-poppins">{test.views}</span>
+                        <span className="text-[0.6rem] lg:text-sm font-poppins">{test.histori}</span>
                       </div>
                     </div>
 
                     <div className="flex justify-center mt-2 lg:mt-4 relative z-20 ">
-                      <img src={test.imageUrl} alt={test.kategori} className="h-9 lg:h-20 object-contain" />
+                      <img src="/images/tes.png"alt={test.kategori} className="h-9 lg:h-20 object-contain" />
                     </div>
 
                     <div className="flex justify-center mt-2 lg:mt-4 text-deepBlue relative z-20 ">
@@ -420,12 +421,16 @@ export default function Home() {
 
                       <div className="flex justify-between space-x-2 leading-relaxed mt-1">
                         <div className="flex text-left space-x-1 lg:space-x-4">
-                          <img src={test.authorProfile} alt={test.kategori} className="h-3 lg:h-5 object-contain" />
+                          <img src={test.authorProfile} alt="foto" className="h-3 lg:h-5 object-contain" />
                           <span className="text-[0.375rem] lg:text-sm font-semibold">{test.author}</span>
                         </div>
                         <span className="text-[0.375rem] lg:text-sm font-semibold">
-                          {test.free ? 'Gratis' : <img src="/images/lock.png" alt="Berbayar" className="h-2 lg:h-9/2 inline-block object-contain" />}
-                        </span>
+                            {test.price === 0 ? (
+                              'Gratis'
+                            ) : (
+                              <img src="/images/lock.png" alt="Berbayar" className="h-2 lg:h-9/2 inline-block object-contain" />
+                            )}
+                          </span>
                       </div>
                     </div>
                   </div>
@@ -443,7 +448,7 @@ export default function Home() {
               {/* Tombol panah kanan */}
               <button
                 onClick={gratisnextSlide}
-                className={`absolute right-0 top-1/2 transform -translate-y-1/2 bg-white rounded-full p-2 shadow hover:bg-gray-200 ${gratiscurrentIndex >= testData.length - gratisitemsToShow ? 'hidden' : ''}`}
+                className={`absolute right-0 top-1/2 transform -translate-y-1/2 bg-white rounded-full p-2 shadow hover:bg-gray-200 ${gratiscurrentIndex >= authorTests.length - gratisitemsToShow ? 'hidden' : ''}`}
               >
                 &#10095;
               </button>
@@ -455,3 +460,4 @@ export default function Home() {
     </>
   );
 }
+

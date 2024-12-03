@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 import { initializeApp } from 'firebase/app';
-import { createMultipleChoiceService, updateMultipleChoiceService, getMultipleChoiceService, getMultipleChoiceByIdService, deleteMultipleChoiceService, getQuestionsByTestId, fetchMultipleChoiceByNumberAndTestId, updateMultipleChoicePageNameService, getPagesByTestIdService, deleteOptionService } from '../services/multiplechoiceSevice.js';
+import { createMultipleChoiceService, updateMultipleChoiceService, getMultipleChoiceService, getQuestionNumbersServices, updateQuestionNumberServices, getMultipleChoiceByIdService, deleteMultipleChoiceService, getQuestionsByTestId, fetchMultipleChoiceByNumberAndTestId, updateMultipleChoicePageNameService, getPagesByTestIdService } from '../services/multiplechoiceSevice.js';
 import { Buffer } from 'buffer';
 import { uploadFileToStorage } from '../../firebase/firebaseBucket.js';
 
@@ -17,16 +17,16 @@ const firebaseConfig = {
 
 initializeApp(firebaseConfig);
 
-const extractBase64Images = (content) => {
-    const base64Regex = /data:image\/[^;]+;base64,([^"]+)/g;
-    const matches = content.match(base64Regex) || [];
-    return matches;
-  };
+// const extractBase64Images = (content) => {
+//     const base64Regex = /data:image\/[^;]+;base64,([^"]+)/g;
+//     const matches = content.match(base64Regex) || [];
+//     return matches;
+//   };
   
-  // Fungsi untuk mengganti URL gambar dalam konten
-  const replaceImageUrlInContent = (content, oldUrl, newUrl) => {
-    return content.replace(oldUrl, newUrl);
-};
+//   // Fungsi untuk mengganti URL gambar dalam konten
+//   const replaceImageUrlInContent = (content, oldUrl, newUrl) => {
+//     return content.replace(oldUrl, newUrl);
+// };
 
 const createMultipleChoice = async (req, res) => {
     try {
@@ -38,43 +38,62 @@ const createMultipleChoice = async (req, res) => {
             });
         }
 
-        const processedQuestions = await Promise.all(
+        // const processedQuestions = await Promise.all(
+        //     questions.map(async (question) => {
+        //         let questionContent = question.question;
+                
+        //         // Ekstrak semua gambar base64 dari konten pertanyaan
+        //         const base64Images = extractBase64Images(questionContent);
+                
+        //         // Upload setiap gambar ke Firebase dan update konten
+        //         for (const base64Image of base64Images) {
+        //             try {
+        //                 // Konversi base64 ke buffer
+        //                 const imageBuffer = Buffer.from(
+        //                     base64Image.replace(/^data:image\/\w+;base64,/, ''),
+        //                     'base64'
+        //                 );
+                        
+        //                 // Generate nama file unik
+        //                 const fileName = `questions/${Date.now()}_${Math.random().toString(36).substring(7)}.png`;
+                        
+        //                 // Upload ke Firebase
+        //                 const imageUrl = await uploadFileToStorage(imageBuffer, fileName);
+                        
+        //                 // Ganti URL base64 dengan URL Firebase dalam konten
+        //                 questionContent = replaceImageUrlInContent(questionContent, base64Image, imageUrl);
+        //             } catch (error) {
+        //                 console.error('Error processing image:', error);
+        //             }
+        //         }
+                
+        //         return {
+        //             ...question,
+        //             question: questionContent
+        //         };
+        //     })
+        // );
+
+        // const multipleChoices = await createMultipleChoiceService(testId, processedQuestions);
+        const uploadedQuestion = await Promise.all(
             questions.map(async (question) => {
-                let questionContent = question.question;
-                
-                // Ekstrak semua gambar base64 dari konten pertanyaan
-                const base64Images = extractBase64Images(questionContent);
-                
-                // Upload setiap gambar ke Firebase dan update konten
-                for (const base64Image of base64Images) {
-                    try {
-                        // Konversi base64 ke buffer
-                        const imageBuffer = Buffer.from(
-                            base64Image.replace(/^data:image\/\w+;base64,/, ''),
-                            'base64'
-                        );
-                        
-                        // Generate nama file unik
-                        const fileName = `questions/${Date.now()}_${Math.random().toString(36).substring(7)}.png`;
-                        
-                        // Upload ke Firebase
-                        const imageUrl = await uploadFileToStorage(imageBuffer, fileName);
-                        
-                        // Ganti URL base64 dengan URL Firebase dalam konten
-                        questionContent = replaceImageUrlInContent(questionContent, base64Image, imageUrl);
-                    } catch (error) {
-                        console.error('Error processing image:', error);
-                    }
+                const questionData = { ...question };
+
+                // Cek apakah ada file yang diunggah untuk soal ini
+                if (req.files && req.files[index]) {
+                    const fileBuffer = req.files[index].buffer; // Ambil buffer dari file
+                    const fileName = `questions/${Date.now()}_${req.files[index].originalname}`; // Buat nama file unik
+
+                    // Upload ke Firebase
+                    const imageUrl = await uploadFileToStorage(fileBuffer, fileName);
+                    questionData.questionPhoto = imageUrl; // Simpan URL gambar di questionData
                 }
-                
-                return {
-                    ...question,
-                    question: questionContent
-                };
+
+                return questionData;
             })
         );
 
-        const multipleChoices = await createMultipleChoiceService(testId, processedQuestions);
+        const multipleChoices = await createMultipleChoiceService(testId, uploadedQuestion);
 
         res.status(201).send({
             data: multipleChoices,
@@ -87,38 +106,6 @@ const createMultipleChoice = async (req, res) => {
         });
     }
 };
-
-//         const uploadedQuestion = await Promise.all(
-//             questions.map(async (question, index) => {
-//                 const questionData = { ...question };
-
-//                 // Cek apakah ada file yang diunggah untuk soal ini
-//                 if (req.files && req.files[index]) {
-//                     const fileBuffer = req.files[index].buffer; // Ambil buffer dari file
-//                     const fileName = `questions/${Date.now()}_${req.files[index].originalname}`; // Buat nama file unik
-
-//                     // Upload ke Firebase
-//                     const imageUrl = await uploadFileToStorage(fileBuffer, fileName);
-//                     questionData.questionPhoto = imageUrl; // Simpan URL gambar di questionData
-//                 }
-
-//                 return questionData;
-//             })
-//         );
-
-//         const multipleChoices = await createMultipleChoiceService(testId, uploadedQuestion);
-
-//         res.status(201).send({
-//             data: multipleChoices,
-//             message: 'Multiple choice questions created successfully',
-//         });
-//     } catch (error) {
-//         res.status(500).send({
-//             message: 'Failed to create multiple choice questions',
-//             error: error.message,
-//         });
-//     }
-// };
 
 export { createMultipleChoice }; 
 
@@ -198,23 +185,32 @@ export { getMultipleChoiceById };
 
 const deleteMultipleChoice = async (req, res) => {
     try {
-        const { multiplechoiceId } = req.params; 
+        const { multiplechoiceId } = req.params;
 
         if (!multiplechoiceId) {
-            return res.status(400).send({
-                message: 'multiplechoiceId is required',
+            return res.status(400).json({
+                success: false,
+                message: 'multiplechoiceId is required'
             });
         }
 
-        await deleteMultipleChoiceService(multiplechoiceId);
+        const result = await deleteMultipleChoiceService(multiplechoiceId);
 
-        res.status(200).send({
+        res.status(200).json({
+            success: true,
             message: 'Multiple choice question deleted successfully',
+            data: {
+                deletedQuestionNumber: result.deletedQuestionNumber,
+                remainingQuestionsCount: result.remainingQuestions.length,
+                updatedQuestions: result.remainingQuestions
+            }
         });
     } catch (error) {
-        res.status(500).send({
-            message: 'Failed to delete multiple choice question',
-            error: error.message,
+        console.error('Controller Error:', error);
+        res.status(error.message === 'Multiple choice question not found' ? 404 : 500).json({
+            success: false,
+            message: error.message || 'Failed to delete multiple choice question',
+            error: error.message
         });
     }
 };
@@ -304,29 +300,36 @@ const getPagesByTestIdController = async (req, res) => {
     }
   };
   
-export { getPagesByTestIdController };
+  export { getPagesByTestIdController };
 
-const deleteOption = async (req, res) => {
+  const getQuestionNumbers = async (req, res) => {
     try {
-        const { optionId } = req.params;
-
-        if (!optionId) {
-            return res.status(400).send({
-                message: 'optionId is required',
-            });
-        }
-
-        await deleteOptionService(optionId);
-
-        res.status(200).send({
-            message: 'Option deleted successfully',
-        });
+      const { testId } = req.params;
+      const questionNumbers = await getQuestionNumbersServices(testId);
+      res.json({ questionNumbers });
     } catch (error) {
-        res.status(500).send({
-            message: 'Failed to delete option',
-            error: error.message,
-        });
+      res.status(500).json({ error: 'Error getting question numbers' });
     }
-};
-
-export { deleteOption };
+  };
+  
+  const updateQuestionNumber = async (req, res) => {
+    try {
+      const { testId } = req.params;
+      const { oldNumber, newNumber } = req.body;
+  
+      console.log('Received request to update question numbers:');
+      console.log(`testId: ${testId}`);
+      console.log(`oldNumber: ${oldNumber}, newNumber: ${newNumber}`);
+  
+      await updateQuestionNumberServices(testId, oldNumber, newNumber);
+      res.json({ message: 'Question numbers updated successfully' });
+    } catch (error) {
+      console.error('Error updating question numbers:', error);
+      res.status(500).json({ error: 'Error updating question numbers' });
+    }
+  };
+  
+  export {
+    getQuestionNumbers,
+    updateQuestionNumber,
+  };

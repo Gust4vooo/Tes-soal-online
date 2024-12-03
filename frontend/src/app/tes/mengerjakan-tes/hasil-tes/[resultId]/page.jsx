@@ -165,13 +165,48 @@ export default function Pemrograman() {
     setRating(rate);
   };
 
-  const handleSubmit = () => {
-    // Kirim feedback ke server atau simpan di local state
-    console.log("Rating:", rating);
+  const handleSubmit = async () => {
     console.log("Feedback:", feedback);
-    closeModal(); // Tutup modal setelah mengirim feedback
-    // Reset rating dan feedback setelah pengiriman
-    setRating(0);
+  
+    // Ambil token dari localStorage
+    const token = localStorage.getItem('token');
+  
+    if (!token) {
+      console.error("Token tidak ditemukan. Silakan login kembali.");
+      // Tambahkan logika untuk menangani kasus ketika token tidak ada, misalnya redirect ke halaman login
+      return;
+    }
+  
+    try {
+      const response = await fetch('http://localhost:2000/api/testimonies', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` // Tambahkan token ke header
+        },
+        body: JSON.stringify({
+          comment: feedback,
+        }),
+      });
+  
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Testimoni berhasil dikirim:", data);
+        // Tambahkan logika untuk menangani respons sukses, misalnya menampilkan pesan sukses
+      } else {
+        const errorData = await response.json();
+        console.error("Gagal mengirim testimoni:", errorData);
+        // Tambahkan logika untuk menangani respons error, misalnya menampilkan pesan error
+      }
+    } catch (error) {
+      console.error("Terjadi kesalahan saat mengirim testimoni:", error);
+      // Tambahkan logika untuk menangani error jaringan atau lainnya
+    }
+  
+    // Tutup modal setelah mengirim feedback
+    closeModal();
+  
+    // Reset feedback setelah pengiriman
     setFeedback("");
   };
 
@@ -184,10 +219,10 @@ export default function Pemrograman() {
         className="bg-white rounded-lg shadow-lg p-6 w-96"
         onClick={(e) => e.stopPropagation()} // Mencegah penutupan modal saat klik di dalam modal
       >
-        <h2 className="text-lg font-semibold mb-4 text-center">Seberapa Puas Anda dengan Layanan Kami?</h2>
+        {/* <h2 className="text-lg font-semibold mb-4 text-center">Seberapa Puas Anda dengan Layanan Kami?</h2> */}
   
         {/* Star Rating */}
-        <div className="flex justify-center mb-4">
+        {/* <div className="flex justify-center mb-4">
           {[1, 2, 3, 4, 5].map((star) => (
             <svg
               key={star}
@@ -206,7 +241,7 @@ export default function Pemrograman() {
               />
             </svg>
           ))}
-        </div>
+        </div> */}
   
         {/* Feedback Input */}
         <label className="block mb-2 text-sm font-medium text-gray-700">
@@ -280,7 +315,7 @@ export default function Pemrograman() {
               <nav className="mt-0 lg:mt-1">
                 <ol className="list-reset flex space-x-2">
                   <li>
-                    <Link href="/user/dasboard" legacyBehavior>
+                    <Link href="/user/dashboard" legacyBehavior>
                       <a className="text-[0.6rem] lg:text-sm hover:text-orange font-poppins font-bold">Home</a>
                     </Link>
                   </li>
@@ -327,8 +362,37 @@ export default function Pemrograman() {
         </div>
       </header>
 
-      {/* Tampilkan modal jika state isModalOpen true */}
-      {isModalOpen && <Modal />}
+      {isModalOpen && (
+        <div
+          className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
+          onClick={closeModal}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="bg-white rounded-lg shadow-lg p-6 w-96"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <label className="block mb-2 text-sm font-medium text-gray-700">
+              Apa yang Bisa Kami Tingkatkan?
+            </label>
+            <textarea
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:border-blue-300"
+              rows="3"
+              value={feedback}
+              onChange={(e) => setFeedback(e.target.value)}
+              placeholder="Masukkan masukan Anda di sini"
+              required
+            />
+            <button
+              className="bg-blue-500 text-white px-4 py-2 rounded-lg mt-4 w-full hover:bg-blue-600"
+              onClick={handleSubmit}
+            >
+              Kirim Feedback
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* judul hasil tes */}
       {user.map((user, index) => (
@@ -392,12 +456,12 @@ export default function Pemrograman() {
                         <li> Waktu</li>
                       </ul>
                     </div>
-                    <div className="text-sm lg:text-2xl bg-white p-2 font-semibold rounded-lg">
+                    {/* <div className="text-sm lg:text-2xl bg-white p-2 font-semibold rounded-lg">
                       <ul>
                       <li>{userRank !== null ? userRank : 'N/A'}</li>
                         <li>Peringkat</li>
                       </ul>
-                    </div>
+                    </div> */}
                     <div className="text-sm lg:text-2xl font-semibold bg-white px-5 p-2 rounded-lg">
                       <ul>
                         <li>{userData.score} </li>

@@ -1,41 +1,35 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import withAnimation from '../../components/withAnimation.js';
-import Button from '../../components/Button.js';
-
-
-// Data Testimoni
-const testimonials = [
-  {
-    name: "Bang Joko",
-    status: "Mahasiswa",
-    rating: 5,
-    review:
-      "Seru banget tes soal di sini, soal-soalnya update banget dan sangat mirip dengan soal aslinya. Slebew!",
-    image: "/images/Helmhold.png",
-  },
-  {
-    name: "Dewi Cahaya",
-    status: "Pelajar",
-    rating: 4,
-    review:
-      "Platform ini bener-bener membantu untuk belajar. Banyak soal yang cocok untuk persiapan ujian.",
-    image: "/images/Johnston.png",
-  },
-  {
-    name: "Nanda Rizkia",
-    status: "Guru",
-    rating: 5,
-    review:
-      "Sebagai guru, saya sangat terbantu dalam memberikan tes yang berkualitas untuk murid-murid saya.",
-    image: "/images/Beard.png",
-  },
-];
 
 const TestimonialsSection = () => {
+  const [testimonials, setTestimonials] = useState([]);
   const [currentTestimonialIndex, setCurrentTestimonialIndex] = useState(0);
+
+  useEffect(() => {
+    const fetchTestimonies = async () => {
+      try {
+        const response = await fetch('http://localhost:2000/api/testimonies', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Gagal mengambil data testimonies');
+        }
+
+        const testimonies = await response.json();
+        setTestimonials(testimonies); // Set testimonials setelah fetch berhasil
+      } catch (error) {
+        console.error('Error fetching testimonies:', error);
+      }
+    };
+
+    fetchTestimonies();
+  }, []);
 
   const handleNext = () => {
     setCurrentTestimonialIndex((prevIndex) =>
@@ -49,98 +43,99 @@ const TestimonialsSection = () => {
     );
   };
 
-  const { name, status, rating, review, image } =
-    testimonials[currentTestimonialIndex];
+  if (testimonials.length === 0) return <p>Loading testimonials...</p>;
 
-  return (
-    <div id="testimoni" className="bg-gray-50 py-20 px-4 text-center">
-      <h1 className="text-4xl font-bold text-gray-800 mb-10">
-        Apa Kata Pengguna?
-      </h1>
+  const { user: { name, userPhoto }, comment } = testimonials[currentTestimonialIndex];
 
-      <div className="flex justify-center items-center mb-6">
-        <Button
-          onClick={handlePrev}
-          className="text-gray-600 hover:text-gray-800 focus:outline-none"
-        >
-          <span className="text-2xl">‹</span>
-        </Button>
+return (
+  <div id="testimoni" className="bg-gray-50 py-20 px-4 text-center">
+    <h1 className="text-4xl font-bold text-gray-800 mb-10">
+      Apa Kata Pengguna?
+    </h1>
 
-        <div className="mx-4 opacity-50">
-          <img
-            src={
-              testimonials[
-                (currentTestimonialIndex - 1 + testimonials.length) %
-                  testimonials.length
-              ].image
-            }
-            alt={
-              testimonials[
-                (currentTestimonialIndex - 1 + testimonials.length) %
-                  testimonials.length
-              ].name
-            }
-            className="w-16 h-16 rounded-full object-cover mx-auto"
-          />
-          <p className="text-gray-700">
-            {
-              testimonials[
-                (currentTestimonialIndex - 1 + testimonials.length) %
-                  testimonials.length
-              ].name
-            }
-          </p>
-        </div>
+    <div className="flex justify-center items-center mb-6">
+      <button
+        onClick={handlePrev}
+        className="text-gray-600 hover:text-gray-800 focus:outline-none"
+      >
+        <span className="text-2xl">‹</span>
+      </button>
 
-        <div className="mx-4">
-          <img
-            src={image}
-            alt={name}
-            className="w-24 h-24 rounded-full object-cover mx-auto mb-2"
-          />
-          <p className="text-lg font-semibold text-gray-800">{name}</p>
-          <p className="text-gray-600">{status}</p>
-          <div className="flex justify-center mb-2">
-            {Array(rating)
-              .fill(0)
-              .map((_, index) => (
-                <span key={index} className="text-yellow-400">
-                  ★
-                </span>
-              ))}
-          </div>
-          <p className="text-gray-700 italic">"{review}"</p>
-        </div>
-
-        <div className="mx-4 opacity-50">
-          <img
-            src={
-              testimonials[(currentTestimonialIndex + 1) % testimonials.length]
-                .image
-            }
-            alt={
-              testimonials[(currentTestimonialIndex + 1) % testimonials.length]
-                .name
-            }
-            className="w-16 h-16 rounded-full object-cover mx-auto"
-          />
-          <p className="text-gray-700">
-            {
-              testimonials[(currentTestimonialIndex + 1) % testimonials.length]
-                .name
-            }
-          </p>
-        </div>
-
-        <Button
-          onClick={handleNext}
-          className="text-gray-600 hover:text-gray-800 focus:outline-none"
-        >
-          <span className="text-2xl">›</span>
-        </Button>
+      <div className="mx-4 opacity-50">
+        <img
+          src={
+            testimonials[
+              (currentTestimonialIndex - 1 + testimonials.length) %
+                testimonials.length
+            ].userPhoto || '/images/profile.png'
+          }
+          alt={
+            testimonials[
+              (currentTestimonialIndex - 1 + testimonials.length) %
+                testimonials.length
+            ].name
+          }
+          className="w-16 h-16 rounded-full object-cover mx-auto"
+        />
+        <p className="text-gray-700">
+          {
+            testimonials[
+              (currentTestimonialIndex - 1 + testimonials.length) %
+                testimonials.length
+            ].name
+          }
+        </p>
       </div>
+
+      <div className="mx-4">
+        <img
+          src={userPhoto || '/images/profile.png'}
+          alt={name}
+          className="w-24 h-24 rounded-full object-cover mx-auto mb-2"
+        />
+        <p className="text-lg font-semibold text-gray-800">{name}</p>
+        <p className="text-gray-600">{status}</p>
+        {/* <div className="flex justify-center mb-2">
+          {Array(rating)
+            .fill(0)
+            .map((_, index) => (
+              <span key={index} className="text-yellow-400">
+                ★
+              </span>
+            ))}
+        </div> */}
+        <p className="text-gray-700 italic">"{comment}"</p>
+      </div>
+
+      <div className="mx-4 opacity-50">
+        <img
+          src={
+            testimonials[(currentTestimonialIndex + 1) % testimonials.length]
+              .userPhoto || '/images/profile.png'
+          }
+          alt={
+            testimonials[(currentTestimonialIndex + 1) % testimonials.length]
+              .name
+          }
+          className="w-16 h-16 rounded-full object-cover mx-auto"
+        />
+        <p className="text-gray-700">
+          {
+            testimonials[(currentTestimonialIndex + 1) % testimonials.length]
+              .name
+          }
+        </p>
+      </div>
+
+      <button
+        onClick={handleNext}
+        className="text-gray-600 hover:text-gray-800 focus:outline-none"
+      >
+        <span className="text-2xl">›</span>
+      </button>
     </div>
-  );
+  </div>
+);
 };
 
 // Section Baru di Bawah Testimoni
@@ -160,12 +155,12 @@ const CallToActionSection = () => (
 
       {/* Bagian Kanan (Tombol) */}
       <div className="flex flex-col md:flex-col justify-center items-center space-y-4 w-full md:w-auto">
-        <Button className="bg-[#0B61AA] text-white py-3 px-6 rounded-md shadow-md hover:bg-opacity-80 transition duration-300 w-full md:w-auto min-w-[200px]">
+        <button className="bg-[#0B61AA] text-white py-3 px-6 rounded-md shadow-md hover:bg-opacity-80 transition duration-300 w-full md:w-auto min-w-[200px]">
           Mulai Test Sekarang
-        </Button>
-        <Button className="bg-white text-black border border-gray-300 py-3 px-6 rounded-md shadow-md hover:bg-gray-100 transition duration-300 w-full md:w-auto min-w-[200px]">
+        </button>
+        <button className="bg-white text-black border border-gray-300 py-3 px-6 rounded-md shadow-md hover:bg-gray-100 transition duration-300 w-full md:w-auto min-w-[200px]">
           Buat Soal Sendiri
-        </Button>
+        </button>
       </div>
     </div>
   </div>
@@ -185,7 +180,7 @@ const LandingPage = () => {
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-4">
             <div className="md:hidden">
-              <Button
+              <button
                 className="focus:outline-none text-white"
                 onClick={toggleSidebar}
               >
@@ -204,7 +199,7 @@ const LandingPage = () => {
                   <line x1="4" x2="20" y1="6" y2="6" />
                   <line x1="4" x2="20" y1="18" y2="18" />
                 </svg>
-              </Button>
+              </button>
             </div>
 
             <div className="text-2xl font-bold text-white">
@@ -263,7 +258,7 @@ const LandingPage = () => {
                 height={64}
                 className="rounded-full"
               />
-              <Button onClick={toggleSidebar} className="text-white">
+              <button onClick={toggleSidebar} className="text-white">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="24"
@@ -278,7 +273,7 @@ const LandingPage = () => {
                   <line x1="18" y1="6" x2="6" y2="18"></line>
                   <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
-              </Button>
+              </button>
             </div>
             {["Beranda", "Kategori", "Cara Kerja", "About Us", "Testimoni"].map(
               (item) => (
@@ -615,4 +610,4 @@ const LandingPage = () => {
   );
 };
 
-export default withAnimation(LandingPage);
+export default LandingPage;

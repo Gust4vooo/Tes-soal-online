@@ -17,6 +17,38 @@ const BuatTes = () => {
 
   const jenisDropdownRef = useRef(null);
   const kategoriDropdownRef = useRef(null);
+  const [authorId, setAuthorId] = useState(null);
+
+  useEffect(() => {
+    const fetchAuthorId = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          throw new Error('No token found');
+        }
+
+        const response = await fetch('http://localhost:2000/author/author-data', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch author data');
+        }
+
+        const authorData = await response.json();
+        setAuthorId(authorData.id);
+      } catch (error) {
+        console.error('Error fetching author data:', error);
+        // Handle error (e.g., redirect to login page)
+      }
+    };
+
+    fetchAuthorId();
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -36,7 +68,7 @@ const BuatTes = () => {
     e.preventDefault();
   
     const newTest = {
-      authorId: 'cm2vj4sq50001110uzxkv9q97',
+      authorId: authorId,
       type: jenisTes,
       category: kategoriTes,
       title: namaTes,
@@ -72,58 +104,56 @@ const BuatTes = () => {
   return (
     <>
     {/* Header dengan Warna Biru Kustom */}
-    <header className="bg-[#0B61AA] text-white p-4 sm:p-6">
-        <div className="container flex justify-between items-center">
+      <header className="bg-[#0B61AA] text-white p-4 sm:p-6 w-auto h-[80px]">
+        <div className="container  flex items-center">
           <div className="flex space-x-4 w-full">
-            <Link href="/">
-              <img src="/images/menu.png" alt="Menu" className="h-7 sm:h-9 w-full-[50px]" />
-            </Link>
-            <Link href="/">
-              <img src="/images/Vector.png" alt="Vector" className="h-6 sm:h-9" style={{ maxWidth: '279px' }} />
+            <Link href="/homeAuthor">
+              <img src="/images/Vector.png" alt="Vector" className="h-6 sm:h-9 absolute left-16 absolute top-5" // Gunakan positioning absolute untuk posisi kiri
+                style={{ maxWidth: '279px' }} />
             </Link>
           </div>
         </div>
       </header>
 
       {/* Navigasi */}
-      <nav className="bg-[#FFFF] text-black p-4 sm:p-6">
-        <ul className="flex space-x-6 sm:space-x-20">
+      <nav className="bg-[#FFFFFF] text-black p-4">
+        <ul className="flex justify-around">
           <li>
             <button
-              className={`w-[120px] sm:w-[220px] h-[48px] rounded-[20px] shadow-md font-bold font-poppins ${activeTab === 'buatTes' ? 'bg-[#78AED6]' : ''}`}
+              className={`px-20 py-6 rounded-full shadow-xl font-bold font-poppins ${activeTab === 'buatTes' ? 'bg-[#78AED6]' : ''}`}
               onClick={() => setActiveTab('buatTes')}
-              >
+            >
               Buat Soal
             </button>
-          </li> 
+          </li>
           <li>
             <button
-              className={`w-[120px] sm:w-[220px] h-[48px] rounded-[20px] shadow-md font-bold font-poppins ${activeTab === 'publikasi' ? 'bg-[#78AED6]' : ''}`}
-              onClick={() => setActiveTab('publikasi')}
-              >
+              className={`px-20 py-6 rounded-full shadow-xl font-bold font-poppins ${activeTab === 'publikasi' ? 'bg-[#78AED6]' : ''}`}
+            >
               Publikasi
             </button>
           </li>
         </ul>
       </nav>
+
       <div className='bg-white p-4'>
       {/* Konten Utama */}
       <div className="flex justify-center items-start mt-4">
         {activeTab === 'buatTes' && (
-          <div className="bg-[#78AED6] p-8 mx-4 rounded-md w-[341px] h-[344px] sm:w-[1343px] sm:h-[880px]">
-            <div className="flex justify-between  pr-10">
+          <div className="bg-[#78AED6] p-8 rounded-md mx-auto" style={{ width: '1100px', height: '750px', marginTop: '20px' }}>
+            <div className="flex justify-start pr-9">
               {/* Bagian Kiri, Teks Rata Kanan */}
               <div className="text-left pr-8 ">
-                <h3 className="font-poppins text-black text-lg mb-8 mt-7 ">Jenis</h3>
-                <h3 className="font-poppins text-black text-lg mb-8 mt-7 ">Kategori</h3>
-                <h3 className="font-poppins text-black text-lg mb-1 mt-7 ">Nama</h3>
-                <h3 className="font-poppins text-black text-lg mb-4 mt-7 pt-7 ">Deskripsi</h3>
+                <h3 className="font-poppins text-black sm:text-lg mb-7 mt-7 sm:pt-6 ">Jenis</h3>
+                <h3 className="font-poppins text-black sm:text-lg mb-4 mt-7 sm:pt-12">Kategori</h3>
+                <h3 className="font-poppins text-black sm:text-lg mb-4 mt-7 sm:pt-12">Nama</h3>
+                <h3 className="font-poppins text-black sm:text-lg mb-4 mt-7 sm:pt-12 ">Deskripsi</h3>
               </div>
 
               {/* Bar putih di samping */}
-              <div className="bg-white p-6 rounded-md shadow-lg" style={{ width: '902px', height: '677px' }}>
+              <div className="bg-white p-6 rounded-md shadow-lg" style={{ width: '902px', height: '550px' }}>
                 {/* Dropdown Jenis Tes */}
-                <div className="mb-4">
+                <div className="mb-4 sm:pt-4">
                   <div className="relative" ref={jenisDropdownRef}>
                     <button
                       className="w-full border border-gray-300 p-2 rounded-full flex justify-between items-center bg-white"
@@ -171,7 +201,7 @@ const BuatTes = () => {
                 </div>
 
                 {/* Dropdown Kategori Tes */}
-                <div className="mb-4">
+                <div className="mb-4 sm:pt-12">
                   <div className="relative" ref={kategoriDropdownRef}>
                     <button
                       className="w-full border border-gray-300 p-2 rounded-full flex justify-between items-center bg-white"
@@ -226,7 +256,7 @@ const BuatTes = () => {
                 </div>
 
                 {/* Input Nama Tes */}
-                <div className="mb-4">
+                <div className="mb-4 sm:pt-12">
                   <input
                     type="text"
                     className="w-full border border-gray-300 p-2 rounded-full"
@@ -237,7 +267,7 @@ const BuatTes = () => {
                 </div>
 
                 {/* Input Deskripsi */}
-                <div className="mb-4">
+                <div className="mb-4 sm:pt-12">
                   <textarea
                     className="w-full border border-gray-300 p-2 rounded-md"
                     rows="4"
@@ -249,7 +279,7 @@ const BuatTes = () => {
 
                 {/* Tombol Simpan */}
                 <div className="relative min-h-[450px]">
-                  <div className="absolute bottom-0 right-0 pb-10 mr-[-20px]">
+                  <div className="absolute bottom-60 right-0 pb-10 mr-[-20px]">
                     <button
                       className="bg-white text-black w-[180px] px-6 py-2 rounded-md hover:bg-[#0B61AA] hover:text-white transition duration-300" 
                       onClick={handleSubmit}>

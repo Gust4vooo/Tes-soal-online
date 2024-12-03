@@ -392,7 +392,7 @@ async function main() {
     for (let i = 1; i <= 3; i++) {
       const test = await prisma.test.create({
         data: {
-          authorId: 'cm2nb37p40002kbn5qzwq3284', // Ganti dengan authorId yang sesuai
+          authorId: 'cm34ksvrj00016zh5fdrdnyiq', // Ganti dengan authorId yang sesuai
           category: category,
           title: `${category} Test ${i}`,
           testDescription: `Ini adalah deskripsi untuk ${category} Test ${i}`,
@@ -414,6 +414,7 @@ async function main() {
         const multiplechoice = await prisma.multiplechoice.create({
           data: {
             testId: test.id,
+            pageName: "Halaman 1",
             question: questionData.question,
             number: j + 1,
             questionPhoto: '',

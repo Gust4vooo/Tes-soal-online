@@ -3,12 +3,14 @@ import { bucket } from './firebaseAdmin.js';
 // Fungsi untuk mengunggah buffer file ke Firebase Storage
 export const uploadFileToStorage = async (fileBuffer, destination) => {
   try {
+    // Dapatkan referensi file di bucket
     const file = bucket.file(destination);
 
+    // Unggah file dari buffer ke Firebase Storage
     await file.save(fileBuffer, {
       public: true,
       metadata: {
-        contentType: 'image/jpeg',
+        contentType: 'image/jpeg', // Pastikan contentType sesuai dengan tipe file yang diunggah
       },
     });
 

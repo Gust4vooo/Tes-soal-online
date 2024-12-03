@@ -8,6 +8,12 @@ const Login = () => {
     const [password, setPassword] = useState('');
     const [showPopup, setShowPopup] = useState(false); 
     const router = useRouter();
+    const [showPassword, setShowPassword] = useState(false); 
+
+    // Fungsi untuk toggle tampilan sandi
+    const togglePasswordVisibility = () => {
+        setShowPassword(!showPassword);
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -50,7 +56,7 @@ const Login = () => {
                 <h2 className="text-3xl font-bold mb-6 text-black text-center">Login Admin</h2>
                 <form className="space-y-4" onSubmit={handleSubmit}>
                     <div>
-                        <label htmlFor='email' className="block text-sm font-medium text-black">Alamat Email:</label>
+                        <label htmlFor='email' className="block text-sm font-medium text-black">Alamat Email</label>
                         <input
                             type="text"
                             id="email"
@@ -60,14 +66,26 @@ const Login = () => {
                         />
                     </div>
                     <div>
-                        <label htmlFor='password' className="block text-sm font-medium text-black">Kata Sandi:</label>
+                        <label htmlFor='password' className="block text-sm font-medium text-black">Kata Sandi</label>
+                        <div className="relative"> 
                         <input
-                            type="password"
+                            type={showPassword ? "text" : "password"}
                             id="password"
                             name="password"
                             onChange={(e) => setPassword(e.target.value)}
                             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-2xl shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
                         />
+                        <span
+                            className="absolute inset-y-0 right-3 flex items-center text-gray-500 cursor-pointer"
+                            onClick={togglePasswordVisibility} // Menambahkan event handler untuk toggle
+                        >
+                            <img
+                                src={showPassword ? '/images/eye.png' : '/images/hide.png'} // Gambar berdasarkan state
+                                alt={showPassword ? 'Show Password' : 'Hide Password'}
+                                className="w-5 h-5"
+                            />
+                        </span>
+                    </div>
                     </div>
                     <div className="flex justify-center">
                         <button

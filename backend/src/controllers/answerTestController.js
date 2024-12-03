@@ -105,3 +105,17 @@ export const getAnswersByResultIdController = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+export const getResultStatus = async (req, res) => {
+    const { resultId } = req.params;
+    try {
+        const status = await getResultStatusService(resultId);
+        if (status === 'not_found') {
+            return res.status(404).json({ message: 'Result not found' });
+        }
+        res.status(200).json({ status });
+    } catch (error) {
+        console.error('Error in getResultStatus:', error);
+        res.status(500).json({ message: 'Failed to get result status' });
+    }
+};

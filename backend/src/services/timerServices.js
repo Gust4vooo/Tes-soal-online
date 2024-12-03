@@ -17,8 +17,15 @@ export async function getWorktimeByTestId(testId) {
       throw new Error('Test not found');
     }
 
-    // Menghitung waktu akhir berdasarkan waktu kerja (diasumsikan dalam detik)
-    const worktimeInSeconds = test.worktime;
+    // Mengambil waktu kerja dan mengonversinya
+    let worktimeInSeconds;
+    if (test.worktime < 60) {
+      // Jika worktime kurang dari 60, anggap ini dalam menit
+      worktimeInSeconds = test.worktime * 60; // Konversi menit ke detik
+    } else {
+      worktimeInSeconds = test.worktime; // Jika sudah dalam detik
+    }
+
     const currentTimeInSeconds = Math.floor(Date.now() / 1000); // Waktu saat ini dalam detik
     const endTimeInSeconds = currentTimeInSeconds + worktimeInSeconds; // Waktu akhir
 
@@ -31,8 +38,8 @@ export async function getWorktimeByTestId(testId) {
     }
 
     // Menghitung jam, menit, dan detik yang tersisa
-    const hours = Math.floor((remainingTimeInSeconds % 3600) / 60);
-    const minutes = Math.floor(remainingTimeInSeconds / 3600);
+    const hours = Math.floor(remainingTimeInSeconds / 3600);
+    const minutes = Math.floor((remainingTimeInSeconds % 3600) / 60);
     const seconds = remainingTimeInSeconds % 60;
 
     return { hours, minutes, seconds };

@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import React, { useState, useEffect } from "react";
 import { useRouter } from 'next/navigation';
 import  Swal from 'sweetalert2';
+import { useRef } from 'react';
 
 const MengerjakanTes = () => {
     const { testId } = useParams(); // Ambil testId dari URL path
@@ -19,52 +20,47 @@ const MengerjakanTes = () => {
     const [remainingTime, setRemainingTime] = useState(0);
     const [workTime, setWorkTime] = useState(0); 
     const [timerActive, setTimerActive] = useState(false);
-    
-
+    const totalOptions = 5;
+    const [answeredQuestions, setAnsweredQuestions] = useState(new Array(totalOptions).fill(false));
+    const [answeredOptions, setAnsweredOptions] = useState(new Array(totalOptions).fill(false));
+    const workTimeInterval = useRef(null);
     const router = useRouter();
 
     useEffect(() => {
         const handleBeforeUnload = (event) => {
-            event.preventDefault(); // Mencegah tindakan default
-            event.returnValue = ''; // Mengharuskan browser menampilkan dialog konfirmasi default
+            event.preventDefault();
+            event.returnValue = '';
         };
     
-        window.addEventListener('beforeunload', handleBeforeUnload);  // Tambah event listener
-    
-        // Cleanup listener ketika komponen unmount
+        window.addEventListener('beforeunload', handleBeforeUnload);
         return () => {
-            window.removeEventListener('beforeunload', handleBeforeUnload);  // Hapus event listener
+            window.removeEventListener('beforeunload', handleBeforeUnload);
         };
     }, []);
 
     useEffect(() => {
         const savedResultId = localStorage.getItem('resultId');
         if (savedResultId) {
-            setResultId(savedResultId);  // Set resultId dari localStorage
+            setResultId(savedResultId);
             console.log('Loaded resultId from localStorage:', savedResultId);
         }
-    }, []);
-    
-    
+    }, []);    
 
     useEffect(() => {
         const storedAnswers = localStorage.getItem('answers');
         if (storedAnswers) {
             const parsedAnswers = JSON.parse(storedAnswers);
-            setAnswers(parsedAnswers);  // Isi state answers dengan jawaban dari localStorage
+            setAnswers(parsedAnswers);
             const currentQuestionId = questions[currentOption - 1]?.id;
             if (parsedAnswers[currentQuestionId]) {
-                setSelectedOption(parsedAnswers[currentQuestionId].optionValue);  // Atur opsi terpilih dari jawaban yang disimpan
+                setSelectedOption(parsedAnswers[currentQuestionId].optionValue);
             }
         }
-    
-        // Event listener untuk sebelum halaman di-refresh atau ditutup
+
         const handleBeforeUnload = (event) => {
             event.preventDefault();  // Mencegah refresh otomatis
             event.returnValue = '';  // Mengharuskan browser menampilkan dialog konfirmasi default
-        };
-
-    
+        };   
     
         window.addEventListener('beforeunload', handleBeforeUnload);  // Tambahkan event listener
     
@@ -72,34 +68,6 @@ const MengerjakanTes = () => {
             window.removeEventListener('beforeunload', handleBeforeUnload);  // Hapus event listener ketika komponen unmount
         };
     }, [questions, currentOption]);
-
-    // use efect untuk worktime
-    useEffect(() => {
-        if (!resultId) return;  // Pastikan resultId tersedia
-    
-        const storedWorkTime = localStorage.getItem(`workTime_${resultId}`);
-        if (storedWorkTime) {
-            setWorkTime(parseInt(storedWorkTime));  // Ambil workTime dari localStorage berdasarkan resultId
-        }
-    
-        const interval = setInterval(() => {
-            setWorkTime(prevWorkTime => {
-                const newWorkTime = prevWorkTime + 1;  // Tambah 1 detik
-                localStorage.setItem(`workTime_${resultId}`, newWorkTime);  // Simpan workTime ke localStorage berdasarkan resultId
-                return newWorkTime;
-            });
-        }, 1000);  // Setiap 1 detik
-    
-        return () => clearInterval(interval);  // Bersihkan interval saat komponen unmount
-    }, [resultId]);
-    
-
-    useEffect(() => {
-        const storedToken = localStorage.getItem('token');
-        if (storedToken) {
-            setToken(storedToken);
-        }
-    }, []);
 
     useEffect(() => {
         if (!testId) return; // Tunggu hingga testId tersedia dari URL path
@@ -191,9 +159,51 @@ const MengerjakanTes = () => {
         }
     }, [currentOption, answers, questions]);
     
+    useEffect(() => {
+        const storedToken = localStorage.getItem('token');
+        if (storedToken) setToken(storedToken);
+    
+        const savedResultId = localStorage.getItem('resultId');
+        if (savedResultId) setResultId(savedResultId);
+    }, []);
+    
+    const formatRemainingTime = (timeInSeconds) => {
+        if (typeof timeInSeconds !== 'number' || isNaN(timeInSeconds) || timeInSeconds < 0) {
+            return '00:00:00'; // Fallback to default format
+        }
+    
+        const hours = Math.floor(timeInSeconds / 3600);
+        const minutes = Math.floor((timeInSeconds % 3600) / 60);
+        const seconds = timeInSeconds % 60;
+    
+        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    };
 
     useEffect(() => {
-        const fetchWorkTime = async () => {
+        if (!resultId) return;
+
+        const storedWorkTime = localStorage.getItem(`workTime_${resultId}`);
+        if (storedWorkTime) {
+            setWorkTime(parseInt(storedWorkTime));
+        } else {
+            setWorkTime(0);
+        }
+
+    // Fetch remaining time from localStorage or backend
+    const fetchRemainingTime = async () => {
+        const storedRemainingTime = localStorage.getItem(`remainingTime_${resultId}`);
+        console.log('Stored remaining time from localStorage:', storedRemainingTime);
+        
+        if (storedRemainingTime) {
+            const time = Number(storedRemainingTime);
+            if (!isNaN(time) && time > 0) {
+                setRemainingTime(time);
+                setTimerActive(true); // Activate timer immediately
+                startWorkTime(); // Start work time interval immediately
+                startCountdown(time); // Start countdown for remaining time immediately
+            }
+        } else {
+            // Fetch from backend if not found in localStorage
             try {
                 const response = await fetch(`http://localhost:2000/timer/${testId}/worktime`, {
                     headers: {
@@ -201,45 +211,73 @@ const MengerjakanTes = () => {
                     },
                 });
                 if (!response.ok) throw new Error('Failed to fetch worktime');
-    
+
                 const data = await response.json();
-                console.log('Fetched worktime:', data);
-    
+                console.log('Fetched worktime from backend:', data);
+
                 const { hours, minutes, seconds } = data;
-    
                 const totalWorkTimeInSeconds = hours * 3600 + minutes * 60 + seconds;
-    
+
                 if (totalWorkTimeInSeconds > 0) {
                     setRemainingTime(totalWorkTimeInSeconds);
-                    setTimerActive(true); // Aktifkan timer jika ada waktu tersisa
+                    setTimerActive(true); // Activate timer after getting time from backend
+                    localStorage.setItem(`remainingTime_${resultId}`, totalWorkTimeInSeconds); // Save to localStorage
+                    startWorkTime(); // Start work time interval
+                    startCountdown(totalWorkTimeInSeconds); // Start countdown immediately
                 } else {
-                    setRemainingTime(0); // Set waktu tersisa menjadi 0 jika sudah habis
-                    alert("Waktu sudah habis!"); // Peringatkan jika waktu sudah habis
+                    setRemainingTime(0);
+                    alert("Waktu sudah habis!");
                 }
             } catch (error) {
                 console.error('Failed to fetch worktime:', error);
-                alert("Gagal mengambil waktu kerja."); // Tambahkan alert untuk kesalahan pengambilan data
+                alert("Gagal mengambil waktu kerja.");
             }
-        };
-    
-        fetchWorkTime();
-    }, [testId]); 
-
-    const formatRemainingTime = (timeInSeconds) => {
-        if (typeof timeInSeconds !== 'number' || isNaN(timeInSeconds) || timeInSeconds < 0) {
-            return '00:00:00'; // Fallback to default format
         }
-
-        const hours = Math.floor(timeInSeconds / 3600);
-        const minutes = Math.floor((timeInSeconds % 3600) / 60);
-        const seconds = timeInSeconds % 60;
-
-        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
     };
 
-    // Format waktu yang tersisa untuk ditampilkan
-    const remainingTimeFormatted = formatRemainingTime(remainingTime);
+    const startWorkTime = () => {
+        // Start interval for workTime
+        workTimeInterval.current = setInterval(() => {
+            setWorkTime(prevWorkTime => {
+                const newWorkTime = prevWorkTime + 1; // Add 1 second
+                localStorage.setItem(`workTime_${resultId}`, newWorkTime); // Save workTime to localStorage
+                return newWorkTime;
+            });
+        }, 1000); // Every 1 second
+    };
 
+    const startCountdown = (initialTime) => {
+        // Start countdown immediately
+        let countdownTimer = setInterval(() => {
+            setRemainingTime(prevTime => {
+                const newTime = prevTime - 1;
+
+                if (newTime <= 0) {
+                    clearInterval(countdownTimer); // Stop countdown timer if time is up
+                    setTimerActive(false);
+                    alert('Waktu habis!');
+                    return 0; // Ensure it doesn't go below zero
+                }
+
+                localStorage.setItem(`remainingTime_${resultId}`, newTime); // Save remaining time to localStorage
+                return newTime; // Return new remaining time
+            });
+        }, 1000); 
+        
+        return () => clearInterval(countdownTimer); // Clear interval when component unmounts
+    };
+
+    // Start both timers
+    fetchRemainingTime(); // Call to fetch remaining time
+
+    return () => {
+        clearInterval(workTimeInterval.current); // Clear work time interval when component unmounts
+    };
+}, [resultId, testId, token]); // Dependencies include resultId, testId, and token
+
+// Format remaining time for display
+const remainingTimeFormatted = formatRemainingTime(remainingTime);
+    
     // Timer countdown effect
     useEffect(() => {
         let timer;
@@ -247,23 +285,22 @@ const MengerjakanTes = () => {
         if (timerActive && remainingTime > 0) {
             timer = setInterval(() => {
                 setRemainingTime((prevTime) => {
-                    const newTime = prevTime - 1;
+                    const newTime = prevTime - 1; // Decrease remaining time
     
                     if (newTime <= 0) {
-                        clearInterval(timer);
+                        clearInterval(timer); // Stop timer if time is up
                         setTimerActive(false);
                         alert('Waktu habis!');
                     }
     
-                    localStorage.setItem(`remainingTime_${resultId}`, newTime);  // Simpan waktu tersisa ke localStorage berdasarkan resultId
-                    return newTime;
+                    localStorage.setItem(`remainingTime_${resultId}`, newTime); // Save remaining time to localStorage based on resultId
+                    return newTime; // Return new remaining time
                 });
             }, 1000);
         }
     
-        return () => clearInterval(timer);  // Bersihkan interval saat komponen unmount
+        return () => clearInterval(timer); // Clear interval when component unmounts
     }, [timerActive, remainingTime, resultId]);
-
 
     const saveDraftAnswer = async (testId, optionId, selectedOption) => {
         try {
@@ -358,20 +395,20 @@ const MengerjakanTes = () => {
             alert('Terjadi kesalahan saat mengirim jawaban final: ' + error.message);
         }
     };
-    
-
-    
-    
-    
-    
-
-
 
     const handleOption = async (optionId, optionLabel, question) => {
         setSelectedOption(optionLabel);
         const previousAnswer = answers[question.id];
         let currentResultId = resultId || localStorage.getItem('resultId');  // Ambil resultId dari localStorage jika tidak tersedia
-    
+
+        if (!answeredQuestions.includes(currentOption)){
+            setAnsweredQuestions([...answeredQuestions, currentOption]);
+        }
+
+        const updatedMarkedReview = [...markedReview];
+        updatedMarkedReview[currentOption - 1] = true; // Tandai jawaban untuk soal saat ini
+        setMarkedReview(updatedMarkedReview);
+        
         if (previousAnswer) {
             if (previousAnswer.optionId !== optionId || previousAnswer.optionLabel !== optionLabel) {
                 if (currentResultId) {
@@ -414,36 +451,6 @@ const MengerjakanTes = () => {
         }
     };
     
-    
-    
-    const saveRemainingTimeToLocalStorage = (time) => {
-        localStorage.setItem('remainingTime', time);
-        console.log('Saving remaining time to localStorage:', time);
-    };
-
-    // Mengambil waktu tersimpan dari localStorage dan melanjutkan timer
-    useEffect(() => {
-        const storedRemainingTime = localStorage.getItem(`remainingTime_${resultId}`);
-        console.log('Stored remaining time from localStorage:', storedRemainingTime);
-    
-        if (storedRemainingTime) {
-            const time = Number(storedRemainingTime);
-            if (!isNaN(time)) {
-                setRemainingTime(time);  // Set waktu tersisa dari localStorage berdasarkan resultId
-                setTimerActive(true);    // Aktifkan timer jika ada waktu tersisa
-            } else {
-                console.error('Invalid time format in localStorage.');
-            }
-        }
-    }, [resultId]);
-
-    // Mengurangi waktu tersisa dan menyimpannya ke localStorage setiap detik
-    
-    
-    
-    
-    
-    
     const handlenextquestion = () => {
         if (currentOption < questions.length) {
             setCurrentOption((prev) => prev + 1);
@@ -469,10 +476,46 @@ const MengerjakanTes = () => {
     };
 
     const handlemarkreview = () => {
+        // console.log("Button clicked");
+        // const updatedMarkedReview = [...markedReview];
+        // updatedMarkedReview[currentOption - 1] = !updatedMarkedReview[currentOption - 1];
+        // setMarkedReview(updatedMarkedReview);
+        // console.log(updatedMarkedReview);
+
+        console.log("Button clicked");
+        // setMarkedReview(prevMarkedReview => {
+        //     const updatedMarkedReview = [...prevMarkedReview];
+        //     updatedMarkedReview[currentOption - 1] = !updatedMarkedReview[currentOption - 1]; // Toggle status
+        //     console.log("Updated Marked Review:", updatedMarkedReview);
+        //     return updatedMarkedReview;
+        // });
         const updatedMarkedReview = [...markedReview];
+        // Toggle status pada markedReview untuk currentOption
         updatedMarkedReview[currentOption - 1] = !updatedMarkedReview[currentOption - 1];
         setMarkedReview(updatedMarkedReview);
+        console.log("markedReview setelah diperbarui:", updatedMarkedReview);
+
+        // Tambahkan log di sini untuk memeriksa nilai setelah update
+        console.log("currentOption:", currentOption);
+        console.log("markedReview:", updatedMarkedReview);
+        console.log("answeredOptions:", answeredOptions);
     };
+
+    const handleAnswerInput = (optionIndex) => {
+        setAnsweredOptions(prev => {
+            const updatedAnswers = [...prev];
+            updatedAnswers[optionIndex] = true; // Tandai bahwa opsi sudah diisi
+            return updatedAnswers;
+        });
+    };
+
+     // Fungsi untuk memperbarui warna nomor soal
+     const handleAnswerQuestion = (index) => {
+        const updatedAnsweredQuestions = [...answeredQuestions];
+        updatedAnsweredQuestions[index] = !updatedAnsweredQuestions[index]; // Toggle jawaban
+        setAnsweredQuestions(updatedAnsweredQuestions);
+    };
+
 
     // Panggil `submitFinalAnswers` ketika tombol "Submit" diklik
     const handleSubmit = async () => {
@@ -489,12 +532,20 @@ const MengerjakanTes = () => {
     
         if (confirmSubmit.isConfirmed) {
             try {
+                // Bersihkan interval untuk workTime agar tidak terus bertambah
+                clearInterval(workTimeInterval);
+    
+                // Hapus data workTime dari localStorage untuk memastikan tidak ada carry-over
+                localStorage.removeItem(`workTime_${resultId}`);
+                
                 await submitFinalAnswers();
     
-                // Bersihkan localStorage setelah submit
+                // Bersihkan data dari localStorage setelah submit
                 localStorage.removeItem('answers');
-                //localStorage.removeItem('resultId');
+                localStorage.removeItem('resultId');
+                localStorage.removeItem(`remainingTime_${resultId}`);
     
+                // Redirect ke halaman hasil
                 router.push(`/tes/mengerjakan-tes/hasil-tes/${resultId}`);
             } catch (error) {
                 console.error('Error submitting final answers:', error);
@@ -508,7 +559,7 @@ const MengerjakanTes = () => {
             }
         }
     };
-    
+
     useEffect(() => {
         const storedAnswers = localStorage.getItem('answers');
         
@@ -521,6 +572,19 @@ const MengerjakanTes = () => {
     
 
     const currentQuestion = questions.length > 0 ? questions[currentOption - 1] : null;
+
+    console.log("Render Check:");
+    console.log("currentOption:", currentOption);
+    console.log("markedReview:", markedReview);
+    console.log("answeredOptions:", answeredOptions);
+
+    // UseEffect untuk melacak perubahan state
+    useEffect(() => {
+        console.log("State Updated:");
+        console.log("currentOption:", currentOption);
+        console.log("markedReview:", markedReview);
+        console.log("answeredOptions:", answeredOptions);
+    }, [markedReview, answeredOptions, currentOption]);
 
     return (
         <div className="min-h-screen flex flex-col p-6 bg-white font-sans">
@@ -552,7 +616,9 @@ const MengerjakanTes = () => {
                                 {Array.from({ length: questions.length }, (_, i) => (
                                     <button
                                         key={i + 1}
-                                        className={`w-8 h-8 text-lg font-bold rounded border border-[#0B61AA] ${markedReview[i] ? 'bg-yellow-500 text-white' : 'bg-gray-200'} hover:bg-gray-300`}
+                                        className={`w-10 h-10 text-lg font-bold rounded border border-[#0B61AA] 
+                                            ${answeredQuestions.includes(i + 1) ? 'bg-gray-400' : markedReview[i] ? 'bg-yellow-500 text-white' : 'bg-gray-200'} 
+                                            hover:bg-gray-300`}
                                         onClick={() => setCurrentOption(i + 1)}>
                                         {i + 1}
                                     </button>
@@ -612,7 +678,12 @@ const MengerjakanTes = () => {
                                         Soal sebelumnya
                                     </button>
                                     <button
-                                        className={`bg-[#F8B75B] text-black px-4 py-2 rounded-[15px] hover:bg-yellow-500 mb-2 md:mb-0 md:mx-4 flex-1  ${markedReview[currentOption - 1] ? 'bg-yellow-500' : ''} md:block hidden`}
+                                    //    className={`bg-[#F8B75B] text-black px-4 py-2 rounded-[15px] hover:bg-yellow-500 w-full 
+                                    //     ${markedReview[currentOption - 1] ? 'bg-yellow-500' : ' '}`}
+                                        // className={`bg-[#F8B75B] text-black px-4 py-2 rounded-[15px] hover:bg-yellow-500 w-full ${markedReview[currentOption - 1] || answeredOptions[currentOption - 1] ? 'bg-yellow-500' : 'bg-gray-300'}`}
+                                        className={`bg-[#F8B75B] text-black px-4 py-2 rounded-[15px] hover:bg-yellow-500 w-full 
+                                            ${(markedReview[currentOption - 1] || answeredOptions[currentOption - 1]) ? 'bg-yellow-500' : 'bg-gray-300'}
+                                        `}
                                         style={{ height: '40px', width: '100%', maxWidth: '200px', margin: '0 auto' }}
                                         onClick={handlemarkreview}>
                                         Ragu-Ragu
@@ -635,7 +706,11 @@ const MengerjakanTes = () => {
                                 </div>
                                 <div className=" block md:hidden w-full">
                                     <button
-                                        className={`bg-[#F8B75B] text-black px-4 py-2 rounded-[15px] hover:bg-yellow-500 w-full ${markedReview[currentOption - 1] ? 'bg-yellow-500' : ''}`}
+                                        // className={`bg-[#F8B75B] text-black px-4 py-2 rounded-[15px] hover:bg-yellow-500 w-full ${markedReview[currentOption - 1] ? 'bg-yellow-500' : ''}`}
+                                        className={`bg-[#F8B75B] text-black px-4 py-2 rounded-[15px] hover:bg-yellow-500 w-full 
+                                            ${markedReview[currentOption - 1] ? 'bg-yellow-500' : ''}`}
+                                        // className={`bg-[#F8B75B] text-black px-4 py-2 rounded-[15px] hover:bg-yellow-500 w-full 
+                                        //     ${markedReview[currentOption - 1] || answeredOptions[currentOption - 1] ? 'bg-yellow-500' : 'bg-gray-300'}`}
                                         style={{ height: '40px' }}
                                         onClick={handlemarkreview}>
                                         Ragu-Ragu
@@ -654,7 +729,9 @@ const MengerjakanTes = () => {
                             {Array.from({ length: questions.length }, (_, i) => (
                                 <button
                                     key={i + 1}
-                                    className={`w-10 h-10 text-lg font-bold rounded border border-[#0B61AA] ${markedReview[i] ? 'bg-yellow-500 text-white' : 'bg-gray-200'} hover:bg-gray-300`}
+                                    className={`w-10 h-10 text-lg font-bold rounded border border-[#0B61AA] 
+                                        ${answeredQuestions.includes(i + 1) ? 'bg-gray-400' : markedReview[i] ? 'bg-yellow-500 text-white' : 'bg-gray-200'} 
+                                        hover:bg-gray-300`}
                                     onClick={() => setCurrentOption(i + 1)}>
                                     {i + 1}
                                 </button>

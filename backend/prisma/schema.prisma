@@ -31,6 +31,12 @@ model Test {
   transaction      Transaction[]
 }
 
+enum Type {
+  PilihanGanda
+  Essay
+}
+
+
 model History {
   id        String       @id @default(cuid())
   testId    String
@@ -38,6 +44,7 @@ model History {
   user      User         @relation(fields: [userId], references: [id])
   test      Test         @relation(fields: [testId], references: [id])
 }
+
 
 model User {
   id                String          @id @default(cuid())
@@ -56,7 +63,7 @@ model User {
   testimoni        Testimoni[]
   author           Author[]
   revokedTokens    RevokedToken[]
-
+  transaction      Transaction[]
 }
 
 model Author {
@@ -71,6 +78,7 @@ model Author {
   isApproved        Boolean       @default(false)
   user              User          @relation(fields: [userId], references: [id])
   test              Test[]
+  withdrawal        Withdrawal[]
 }
 
 model Favourite {
@@ -95,7 +103,7 @@ model Multiplechoice {
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
   test             Test         @relation(fields: [testId], references: [id])
-  option           Option[]
+  option           Option[]
 }
 
 model Result {
@@ -141,23 +149,22 @@ model Option {
   detail_result     Detail_result[]
 }
 
-// Enum untuk status transaksi
-enum TransactionStatus {
-  unpaid
-  pending
-  success
-}
+// Enum untuk status transaks
 
 // Model Transaksi
 model Transaction {
   id             String            @id @default(cuid())
   testId         String
-  paymentMethod  String
-  paymentTime    DateTime          @default(now())
-  total          Int
-  status         TransactionStatus
+  userId         String
+  paymentMethod  String?
+  paymentTime    DateTime?        @default(now())
+  total          Int?
+  paymentId      String?
+  paymentStatus  PaymentStatus
   test           Test              @relation(fields: [testId], references: [id])
+  user           User              @relation(fields: [userId], references: [id])
 }
+
 
 
 model Testimoni {
@@ -188,7 +195,32 @@ enum Category {
   Psikotes
 }
 
-enum Type {
-  PilihanGanda
-  Essay
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  EXPIRED
 }
+
+enum WithdrawalStatus {
+  PENDING
+  PROCESSING
+  SUCCESS
+  FAILED
+}
+
+model Withdrawal {
+  id            String           @id @default(cuid())
+  authorId      String
+  amount        Int
+  bankCode      String      
+  accountNumber String     
+  accountName   String         
+  status        WithdrawalStatus @default(PENDING)
+  reference     String?         
+  notes         String?        
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  author        Author          @relation(fields: [authorId], references: [id])
+}
+

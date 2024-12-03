@@ -4,7 +4,8 @@ import {
     getAuthorService, 
     updateVerificationAuthorService,
     getAuthorByUserId,
-    editAuthorProfileService
+    editAuthorProfileService,
+    getAuthorDataService
     
 } from "../services/authorServices.js";
 
@@ -91,20 +92,44 @@ export const getAuthorProfile = async (req, res) => {
 
 export const editAuthorProfile = async (req, res) => {
     try {
-        const token = req.headers.authorization.split(' ')[1]; // Assumes Bearer token
-        const profileData = req.body;
+        const token = req.headers.authorization?.split(' ')[1];
+        if (!token) {
+            return res.status(401).json({ message: 'No token provided' });
+        }
 
-        const updatedAuthor = await editAuthorProfileService(token, profileData);
+        const { firstName, lastName, email, password } = req.body;
+        const file = req.file; // Asumsi menggunakan multer untuk handle file upload
+
+        const profileData = {
+            firstName,
+            lastName,
+            email,
+            password: password || undefined // Hanya kirim password jika ada
+        };
+
+        const updatedAuthor = await editAuthorProfileService(token, profileData, file);
 
         res.status(200).json({
-            message: "Author profile updated successfully",
+            message: 'Profile updated successfully',
             data: updatedAuthor
         });
     } catch (error) {
-        console.error("Error in editAuthorProfile controller:", error);
+        console.error('Error in editAuthorProfileController:', error);
         res.status(500).json({
-            message: "Failed to update author profile",
+            message: 'Failed to update profile',
             error: error.message
         });
     }
+};
+// backend/src/controllers/authorControllers.js
+
+
+export const getAuthorData = async (req, res) => {
+  try {
+    const token = req.headers.authorization.split(' ')[1]; // Assuming Bearer token
+    const authorData = await getAuthorDataService(token);
+    res.json(authorData);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching author data', error: error.message });
+  }
 };

@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import  { useState, useEffect } from 'react';
+import { jwtDecode } from "jwt-decode";
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
 
-export default function pemrograman() {
+export default function Pemrograman() {
   const [popularTestsByCategory, setPopularTestsByCategory] = useState([]);
   const [freeTestsByCategory, setFreeTestsByCategory] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
@@ -13,7 +14,99 @@ export default function pemrograman() {
   const [loading, setLoading] = useState([true]);
   const [error, setError] = useState([null]);
   const [isDropdownOpen, setDropdownOpen] = useState(false);
-  const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IldGdHM2UXl4SGZWRnEzc0pXWXpyOHZXR0RzbTEiLCJlbWFpbCI6ImNoYXNjaHl5QGdtYWlsLmNvbSIsInJvbGUiOiJVU0VSIiwiaWF0IjoxNzI5Nzc2MjgyLCJleHAiOjE3Mjk3Nzk4ODJ9.0ka1wkLGztzgopxjhlvl77JSE7l5quPTMixKdlBFF0c';
+  const [token, setToken] = useState('');
+  const [userData, setUserData] = useState(null);
+  const [loadingUser, setLoadingUser] = useState(true);
+  const [errorUser, setErrorUser] = useState(null);
+  const [userId, setUserId] = useState(null);
+
+  useEffect(() => {
+    const getUserIdFromToken = () => {
+      try {
+        setLoading(true);
+        // Pastikan kode ini hanya dijalankan di sisi klien
+        if (typeof window !== 'undefined') {
+          const token = localStorage.getItem('token');
+          if (!token) {
+            throw new Error('Token tidak ditemukan');
+          }
+
+          const decodedToken = jwtDecode(token);
+          if (!decodedToken.id) {
+            throw new Error('User ID tidak ditemukan dalam token');
+          }
+
+          setUserId(decodedToken.id);
+        }
+      } catch (error) {
+        console.error('Error decoding token:', error);
+        setError(error.message);
+        // Redirect ke halaman login jika token tidak valid
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    getUserIdFromToken();
+  }, []);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      let token;
+      if (typeof window !== 'undefined') {
+        token = localStorage.getItem('token');
+      }
+      
+      if (!token) {
+        setErrorUser('Token tidak ditemukan');
+        setLoadingUser(false);
+        return;
+      }
+
+      try {
+        setLoadingUser(true);
+        const response = await fetch('http://localhost:2000/user/profile', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch user data');
+        }
+
+        const data = await response.json();
+        if (data) {
+          setUserData(data);
+        } else {
+          throw new Error('Data pengguna tidak ditemukan');
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        setErrorUser('Gagal mengambil data pengguna');
+        if (error.message === 'Failed to fetch user data') {
+          // Token mungkin tidak valid atau kadaluarsa
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('token');
+          }
+          router.push('/login');
+        }
+      } finally {
+        setLoadingUser(false);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  useEffect(() => {
+    const storedToken = localStorage.getItem('token');
+    if (storedToken) {
+        setToken(storedToken);
+    }
+}, []);
 
   useEffect(() => {
     const fetchPopularTestsByCategory = async () => {
@@ -199,125 +292,88 @@ export default function pemrograman() {
     }
   };
   
-  // State untuk mengelola apakah "Love" di-like atau tidak
-  const [isLiked, setIsLiked] = useState(false);
+  const [likedItems, setLikedItems] = useState({});
 
-  // Fungsi untuk toggle status "Love"
-  const toggleLike = () => {
-    setIsLiked(!isLiked);
-  }; 
+  // Ambil status like dari local storage atau API saat komponen dimuat
+  useEffect(() => {
+    const fetchFavorites = async () => {
+      try {
+        const response = await fetch('http://localhost:2000/api/favorites', {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (!response.ok) {
+          throw new Error('Failed to fetch favorites');
+        }
+        const favoriteTests = await response.json();
   
-  const [likedSearchItems, setLikedSearchItems] = useState({});
-const [likedPopulerItems, setLikedPopulerItems] = useState({});
-const [likedGratisItems, setLikedGratisItems] = useState({});
-
-const toggleLikeSearch = async (id) => {
-  const isLiked = likedSearchItems[id]; // Cek status apakah sudah di-like
-
-  try {
-    if (isLiked) {
-      // Jika sudah di-like, lakukan DELETE request
-      await fetch(`http://localhost:2000/api/favorites`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`, // Gunakan token yang sudah didefinisikan
-        },
-        body: JSON.stringify({ testId: id }),
-      });
-    } else {
-      // Jika belum di-like, lakukan POST request
-      await fetch(`http://localhost:2000/api/favorites`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`, // Gunakan token yang sudah didefinisikan
-        },
-        body: JSON.stringify({ testId: id }),
-      });
+        // Buat objek liked items berdasarkan favoriteTests
+        const initialLikedItems = {};
+        favoriteTests.forEach(test => {
+          initialLikedItems[test.id] = true; // Asumsikan test.id adalah ID dari tes
+        });
+  
+        setLikedItems(initialLikedItems);
+      } catch (error) {
+        console.error('Error fetching favorite tests:', error);
+      }
+    };
+  
+    // Memanggil fetchFavorites untuk mendapatkan favorit dari server
+    fetchFavorites();
+  }, [token]);
+  
+  // Mengambil status like dari local storage saat pertama kali komponen dimuat
+  useEffect(() => {
+    const storedLikedItems = localStorage.getItem('likedItems');
+    if (storedLikedItems) {
+      setLikedItems(JSON.parse(storedLikedItems));
     }
-
-    // Update state setelah permintaan berhasil
-    setLikedSearchItems((prevLikedItems) => ({
-      ...prevLikedItems,
-      [id]: !prevLikedItems[id], // Toggle status like
-    }));
-  } catch (error) {
-    console.error("Error handling favorite:", error);
-  }
-};
-
-const toggleLikePopuler = async (id) => {
-  const isLiked = likedPopulerItems[id]; // Cek status apakah sudah di-like
-
-  try {
-    if (isLiked) {
-      // Jika sudah di-like, lakukan DELETE request
-      await fetch(`http://localhost:2000/api/favorites`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`, // Gunakan token yang sudah didefinisikan
-        },
-        body: JSON.stringify({ testId: id }),
-      });
-    } else {
-      // Jika belum di-like, lakukan POST request
-      await fetch(`http://localhost:2000/api/favorites`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`, // Gunakan token yang sudah didefinisikan
-        },
-        body: JSON.stringify({ testId: id }),
-      });
+  }, []);
+  
+  // Mengupdate local storage setiap kali likedItems diupdate
+  useEffect(() => {
+    localStorage.setItem('likedItems', JSON.stringify(likedItems));
+  }, [likedItems]);
+  
+  // Fungsi toggle like untuk semua bagian
+  const toggleLike = async (id) => {
+    const isLiked = likedItems[id];
+  
+    try {
+      if (isLiked) {
+        // Jika sudah di-like, lakukan DELETE request
+        await fetch(`http://localhost:2000/api/favorites`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ testId: id }),
+        });
+      } else {
+        // Jika belum di-like, lakukan POST request
+        await fetch(`http://localhost:2000/api/favorites`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ testId: id }),
+        });
+      }
+  
+      // Update state setelah permintaan berhasil
+      setLikedItems((prevLikedItems) => ({
+        ...prevLikedItems,
+        [id]: !prevLikedItems[id], // Toggle status like
+      }));
+    } catch (error) {
+      console.error("Error handling favorite:", error);
     }
-
-    // Update state setelah permintaan berhasil
-    setLikedPopulerItems((prevLikedItems) => ({
-      ...prevLikedItems,
-      [id]: !prevLikedItems[id], // Toggle status like
-    }));
-  } catch (error) {
-    console.error("Error handling favorite:", error);
-  }
-};
-
-const toggleLikeGratis = async (id) => {
-  const isLiked = likedGratisItems[id]; // Cek status apakah sudah di-like
-
-  try {
-    if (isLiked) {
-      // Jika sudah di-like, lakukan DELETE request
-      await fetch(`http://localhost:2000/api/favorites`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`, // Pastikan kamu punya token JWT
-        },
-        body: JSON.stringify({ testId: id }),
-      });
-    } else {
-      // Jika belum di-like, lakukan POST request
-      await fetch(`http://localhost:2000/api/favorites`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`, // Pastikan kamu punya token JWT
-        },
-        body: JSON.stringify({ testId: id }),
-      });
-    }
-
-    // Update state setelah permintaan berhasil
-    setLikedGratisItems((prevLikedItems) => ({
-      ...prevLikedItems,
-      [id]: !prevLikedItems[id], // Toggle status like
-    }));
-  } catch (error) {
-    console.error("Error handling favorite:", error);
-  }
-};
+  };
 
   return (
     <>
@@ -381,12 +437,12 @@ const toggleLikeGratis = async (id) => {
                   onMouseEnter={() => setDropdownOpen(true)}
                   onMouseLeave={() => setDropdownOpen(false)}
                 >
-                  <Link legacyBehavior href="/profile-edit">
+                  <Link legacyBehavior href={`/user/edit-profile/${userId}`} >
                     <a className="block px-4 py-1 text-deepBlue text-sm text-gray-700 hover:bg-deepBlue hover:text-white rounded-md border-abumuda">
                       Ubah Profil
                     </a>
                   </Link>
-                  <Link legacyBehavior href="/logout">
+                  <Link legacyBehavior href="/auth/login">
                     <a className="block px-4 py-1 text-deepBlue text-sm text-gray-700 hover:bg-deepBlue hover:text-white rounded-md">
                       Logout
                     </a>
@@ -506,7 +562,7 @@ const toggleLikeGratis = async (id) => {
                 </div>
 
                 <div className="absolute gap-1 bottom-5 left-0 right-0 flex justify-center items-center lg:justify-center lg:space-x-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-30 p-1 w-full">
-                    <a href={`/tes/detailsoal/${test.id}`} className="w-3/4 lg:w-1/4 text-xs lg:text-base text-center bg-paleBlue text-deepBlue py-3 lg:py-2 rounded-full inline-block hover:bg-orange hover:text-deepBlue mb-2 lg:mb-0">
+                    <a href="/tes/detailsoal" className="w-3/4 lg:w-1/4 text-xs lg:text-base text-center bg-paleBlue text-deepBlue py-3 lg:py-2 rounded-full inline-block hover:bg-orange hover:text-deepBlue mb-2 lg:mb-0">
                       Mulai
                     </a>
                     <a href="/user/topScore" className="w-3/4 lg:w-2/5 text-xs lg:text-base text-center bg-paleBlue text-deepBlue py-1 lg:py-2 rounded-full inline-block hover:bg-orange hover:text-deepBlue mb-2 lg:mb-0">
@@ -514,10 +570,10 @@ const toggleLikeGratis = async (id) => {
                        <span className="ml-1">Top Score</span>
                     </a>
                     <button 
-                      onClick={() => toggleLikeSearch(test.id)} 
+                      onClick={() => toggleLike(test.id)} 
                       className="lg:block text-center bg-paleBlue text-deepBlue inline-block px-3 py-2 rounded-full hover:bg-orange hover:text-deepBlue mb-2 lg:mb-0"
                     >
-                      <i className={`fa${likedSearchItems[test.id] ? "s" : "r"} fa-heart ${likedSearchItems[test.id] ? "text-red-500" : "text-deepBlue"}`}></i>
+                      <i className={`fa${likedItems[test.id] ? "s" : "r"} fa-heart ${likedItems[test.id] ? "text-red-500" : "text-deepBlue"}`}></i>
                     </button>
                 </div>
               </div>
@@ -589,7 +645,7 @@ const toggleLikeGratis = async (id) => {
                   </div>
 
                   <div className="absolute gap-1 bottom-5 left-0 right-0 flex justify-center items-center lg:justify-center lg:space-x-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-30 p-1 w-full">
-                    <a href={`/tes/detailsoal/${test.id}`} className="w-3/4 lg:w-1/4 text-xs lg:text-base text-center bg-paleBlue text-deepBlue py-3 lg:py-2 rounded-full inline-block hover:bg-orange hover:text-deepBlue mb-2 lg:mb-0">
+                    <a href="/tes/detailsoal" className="w-3/4 lg:w-1/4 text-xs lg:text-base text-center bg-paleBlue text-deepBlue py-3 lg:py-2 rounded-full inline-block hover:bg-orange hover:text-deepBlue mb-2 lg:mb-0">
                       Mulai
                     </a>
                     <a href="/user/topscore" className="w-3/4 lg:w-2/5 text-xs lg:text-base text-center bg-paleBlue text-deepBlue py-1 lg:py-2 rounded-full inline-block hover:bg-orange hover:text-deepBlue mb-2 lg:mb-0">
@@ -597,10 +653,10 @@ const toggleLikeGratis = async (id) => {
                        <span className="ml-1">Top Score</span>
                     </a>
                     <button 
-                      onClick={() => toggleLikePopuler(test.id)} 
+                      onClick={() => toggleLike(test.id)} 
                       className="lg:block text-center bg-paleBlue text-deepBlue inline-block px-3 py-2 rounded-full hover:bg-orange hover:text-deepBlue mb-2 lg:mb-0"
                     >
-                      <i className={`fa${likedPopulerItems[test.id] ? "s" : "r"} fa-heart ${likedPopulerItems[test.id] ? "text-red-500" : "text-deepBlue"}`}></i>
+                      <i className={`fa${likedItems[test.id] ? "s" : "r"} fa-heart ${likedItems[test.id] ? "text-red-500" : "text-deepBlue"}`}></i>
                     </button>
                   </div>
 
@@ -672,18 +728,18 @@ const toggleLikeGratis = async (id) => {
                 </div>
 
                 <div className="absolute gap-1 bottom-5 left-0 right-0 flex justify-center items-center lg:justify-center lg:space-x-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-30 p-1 w-full">
-                    <a href={`/tes/detailsoal/${test.id}`} className="w-3/4 lg:w-1/4 text-xs lg:text-base text-center bg-paleBlue text-deepBlue py-3 lg:py-2 rounded-full inline-block hover:bg-orange hover:text-deepBlue mb-2 lg:mb-0">
+                    <a href="/tes/detailsoal" className="w-3/4 lg:w-1/4 text-xs lg:text-base text-center bg-paleBlue text-deepBlue py-3 lg:py-2 rounded-full inline-block hover:bg-orange hover:text-deepBlue mb-2 lg:mb-0">
                       Mulai
                     </a>
-                    <a href={`/user/topscore/${test.id}`}className="w-3/4 lg:w-2/5 text-xs lg:text-base text-center bg-paleBlue text-deepBlue py-1 lg:py-2 rounded-full inline-block hover:bg-orange hover:text-deepBlue mb-2 lg:mb-0">
+                    <a href="/user/topscore" className="w-3/4 lg:w-2/5 text-xs lg:text-base text-center bg-paleBlue text-deepBlue py-1 lg:py-2 rounded-full inline-block hover:bg-orange hover:text-deepBlue mb-2 lg:mb-0">
                       <i className="fa-solid fa-medal"></i>
                       <span className="ml-1">Top Score</span>
                     </a>
                     <button 
-                      onClick={() => toggleLikeGratis(test.id)} 
+                      onClick={() => toggleLike(test.id)} 
                       className="lg:block text-center bg-paleBlue text-deepBlue inline-block px-3 py-2 rounded-full hover:bg-orange hover:text-deepBlue mb-2 lg:mb-0"
                     >
-                      <i className={`fa${likedGratisItems[test.id] ? "s" : "r"} fa-heart ${likedGratisItems[test.id] ? "text-red-500" : "text-deepBlue"}`}></i>
+                      <i className={`fa${likedItems[test.id] ? "s" : "r"} fa-heart ${likedItems[test.id] ? "text-red-500" : "text-deepBlue"}`}></i>
                     </button>
                 </div>
               </div>
