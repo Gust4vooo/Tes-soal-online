@@ -47,7 +47,6 @@ export default function DashboardAuthor() {
     color: isClicked ? 'black' : '#d5cccc'
   };
 
-  // Close initial notification
   const handleOutsideClick = () => {
     setShowNotification(false);
     setShowProcessNotification(false); // Close both notifications

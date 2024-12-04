@@ -181,7 +181,7 @@ export default function Home() {
                 </Link>
               </li>
               <li className="text-white cursor-pointer py-2 px-4 hover:bg-deepBlue  rounded-lg">
-                <Link legacyBehavior href="/my-saldo">
+                <Link legacyBehavior href="/author/my-saldo">
                   <a> My Saldo</a>
                 </Link>
               </li>
