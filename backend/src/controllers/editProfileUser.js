@@ -8,6 +8,7 @@ import {
   updateUserPhoto 
 } from '../services/editProfileUser.js';
 import { uploadFileToStorage } from '../../firebase/firebaseBucket.js';
+import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 
 // Load environment variables
 dotenv.config();
@@ -69,17 +70,30 @@ export const updateEmail = async (req, res) => {
   }
 };
 
-// Memperbarui Kata Sandi Pengguna
 export const changePassword = async (req, res) => {
-  const userId = req.user.id;
+  const userId = req.user.id; // Mendapatkan userId dari token atau session
   const { currentPassword, newPassword } = req.body;
 
+  // Validasi input
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ message: 'Both current password and new password are required.' });
+  }
+
   try {
-    await updateUserPassword(userId, currentPassword, newPassword);
-    return res.status(200).json({ message: 'Password updated successfully' });
+    // Panggil service untuk memperbarui password
+    const result = await updateUserPassword(userId, currentPassword, newPassword);
+
+    // Mengirimkan response sukses
+    return res.status(200).json(result); // `result` berisi pesan dari service
   } catch (error) {
     console.error('Error updating password:', error);
-    return res.status(400).json({ message: error.message });
+
+    // Mengirimkan response error yang lebih jelas
+    return res.status(400).json({
+      message: error.message || 'Failed to update password.',
+      // Anda bisa menambahkan status atau kode kesalahan lain jika diperlukan
+      error: error.stack || 'No stack trace available.',
+    });
   }
 };
 
@@ -96,16 +110,18 @@ export const uploadPhoto = async (req, res) => {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
+    // Tentukan path file di Firebase Storage
     const destination = `profiles/${Date.now()}_${file.originalname}`;
+    
+    // Upload file ke Firebase Storage
     const url = await uploadFileToStorage(file.buffer, destination);
-
     console.log("URL generated from Firebase:", url); // Log untuk melihat URL dari Firebase
 
-    // Panggil `updateUserPhoto` untuk menyimpan URL ke database
+    // Simpan URL ke database
     const updatedUser = await updateUserPhoto(userId, url);
-
     console.log("Updated user data:", updatedUser); // Log hasil dari Prisma untuk memastikan update berhasil
 
+    // Kembalikan respons ke client
     return res.status(200).json({
       message: 'File uploaded successfully',
       url: updatedUser.userPhoto,

@@ -113,25 +113,34 @@ export default function EditProfile({ params }) {
         });
       }
 
-      // Perbarui Password jika `currentPassword` dan `newPassword` diisi
       if (formData.currentPassword && formData.newPassword) {
-        const passwordResponse = await fetch("http://localhost:2000/user/profile/password", {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            currentPassword: formData.currentPassword,
-            newPassword: formData.newPassword,
-          }),
-        });
-
-        if (!passwordResponse.ok) {
-          const errorData = await passwordResponse.json();
-          throw new Error(errorData.message || "Gagal memperbarui password");
+        try {
+          const passwordResponse = await fetch("http://localhost:2000/user/profile/password", {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              currentPassword: formData.currentPassword,
+              newPassword: formData.newPassword,
+            }),
+          });
+      
+          if (!passwordResponse.ok) {
+            const errorData = await passwordResponse.json();
+            console.error("Error response:", errorData);
+            throw new Error(errorData.message || "Gagal memperbarui password");
+          }
+      
+          // Handle success (successfully updated password)
+          console.log("Password updated successfully");
+      
+        } catch (error) {
+          console.error("Error updating password:", error.message);
+          // Handle error (show user feedback)
         }
-      }
+      }      
 
       alert("Profil berhasil diperbarui!");
       router.push('/user/dashboard');
@@ -161,7 +170,7 @@ export default function EditProfile({ params }) {
           <img src="/images/etamtest.png" alt="Etamtest" className="h-[30px] lg:h-10 pl-3"  />
         </div>
         <div className="flex-shrink-0 items-center" >
-          <img src="/images/back.png" alt="Home" className="max-w-[44px] h-[22px] mt-2" onClick={handleDashboard} />
+          <img src="/images/back.png" alt="Home" className="max-w-[44px] h-[22px] mt-2 cursor-pointer" onClick={handleDashboard} />
         </div>
       </div>
 

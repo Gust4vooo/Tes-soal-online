@@ -1,61 +1,96 @@
 import prisma from '../../prisma/prismaClient.js';
 
+
 export const getTransactionByUserId = async (userId) => {
     try {
+        // Fetch transactions for the user
         const transactions = await prisma.transaction.findMany({
-            where: { userId },
+            where: { userId },  // Cari transaksi berdasarkan userId
             include: {
-                test: {
+                test: { // Mengambil informasi terkait test
                     include: {
-                        author: true, // Mendapatkan informasi penulis tes
+                        author: { // Mengambil informasi penulis dari test
+                            include: {
+                                user: { // Mengambil data user yang terkait dengan author
+                                    select: {
+                                        name: true,
+                                        userPhoto: true, // Mengambil userPhoto dari model User
+                                    },
+                                },
+                            },
+                        },
                     },
                 },
             },
             orderBy: {
-                paymentTime: 'desc',
+                paymentTime: 'desc', // Mengurutkan transaksi berdasarkan waktu pembayaran
             },
         });
 
-        // Transformasi setiap transaksi dengan informasi history count
+        const userData = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                name: true,
+                userPhoto: true, // Foto dari user yang login
+            }
+        });
+        
+
+        console.log('Fetched Transactions:', transactions); // Check fetched data
+
+        // Transform transactions with detailed status handling
         const transformedTransactions = await Promise.all(
             transactions.map(async (transaction) => {
-                // Hitung berapa kali tes sudah dikerjakan oleh semua pengguna
-                const historyCount = await prisma.history.count({
-                    where: {
-                        testId: transaction.testId,
-                    },
-                });
+                console.log('Transaction PaymentStatus:', transaction.paymentStatus, typeof transaction.paymentStatus);
 
-                const history = await prisma.history.findFirst({
-                    where: {
-                        userId: transaction.userId,
-                        testId: transaction.testId,
-                    },
-                });
+                const [historyCount, history] = await Promise.all([
+                    prisma.history.count({
+                        where: {
+                            testId: transaction.testId,
+                        },
+                    }),
+                    prisma.history.findFirst({
+                        where: {
+                            userId: transaction.userId,
+                            testId: transaction.testId,
+                        },
+                    }),
+                ]);
 
-                // Tentukan status khusus untuk transaksi
-                let customStatus;
-                if (transaction.status === 'Unpaid') {
-                    customStatus = 'Belum Bayar';
-                } else if (transaction.status === 'Success' && !history) {
-                    customStatus = 'Berhasil (Belum Dikerjakan)';
-                } else if (transaction.status === 'Success' && history) {
-                    customStatus = 'Selesai (Sudah Dikerjakan)';
-                } else if (transaction.status === 'Unsuccessful') {
-                    customStatus = 'Tidak Berhasil';
-                }
+                console.log('History Count:', historyCount);
+                console.log('History:', history);
 
+                // Helper to define custom status for frontend display
+                const getCustomStatus = (status, hasHistory) => {
+                    switch (status) {
+                        case 'PENDING':
+                            return 'Belum Bayar';
+                        case 'PAID':
+                            return hasHistory ? 'Selesai (Sudah Dikerjakan)' : 'Berhasil (Belum Dikerjakan)';
+                        case 'FAILED':
+                        case 'EXPIRED':
+                            return 'Tidak Berhasil (Gagal atau Expired)';
+                        default:
+                            return 'Status Tidak Dikenali';
+                    }
+                };
+
+                // Set custom status based on payment status and history
+                const customStatus = getCustomStatus(transaction.paymentStatus, history);
+
+                // Return transformed transaction with additional info
                 return {
                     ...transaction,
                     customStatus,
-                    historyCount, // Tambahkan jumlah peserta ke setiap transaksi
+                    historyCount,
+                    userData,
                 };
             })
         );
 
         return transformedTransactions;
     } catch (error) {
-        console.error('Error fetching transaction history:', error);
-        throw new Error('Failed to retrieve transaction history');
+        console.error('Error fetching transaction history for user ID', userId, ':', error);
+        throw new Error('Failed to retrieve transaction history. Please try again later.');
     }
 };

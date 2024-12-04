@@ -65,6 +65,21 @@ const Registrasi = () => {
             console.error("Kesalahan registrasi", err);
             alert(err.message);
         }
+
+        const sendVerificationEmail = async (user) => {
+            try {
+                await sendEmailVerification(user);
+                console.log('Verification email sent.');
+            } catch (error) {
+                console.error('Error sending verification email:', error);
+            }
+        };
+        
+        // Debugging user verification
+        sendVerificationEmail(user).then(() => {
+            console.log('User verification email sent successfully');
+        });
+        
     };
     
     return (
