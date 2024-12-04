@@ -4,6 +4,8 @@ import React from 'react';
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { jwtDecode } from "jwt-decode";
+import { IoPersonCircle } from "react-icons/io5";
+import { SlBookOpen } from "react-icons/sl";
 
 function App() {
   const { testId } = useParams();
@@ -124,11 +126,7 @@ const Navbar = () => {
         <div className="flex items-center space-x-4">
           <div className="text-white text-sm">Profile</div>
           {/* Profile Picture */}
-          <img 
-            src="/images/Layer_1.png" 
-            alt="Profile" 
-            className="w-8 h-8 rounded-full"
-          />
+          <IoPersonCircle className="w-8 h-8 text-white" />
         </div>
       </div>
     </nav>
@@ -141,11 +139,7 @@ const PaymentBox = () => {
     <div className="flex justify-center items-center flex-1">
       <div className="bg-[#F3F3F3] shadow-lg rounded-lg p-8 w-full max-w-md text-center relative">
         {/* Logo Buku */}
-        <img 
-          src="/images/Vector_book.png" 
-          alt="Logo Buku" 
-          className="h-16 mx-auto mb-4"
-        />
+        <SlBookOpen className="h-16 mx-auto mb-4 text-gray-500" />
 
         {/* Header */}
         <h1 className="text-2xl font-bold mb-2">{testTitle}</h1>

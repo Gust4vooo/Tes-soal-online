@@ -9,7 +9,7 @@ import { SlBookOpen } from "react-icons/sl";
 import { IoIosLock } from "react-icons/io";
 import { IoPersonCircle } from "react-icons/io5";
 import { IoMenu } from "react-icons/io5";
-import { FaSearch } from "react-icons/fa";
+import { IoSearch } from "react-icons/io5";
 
 
 export default function UserDashboard() {
@@ -114,334 +114,334 @@ export default function UserDashboard() {
     }
   }, []);
 
-useEffect(() => {
-  const fetchPopularTests = async () => {
+  useEffect(() => {
+    const fetchPopularTests = async () => {
+      try {
+        const response = await fetch('http://localhost:2000/dashboard/popular-tests');
+        if (!response.ok) {
+          throw new Error('Failed to fetch popular tests');
+        }
+        const data = await response.json();
+        setPopularTests(data);
+      } catch (error) {
+        console.error('Error fetching popular tests:', error);
+        setError(error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPopularTests();
+  }, []);
+
+  useEffect(() => {
+    const fetchFreeTests = async () => {
+      try {
+        const response = await fetch('http://localhost:2000/dashboard/free-tests');
+        if (!response.ok) {
+          throw new Error('Failed to fetch free tests');
+        }
+        const data = await response.json();
+        setFreeTests(data);
+      } catch (error) {
+        console.error('Error fetching free tests:', error);
+        setError(error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFreeTests();
+  }, []);
+
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    if (!searchQuery) return;
+
     try {
-      const response = await fetch('http://localhost:2000/dashboard/popular-tests');
+      const response = await fetch(`http://localhost:2000/dashboard/search-tests?title=${encodeURIComponent(searchQuery)}`);
       if (!response.ok) {
-        throw new Error('Failed to fetch popular tests');
+        throw new Error('Failed to search tests');
       }
       const data = await response.json();
-      setPopularTests(data);
+      setSearchResults(data);
     } catch (error) {
-      console.error('Error fetching popular tests:', error);
+      console.error('Error searching tests:', error);
       setError(error.message);
-    } finally {
-      setLoading(false);
     }
   };
 
-  fetchPopularTests();
-}, []);
+  if (loading && !error) {
+    return <div className="text-center mt-20">Loading...</div>;
+  }
 
-useEffect(() => {
-  const fetchFreeTests = async () => {
-    try {
-      const response = await fetch('http://localhost:2000/dashboard/free-tests');
-      if (!response.ok) {
-        throw new Error('Failed to fetch free tests');
+  const [searchcurrentIndex, searchsetCurrentIndex] = useState(0);
+  const [searchitemsToShow, setSearchItemsToShow] = useState(2);
+
+  useEffect(() => {
+    const updateItemsToShow = () => {
+      if (window.innerWidth >= 1024) {
+        setSearchItemsToShow(4); // Tampilkan 4 item di desktop
+      } else {
+        setSearchItemsToShow(2); // Tampilkan 2 item di mobile
       }
-      const data = await response.json();
-      setFreeTests(data);
-    } catch (error) {
-      console.error('Error fetching free tests:', error);
-      setError(error.message);
-    } finally {
-      setLoading(false);
+    };
+
+    // Jalankan saat component dimuat
+    updateItemsToShow();
+
+    // Tambahkan event listener untuk mendeteksi perubahan ukuran layar
+    window.addEventListener('resize', updateItemsToShow);
+
+    // Bersihkan event listener saat component dilepas
+    return () => window.removeEventListener('resize', updateItemsToShow);
+  }, []);
+
+  const searchnextSlide = () => {
+    if (searchcurrentIndex < searchResults.length - searchitemsToShow) {
+      searchsetCurrentIndex(searchcurrentIndex + 1);
     }
   };
 
-  fetchFreeTests();
-}, []);
-
-const handleSearch = async (e) => {
-  e.preventDefault();
-  if (!searchQuery) return;
-
-  try {
-    const response = await fetch(`http://localhost:2000/dashboard/search-tests?title=${encodeURIComponent(searchQuery)}`);
-    if (!response.ok) {
-      throw new Error('Failed to search tests');
-    }
-    const data = await response.json();
-    setSearchResults(data);
-  } catch (error) {
-    console.error('Error searching tests:', error);
-    setError(error.message);
-  }
-};
-
-if (loading && !error) {
-  return <div className="text-center mt-20">Loading...</div>;
-}
-
-const [searchcurrentIndex, searchsetCurrentIndex] = useState(0);
-const [searchitemsToShow, setSearchItemsToShow] = useState(2);
-
-useEffect(() => {
-  const updateItemsToShow = () => {
-    if (window.innerWidth >= 1024) {
-      setSearchItemsToShow(4); // Tampilkan 4 item di desktop
-    } else {
-      setSearchItemsToShow(2); // Tampilkan 2 item di mobile
+  const searchprevSlide = () => {
+    if (searchcurrentIndex > 0) {
+      searchsetCurrentIndex(searchcurrentIndex - 1);
     }
   };
 
-  // Jalankan saat component dimuat
-  updateItemsToShow();
+  // fungsi slider section populer
+  const [populercurrentIndex, populersetCurrentIndex] = useState(0);
+  const [populeritemsToShow, setPopulerItemsToShow] = useState(2); 
 
-  // Tambahkan event listener untuk mendeteksi perubahan ukuran layar
-  window.addEventListener('resize', updateItemsToShow);
-
-  // Bersihkan event listener saat component dilepas
-  return () => window.removeEventListener('resize', updateItemsToShow);
-}, []);
-
-const searchnextSlide = () => {
-  if (searchcurrentIndex < searchResults.length - searchitemsToShow) {
-    searchsetCurrentIndex(searchcurrentIndex + 1);
-  }
-};
-
-const searchprevSlide = () => {
-  if (searchcurrentIndex > 0) {
-    searchsetCurrentIndex(searchcurrentIndex - 1);
-  }
-};
-
-// fungsi slider section populer
-const [populercurrentIndex, populersetCurrentIndex] = useState(0);
-const [populeritemsToShow, setPopulerItemsToShow] = useState(2); 
-
-useEffect(() => {
-  const updateItemsToShow = () => {
-    if (window.innerWidth >= 1024) {
-      setPopulerItemsToShow(4); // Tampilkan 4 item di desktop
-    } else {
-      setPopulerItemsToShow(2); // Tampilkan 3 item di mobile
-    }
-  };
-
-  // Jalankan saat component dimuat
-  updateItemsToShow();
-
-  // Tambahkan event listener untuk mendeteksi perubahan ukuran layar
-  window.addEventListener('resize', updateItemsToShow);
-
-  // Bersihkan event listener saat component dilepas
-  return () => window.removeEventListener('resize', updateItemsToShow);
-}, []);
-
-const populernextSlide = () => {
-    if (populercurrentIndex < popularTests.length - populeritemsToShow) {
-      populersetCurrentIndex(populercurrentIndex + 1);
-    }
-};
-
-const populerprevSlide = () => {
-    if (populercurrentIndex > 0) {
-      populersetCurrentIndex(populercurrentIndex - 1);
-    }
-};
-
-// fungsi slider section gratis
-const [gratiscurrentIndex, gratissetCurrentIndex] = useState(0);
-const [gratisitemsToShow, setGratisItemsToShow] = useState(2); 
-
-useEffect(() => {
-  const updateItemsToShow = () => {
-    if (window.innerWidth >= 1024) {
-      setGratisItemsToShow(4); // Tampilkan 4 item di desktop
-    } else {
-      setGratisItemsToShow(2); // Tampilkan 2 item di mobile
-    }
-  };
-
-  // Jalankan saat component dimuat
-  updateItemsToShow();
-
-  // Tambahkan event listener untuk mendeteksi perubahan ukuran layar
-  window.addEventListener('resize', updateItemsToShow);
-
-  // Bersihkan event listener saat component dilepas
-  return () => window.removeEventListener('resize', updateItemsToShow);
-}, []);
-
-const gratisnextSlide = () => {
-    if (gratiscurrentIndex < freeTests.length - gratisitemsToShow) {
-      gratissetCurrentIndex(gratiscurrentIndex + 1);
-    }
-};
-
-const gratisprevSlide = () => {
-    if (gratiscurrentIndex > 0) {
-      gratissetCurrentIndex(gratiscurrentIndex - 1);
-    }
-};
-
-const menus = [
-  {href:'/user/dashboard', text: "Home"},
-  {href:'/user/favorite', text: "Favorit"},
-  {href:'/user/riwayat-transaksi', text: "Transaksi"},
-]
-
-const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-const toggleSidebar = () => {
-  setIsSidebarOpen(!isSidebarOpen);
-  if (!isSidebarOpen) {
-    document.body.classList.add('overflow-hidden');
-  } else {
-    document.body.classList.remove('overflow-hidden');
-  }
-};
-
-const categories = [
-  { href: '/tes/category/pemrograman', src: '/images/pemrograman.png', alt: 'pemrograman' },
-  { href: '/tes/category/cpns', src: '/images/cpns.png', alt: 'cpns' },
-  { href: '/tes/category/psikotes', src: '/images/psikotes.png', alt: 'psikotes' },
-  { href: '/tes/category/utbk', src: '/images/utbk.png', alt: 'utbk' },
-];
-
-// fungsi slider catagories
-const [catagoriescurrentIndex, catagoriessetCurrentIndex] = useState(0);
-const [catagoriesitemsToShow, setCatagoriesItemsToShow] = useState(2); 
-
-useEffect(() => {
-  const updateItemsToShow = () => {
-    if (window.innerWidth >= 1024) {
-      setCatagoriesItemsToShow(4); // Tampilkan 4 item di desktop
-    } else {
-      setCatagoriesItemsToShow(2); // Tampilkan 2 item di mobile
-    }
-  };
-
-  // Jalankan saat component dimuat
-  updateItemsToShow();
-
-  // Tambahkan event listener untuk mendeteksi perubahan ukuran layar
-  window.addEventListener('resize', updateItemsToShow);
-
-  // Bersihkan event listener saat component dilepas
-  return () => window.removeEventListener('resize', updateItemsToShow);
-}, []);
-
-const catagoriesnextSlide = () => {
-    if (catagoriescurrentIndex < categories.length - catagoriesitemsToShow) {
-      catagoriessetCurrentIndex(catagoriescurrentIndex + 1);
-    }
-};
-
-const catagoriesprevSlide = () => {
-    if (catagoriescurrentIndex > 0) {
-      catagoriessetCurrentIndex(catagoriescurrentIndex - 1);
-    }
-};
-
-const [likedItems, setLikedItems] = useState({});
-
-// Ambil status like dari local storage atau API saat komponen dimuat
-useEffect(() => {
-  const fetchFavorites = async () => {
-    try {
-      const response = await fetch('http://localhost:2000/api/favorites', {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (!response.ok) {
-        throw new Error('Failed to fetch favorites');
+  useEffect(() => {
+    const updateItemsToShow = () => {
+      if (window.innerWidth >= 1024) {
+        setPopulerItemsToShow(4); // Tampilkan 4 item di desktop
+      } else {
+        setPopulerItemsToShow(2); // Tampilkan 3 item di mobile
       }
-      const favoriteTests = await response.json();
+    };
 
-      // Buat objek liked items berdasarkan favoriteTests
-      const initialLikedItems = {};
-      favoriteTests.forEach(test => {
-        initialLikedItems[test.id] = true; // Asumsikan test.id adalah ID dari tes
-      });
+    // Jalankan saat component dimuat
+    updateItemsToShow();
 
-      setLikedItems(initialLikedItems);
-    } catch (error) {
-      console.error('Error fetching favorite tests:', error);
+    // Tambahkan event listener untuk mendeteksi perubahan ukuran layar
+    window.addEventListener('resize', updateItemsToShow);
+
+    // Bersihkan event listener saat component dilepas
+    return () => window.removeEventListener('resize', updateItemsToShow);
+  }, []);
+
+  const populernextSlide = () => {
+      if (populercurrentIndex < popularTests.length - populeritemsToShow) {
+        populersetCurrentIndex(populercurrentIndex + 1);
+      }
+  };
+
+  const populerprevSlide = () => {
+      if (populercurrentIndex > 0) {
+        populersetCurrentIndex(populercurrentIndex - 1);
+      }
+  };
+
+  // fungsi slider section gratis
+  const [gratiscurrentIndex, gratissetCurrentIndex] = useState(0);
+  const [gratisitemsToShow, setGratisItemsToShow] = useState(2); 
+
+  useEffect(() => {
+    const updateItemsToShow = () => {
+      if (window.innerWidth >= 1024) {
+        setGratisItemsToShow(4); // Tampilkan 4 item di desktop
+      } else {
+        setGratisItemsToShow(2); // Tampilkan 2 item di mobile
+      }
+    };
+
+    // Jalankan saat component dimuat
+    updateItemsToShow();
+
+    // Tambahkan event listener untuk mendeteksi perubahan ukuran layar
+    window.addEventListener('resize', updateItemsToShow);
+
+    // Bersihkan event listener saat component dilepas
+    return () => window.removeEventListener('resize', updateItemsToShow);
+  }, []);
+
+  const gratisnextSlide = () => {
+      if (gratiscurrentIndex < freeTests.length - gratisitemsToShow) {
+        gratissetCurrentIndex(gratiscurrentIndex + 1);
+      }
+  };
+
+  const gratisprevSlide = () => {
+      if (gratiscurrentIndex > 0) {
+        gratissetCurrentIndex(gratiscurrentIndex - 1);
+      }
+  };
+
+  const menus = [
+    {href:'/user/dashboard', text: "Home"},
+    {href:'/user/favorite', text: "Favorit"},
+    {href:'/user/riwayat-transaksi', text: "Transaksi"},
+  ]
+
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+    if (!isSidebarOpen) {
+      document.body.classList.add('overflow-hidden');
+    } else {
+      document.body.classList.remove('overflow-hidden');
     }
   };
 
-  // Memanggil fetchFavorites untuk mendapatkan favorit dari server
-  fetchFavorites();
-}, [token]);
+  const categories = [
+    { href: '/tes/category/pemrograman', src: '/images/pemrograman.png', alt: 'pemrograman' },
+    { href: '/tes/category/cpns', src: '/images/cpns.png', alt: 'cpns' },
+    { href: '/tes/category/psikotes', src: '/images/psikotes.png', alt: 'psikotes' },
+    { href: '/tes/category/utbk', src: '/images/utbk.png', alt: 'utbk' },
+  ];
 
-// Mengambil status like dari local storage saat pertama kali komponen dimuat
-useEffect(() => {
-  const storedLikedItems = localStorage.getItem('likedItems');
-  if (storedLikedItems) {
-    setLikedItems(JSON.parse(storedLikedItems));
-  }
-}, []);
+  // fungsi slider catagories
+  const [catagoriescurrentIndex, catagoriessetCurrentIndex] = useState(0);
+  const [catagoriesitemsToShow, setCatagoriesItemsToShow] = useState(2); 
 
-// Mengupdate local storage setiap kali likedItems diupdate
-useEffect(() => {
-  localStorage.setItem('likedItems', JSON.stringify(likedItems));
-}, [likedItems]);
+  useEffect(() => {
+    const updateItemsToShow = () => {
+      if (window.innerWidth >= 1024) {
+        setCatagoriesItemsToShow(4); // Tampilkan 4 item di desktop
+      } else {
+        setCatagoriesItemsToShow(2); // Tampilkan 2 item di mobile
+      }
+    };
 
-// Fungsi toggle like untuk semua bagian
-const toggleLike = async (id) => {
-  const isLiked = likedItems[id];
+    // Jalankan saat component dimuat
+    updateItemsToShow();
 
-  try {
-    if (isLiked) {
-      // Jika sudah di-like, lakukan DELETE request
-      await fetch(`http://localhost:2000/api/favorites`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ testId: id }),
-      });
-    } else {
-      // Jika belum di-like, lakukan POST request
-      await fetch(`http://localhost:2000/api/favorites`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ testId: id }),
-      });
+    // Tambahkan event listener untuk mendeteksi perubahan ukuran layar
+    window.addEventListener('resize', updateItemsToShow);
+
+    // Bersihkan event listener saat component dilepas
+    return () => window.removeEventListener('resize', updateItemsToShow);
+  }, []);
+
+  const catagoriesnextSlide = () => {
+      if (catagoriescurrentIndex < categories.length - catagoriesitemsToShow) {
+        catagoriessetCurrentIndex(catagoriescurrentIndex + 1);
+      }
+  };
+
+  const catagoriesprevSlide = () => {
+      if (catagoriescurrentIndex > 0) {
+        catagoriessetCurrentIndex(catagoriescurrentIndex - 1);
+      }
+  };
+
+  const [likedItems, setLikedItems] = useState({});
+
+  // Ambil status like dari local storage atau API saat komponen dimuat
+  useEffect(() => {
+    const fetchFavorites = async () => {
+      try {
+        const response = await fetch('http://localhost:2000/api/favorites', {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (!response.ok) {
+          throw new Error('Failed to fetch favorites');
+        }
+        const favoriteTests = await response.json();
+
+        // Buat objek liked items berdasarkan favoriteTests
+        const initialLikedItems = {};
+        favoriteTests.forEach(test => {
+          initialLikedItems[test.id] = true; // Asumsikan test.id adalah ID dari tes
+        });
+
+        setLikedItems(initialLikedItems);
+      } catch (error) {
+        console.error('Error fetching favorite tests:', error);
+      }
+    };
+
+    // Memanggil fetchFavorites untuk mendapatkan favorit dari server
+    fetchFavorites();
+  }, [token]);
+
+  // Mengambil status like dari local storage saat pertama kali komponen dimuat
+  useEffect(() => {
+    const storedLikedItems = localStorage.getItem('likedItems');
+    if (storedLikedItems) {
+      setLikedItems(JSON.parse(storedLikedItems));
     }
+  }, []);
 
-    // Update state setelah permintaan berhasil
-    setLikedItems((prevLikedItems) => ({
-      ...prevLikedItems,
-      [id]: !prevLikedItems[id], // Toggle status like
-    }));
-  } catch (error) {
-    console.error("Error handling favorite:", error);
-  }
-};
+  // Mengupdate local storage setiap kali likedItems diupdate
+  useEffect(() => {
+    localStorage.setItem('likedItems', JSON.stringify(likedItems));
+  }, [likedItems]);
 
-// Logout function
-const handleLogout = async () => {
-  try {
-      const response = await fetch('http://localhost:2000/auth/logout', {
+  // Fungsi toggle like untuk semua bagian
+  const toggleLike = async (id) => {
+    const isLiked = likedItems[id];
+
+    try {
+      if (isLiked) {
+        // Jika sudah di-like, lakukan DELETE request
+        await fetch(`http://localhost:2000/api/favorites`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ testId: id }),
+        });
+      } else {
+        // Jika belum di-like, lakukan POST request
+        await fetch(`http://localhost:2000/api/favorites`, {
           method: 'POST',
           headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('token')}`, // Sertakan token jika perlu
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
           },
-      });
-      if (!response.ok) {
-          throw new Error('Logout failed');
+          body: JSON.stringify({ testId: id }),
+        });
       }
 
-      localStorage.clear();
+      // Update state setelah permintaan berhasil
+      setLikedItems((prevLikedItems) => ({
+        ...prevLikedItems,
+        [id]: !prevLikedItems[id], // Toggle status like
+      }));
+    } catch (error) {
+      console.error("Error handling favorite:", error);
+    }
+  };
 
-      window.location.href = '/auth/login';
-  } catch (error) {
-      console.error('Error during logout:', error);
-  }
-};
+  // Logout function
+  const handleLogout = async () => {
+    try {
+        const response = await fetch('http://localhost:2000/auth/logout', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`, // Sertakan token jika perlu
+            },
+        });
+        if (!response.ok) {
+            throw new Error('Logout failed');
+        }
+
+        localStorage.clear();
+
+        window.location.href = '/auth/login';
+    } catch (error) {
+        console.error('Error during logout:', error);
+    }
+  };
 
   return (
     <>
@@ -574,7 +574,7 @@ const handleLogout = async () => {
               type="submit" 
               className="p-1 lg:p-2 text-deepBlue font-bold rounded-2xl hover:bg-gray-200 font-poppins "
             >
-            <FaSearch className="h-5 w-5 text-gray-600" />
+            <IoSearch className="h-5 w-5 text-gray-600" />
             </button>
           </form>
         </div>

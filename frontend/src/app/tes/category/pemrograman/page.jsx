@@ -4,7 +4,12 @@ import Link from 'next/link';
 import  { useState, useEffect } from 'react';
 import { jwtDecode } from "jwt-decode";
 import '@fortawesome/fontawesome-free/css/all.min.css';
-
+import { AiOutlineBars } from "react-icons/ai";
+import { IoPersonCircle } from "react-icons/io5";
+import { IoSearch } from "react-icons/io5";
+import { IoIosLock } from "react-icons/io";
+import { SlBookOpen } from "react-icons/sl";
+import { FaEye } from "react-icons/fa";
 
 export default function Pemrograman() {
   const [popularTestsByCategory, setPopularTestsByCategory] = useState([]);
@@ -277,8 +282,6 @@ export default function Pemrograman() {
     {href:'/', text: "Home"},
     {href:'/fav', text: "Favorit"},
     {href:'/transaksi', text: "Transaksi"},
-    {href:'/faq', text: "FAQ"},
-
   ]
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -375,19 +378,37 @@ export default function Pemrograman() {
     }
   };
 
+    // Logout function
+    const handleLogout = async () => {
+      try {
+          const response = await fetch('http://localhost:2000/auth/logout', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${localStorage.getItem('token')}`, // Sertakan token jika perlu
+              },
+          });
+          if (!response.ok) {
+              throw new Error('Logout failed');
+          }
+  
+          localStorage.clear();
+  
+          window.location.href = '/auth/login';
+      } catch (error) {
+          console.error('Error during logout:', error);
+      }
+    };
+
   return (
     <>
     <header className="relative flex w-full bg-deepBlue text-white p-3 items-center z-50">
       <div className="flex justify-between items-center w-full">
         <div className="flex items-center p-2 lg:ml-9">
           
-              <button onClick={toggleSidebar}>
-                <img 
-                  src="/images/menu-white.png" 
-                  alt="Menu" 
-                  className="h-[20px] lg:h-[30px] lg:hidden" 
-                />
-              </button>
+        <button onClick={toggleSidebar}>
+              <AiOutlineBars className="h-[20px] lg:h-[30px] lg:hidden text-white" />
+            </button>
   
               <Link href="/">
                 <img 
@@ -420,35 +441,48 @@ export default function Pemrograman() {
                       </ol>
                   </nav>
           </div>
-            <div className='hidden lg:block'>
-              <img 
-                src="/images/profile.png" 
-                alt="profile" 
-                className="h-14 cursor-pointer mr-3"
-                onMouseEnter={() => setDropdownOpen(true)}
-                onMouseLeave={() => setDropdownOpen(false)}
-              />
-              {/* Dropdown */}
-              {isDropdownOpen && (
-                <div 
-                  className="absolute right-0 mt-1 w-35 bg-white rounded-lg shadow-lg z-10 p-1
-                            before:content-[''] before:absolute before:-top-4 before:right-8 before:border-8 
-                            before:border-transparent before:border-b-white"
-                  onMouseEnter={() => setDropdownOpen(true)}
-                  onMouseLeave={() => setDropdownOpen(false)}
-                >
-                  <Link legacyBehavior href={`/user/edit-profile/${userId}`} >
-                    <a className="block px-4 py-1 text-deepBlue text-sm text-gray-700 hover:bg-deepBlue hover:text-white rounded-md border-abumuda">
-                      Ubah Profil
-                    </a>
-                  </Link>
-                  <Link legacyBehavior href="/auth/login">
-                    <a className="block px-4 py-1 text-deepBlue text-sm text-gray-700 hover:bg-deepBlue hover:text-white rounded-md">
-                      Logout
-                    </a>
-                  </Link>
-                </div>
-              )}
+             {/* Profile */}
+             <div className="relative inline-block">
+                {userData?.userPhoto ? (
+                  <img
+                    src={userData.userPhoto}
+                    alt="User Profile"
+                    className="h-14 w-14 rounded-full cursor-pointer mr-5 object-cover"
+                    onMouseEnter={() => setDropdownOpen(true)}
+                    onMouseLeave={() => setDropdownOpen(false)}
+                  />
+                ) : (
+                  <IoPersonCircle
+                    className="h-14 w-14 rounded-full cursor-pointer text-white mr-5"
+                    onMouseEnter={() => setDropdownOpen(true)}
+                    onMouseLeave={() => setDropdownOpen(false)}
+                  />
+                )}
+
+                {/* Dropdown */}
+                {isDropdownOpen && (
+                  <div
+                    className="absolute right-2 mt-0 w-37 bg-white rounded-lg shadow-lg z-10 p-1 
+                    before:content-[''] before:absolute before:-top-4 before:right-8 before:border-8
+                    before:border-transparent before:border-b-white"
+                    onMouseEnter={() => setDropdownOpen(true)}
+                    onMouseLeave={() => setDropdownOpen(false)}
+                  >
+                    <Link legacyBehavior href={`/user/edit-profile/${userId}`}>
+                      <a className="block px-4 py-1 text-deepBlue text-sm text-gray-700 hover:bg-deepBlue hover:text-white rounded-md border-abumuda">
+                        Ubah Profil
+                      </a>
+                    </Link>
+                    <Link legacyBehavior href="/auth/login">
+                      <a
+                        onClick={handleLogout}
+                        className="block px-4 py-1 text-deepBlue text-sm text-gray-700 hover:bg-deepBlue hover:text-white rounded-md"
+                      >
+                        Logout
+                      </a>
+                    </Link>
+                  </div>
+                )}
             </div>
         </div>
       </div>
@@ -460,11 +494,7 @@ export default function Pemrograman() {
       <ul className="p-4 space-y-4 text-deepblue round-lg">
         <div className="flex flex-col items-center">
           <li>
-            <img 
-              src="/images/profile-black.png" 
-              alt="profile" 
-              className="h-14 cursor-pointer mb-2" 
-            />
+          <IoPersonCircle className="h-14 cursor-pointer mb-2 text-black" />
           </li>
           <p className="font-bold">Desti Nur Irawati</p>
         </div>
@@ -504,11 +534,7 @@ export default function Pemrograman() {
             type="submit" 
             className="p-1 lg:p-2 text-deepBlue font-bold rounded-2xl hover:bg-gray-200 font-poppins "
           >
-            <img 
-              src="/images/search-bar.png" 
-              alt="Search Icon" 
-              className="h-5 w-5"
-            />
+            <IoSearch className="h-5 w-5 text-gray-500" />
           </button>
         </form>
       </div>
@@ -525,57 +551,73 @@ export default function Pemrograman() {
             {searchResults.slice(searchcurrentIndex, searchcurrentIndex + searchitemsToShow).map((test) => (
               <div key={test.testId} className="bg-abumuda shadow-lg p-1 relative group">
                 {/* Overlay background abu-abu yang muncul saat hover */}
-                <div className="absolute inset-0 bg-gray-500 opacity-0 group-hover:opacity-40 transition-opacity duration-300 z-10"></div>
+                  
+                    <div className="absolute inset-0 bg-gray-500 opacity-0 group-hover:opacity-40 transition-opacity duration-300 z-10"></div>
 
-                <div className="flex justify-between items-center group-hover:blur-[2px] transition-opacity duration-300 z-10">
-                  <div className="flex items-center space-x-2 font-bold text-deepBlue">
-                    <img src="/images/eye-icon.png" alt="Views" className="h-3 lg:h-4 object-contain" />
-                    <span className="text-[0.6rem] lg:text-sm font-poppins">{test.accessCount}</span>
-                  </div>
-                </div>
-
-                <div className="flex justify-center mt-2 lg:mt-4 relative z-20 group-hover:blur-[2px] transition duration-300">
-                  <img src="/images/tes.png" alt={test.category} className="h-9 lg:h-20 object-contain" />
-                </div>
-
-                <div className="flex justify-center mt-2 lg:mt-4 text-deepBlue relative z-20 group-hover:blur-[2px] transition duration-300">
-                  <h3 className="text-center text-[0.8rem] lg:text-lg font-bold mt-0 lg:mt-2 font-poppins">{test.category}</h3>
-                </div>
-
-                <div className="bg-deepBlue text-white p-1 lg:p-2  mt-4 relative z-20 group-hover:blur-[2px] transition duration-300">
-                  <div className="flex items-center space-x-2 justify-between">
-                    <h3 className="text-left text-[0.625rem] lg:text-base font-bold mt-2">{test.title}</h3>
-                  </div>
-
-                  <p className="text-left text-[0.5rem] lg:text-sm leading-relaxed">Prediksi kemiripan {test.similarity}%</p>
-                  <p className="text-[0.4rem] lg:text-xs leading-relaxed">Dibuat Oleh:</p>
-
-                  <div className="flex justify-between space-x-2 leading-relaxed mt-1">
-                    <div className="flex text-left space-x-1 lg:space-x-4">
-                      <img src={test.author.authorPhoto || '/images/profile.png'} alt={test.category} className="h-3 lg:h-5 object-contain" />
-                      <span className="text-[0.375rem] lg:text-sm font-semibold">{test.author.name}</span>
+                    <div className="flex justify-between items-center group-hover:blur-[2px] transition-opacity duration-300 z-10">
+                      <div className="flex items-center space-x-2 font-bold text-deepBlue p-2">
+                        <FaEye />
+                        <span className="text-[0.6rem] lg:text-sm font-poppins">{test.accessCount}</span>
+                      </div>
                     </div>
-                    <span className="text-[0.375rem] lg:text-sm font-semibold">
-                    {Number(test.price) === 0 ? 'Gratis' : <img src="/images/lock.png" alt="Berbayar" className="h-2 lg:h-4 inline-block object-contain" />}
-                    </span>
-                  </div>
-                </div>
 
-                <div className="absolute gap-1 bottom-5 left-0 right-0 flex justify-center items-center lg:justify-center lg:space-x-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-30 p-1 w-full">
-                    <a href="/tes/detailsoal" className="w-3/4 lg:w-1/4 text-xs lg:text-base text-center bg-paleBlue text-deepBlue py-3 lg:py-2 rounded-full inline-block hover:bg-orange hover:text-deepBlue mb-2 lg:mb-0">
-                      Mulai
-                    </a>
-                    <a href="/user/topScore" className="w-3/4 lg:w-2/5 text-xs lg:text-base text-center bg-paleBlue text-deepBlue py-1 lg:py-2 rounded-full inline-block hover:bg-orange hover:text-deepBlue mb-2 lg:mb-0">
-                      <i className="fa-solid fa-medal"></i>
-                       <span className="ml-1">Top Score</span>
-                    </a>
-                    <button 
-                      onClick={() => toggleLike(test.id)} 
-                      className="lg:block text-center bg-paleBlue text-deepBlue inline-block px-3 py-2 rounded-full hover:bg-orange hover:text-deepBlue mb-2 lg:mb-0"
-                    >
-                      <i className={`fa${likedItems[test.id] ? "s" : "r"} fa-heart ${likedItems[test.id] ? "text-red-500" : "text-deepBlue"}`}></i>
-                    </button>
-                </div>
+                    <div className="flex justify-center mt-2 lg:mt-4 relative z-20 group-hover:blur-[2px] transition duration-300">
+                      <div className="text-8xl">
+                        <SlBookOpen />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-center mt-2 lg:mt-4 text-deepBlue relative z-20 group-hover:blur-[2px] transition duration-300">
+                      <h3 className="text-center text-[0.8rem] lg:text-lg font-bold mt-0 lg:mt-2 font-poppins">{test.category}</h3>
+                    </div>
+
+                    <div className="bg-deepBlue text-white p-1 lg:p-2  mt-4 relative z-20 group-hover:blur-[2px] transition duration-300">
+                      <div className="flex items-center space-x-2 justify-between">
+                        <h3 className="text-left text-[0.625rem] lg:text-base font-bold mt-2">{test.title}</h3>
+                      </div>
+
+                      <p className="text-left text-[0.5rem] lg:text-sm leading-relaxed">Prediksi kemiripan {test.similarity}%</p>
+                      <p className="text-[0.4rem] lg:text-xs leading-relaxed">Dibuat Oleh:</p>
+
+                      <div className="flex justify-between space-x-2 leading-relaxed mt-1">
+                        <div className="flex text-left space-x-1 lg:space-x-4">
+                            {test.author.authorPhoto ? (
+                              <img
+                                src={test.author.authorPhoto}
+                                alt={test.category}
+                                className="h-3 lg:h-6 object-contain"
+                              />
+                            ) : (
+                              <IoPersonCircle className="h-3 lg:h-6 text-white" />
+                            )}
+                              <span className="text-[0.375rem] lg:text-sm font-semibold">{test.author.name}</span>
+                        </div>
+                        
+                          <span className="text-[0.375rem] lg:text-sm font-semibold">
+                            {Number(test.price) === 0 ? 'Gratis' : (
+                                <IoIosLock className="h-2 lg:h-4 inline-block text-current object-contain text-white" alt="Berbayar" />
+                            )}
+                          </span>
+                          
+                      </div>
+                    </div>
+
+                    <div className="absolute gap-1 bottom-5 left-0 right-0 flex justify-center items-center lg:justify-center lg:space-x-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-30 p-1 w-full">
+                        <a href= {`/tes/detailsoal/${test.id}`} className="w-3/4 lg:w-1/4 text-xs lg:text-base text-center bg-paleBlue text-deepBlue py-3 lg:py-2 rounded-full inline-block hover:bg-orange hover:text-deepBlue mb-2 lg:mb-0">
+                          Mulai
+                        </a>
+                        <a href={`/user/topscore/${test.id}`}className="w-3/4 lg:w-2/5 text-xs lg:text-base text-center bg-paleBlue text-deepBlue py-1 lg:py-2 rounded-full inline-block hover:bg-orange hover:text-deepBlue mb-2 lg:mb-0">
+                          <i className="fa-solid fa-medal"></i>
+                          <span className="ml-1">Top Score</span>
+                        </a>
+                        <button 
+                          onClick={() => toggleLike(test.id)} 
+                          className="lg:block text-center bg-paleBlue text-deepBlue inline-block px-3 py-2 rounded-full hover:bg-orange hover:text-deepBlue mb-2 lg:mb-0"
+                        >
+                          <i className={`fa${likedItems[test.id] ? "s" : "r"} fa-heart ${likedItems[test.id] ? "text-red-500" : "text-deepBlue"}`}></i>
+                        </button>
+                    </div>
+
               </div>
             ))}
           </div>
@@ -608,49 +650,64 @@ export default function Pemrograman() {
               <div key={test.testId} className="bg-abumuda shadow-lg p-1 relative group">
                 
                   {/* Overlay background abu-abu yang muncul saat hover */}
-                  <div className="absolute inset-0 bg-gray-500 opacity-0 group-hover:opacity-40 transition-opacity duration-300 z-10"></div>
+                  {/* Overlay background abu-abu yang muncul saat hover */}
+                <div className="absolute inset-0 bg-gray-500 opacity-0 group-hover:opacity-40 transition-opacity duration-300 z-10"></div>
 
-                  <div className="flex justify-between items-center group-hover:blur-[2px] transition-opacity duration-300 z-10">
-                    <div className="flex items-center space-x-2 font-bold text-deepBlue">
-                      <img src="/images/eye-icon.png" alt="Views" className="h-3 lg:h-4 object-contain" />
-                      <span className="text-[0.6rem] lg:text-sm font-poppins">{test.accessCount}</span>
+                <div className="flex justify-between items-center group-hover:blur-[2px] transition-opacity duration-300 z-10">
+                  <div className="flex items-center space-x-2 font-bold text-deepBlue p-2">
+                    <FaEye />
+                    <span className="text-[0.6rem] lg:text-sm font-poppins">{test.accessCount}</span>
+                  </div>
+                </div>
+
+                <div className="flex justify-center mt-2 lg:mt-4 relative z-20 group-hover:blur-[2px] transition duration-300">
+                  <div className="text-8xl">
+                    <SlBookOpen />
+                  </div>
+                </div>
+
+                <div className="flex justify-center mt-2 lg:mt-4 text-deepBlue relative z-20 group-hover:blur-[2px] transition duration-300">
+                  <h3 className="text-center text-[0.8rem] lg:text-lg font-bold mt-0 lg:mt-2 font-poppins">{test.category}</h3>
+                </div>
+
+                <div className="bg-deepBlue text-white p-1 lg:p-2  mt-4 relative z-20 group-hover:blur-[2px] transition duration-300">
+                  <div className="flex items-center space-x-2 justify-between">
+                    <h3 className="text-left text-[0.625rem] lg:text-base font-bold mt-2">{test.title}</h3>
+                  </div>
+
+                  <p className="text-left text-[0.5rem] lg:text-sm leading-relaxed">Prediksi kemiripan {test.similarity}%</p>
+                  <p className="text-[0.4rem] lg:text-xs leading-relaxed">Dibuat Oleh:</p>
+
+                  <div className="flex justify-between space-x-2 leading-relaxed mt-1">
+                    <div className="flex text-left space-x-1 lg:space-x-4">
+                        {test.author.authorPhoto ? (
+                          <img
+                            src={test.author.authorPhoto}
+                            alt={test.category}
+                            className="h-3 lg:h-6 object-contain"
+                          />
+                        ) : (
+                          <IoPersonCircle className="h-3 lg:h-6 text-white" />
+                        )}
+                          <span className="text-[0.375rem] lg:text-sm font-semibold">{test.author.name}</span>
                     </div>
-                  </div>
-
-                  <div className="flex justify-center mt-2 lg:mt-4 relative z-20 group-hover:blur-[2px] transition duration-300">
-                    <img src="/images/tes.png" alt={test.category} className="h-9 lg:h-20 object-contain" />
-                  </div>
-
-                  <div className="flex justify-center mt-2 lg:mt-4 text-deepBlue relative z-20 group-hover:blur-[2px] transition duration-300">
-                    <h3 className="text-center text-[0.8rem] lg:text-lg font-bold mt-0 lg:mt-2 font-poppins">{test.category}</h3>
-                  </div>
-
-                  <div className="bg-deepBlue text-white p-1 lg:p-2  mt-4 relative z-20 group-hover:blur-[2px] transition duration-300">
-                    <div className="flex items-center space-x-2 justify-between">
-                      <h3 className="text-left text-[0.625rem] lg:text-base font-bold mt-2">{test.title}</h3>
-                    </div>
-
-                    <p className="text-left text-[0.5rem] lg:text-sm leading-relaxed">Prediksi kemiripan {test.similarity}%</p>
-                    <p className="text-[0.4rem] lg:text-xs leading-relaxed">Dibuat Oleh:</p>
-
-                    <div className="flex justify-between space-x-2 leading-relaxed mt-1">
-                      <div className="flex text-left space-x-1 lg:space-x-4">
-                        <img src={test.author.authorPhoto || '/images/profile.png'} alt={test.author.name} className="h-3 lg:h-5 object-contain" />
-                        <span className="text-[0.375rem] lg:text-sm font-semibold">{test.author.name}</span>
-                      </div>
+                    
                       <span className="text-[0.375rem] lg:text-sm font-semibold">
-                        {Number(test.price) === 0 ? 'Gratis' : <img src="/images/lock.png" alt="Berbayar" className="h-2 lg:h-4 inline-block object-contain" />}
+                        {Number(test.price) === 0 ? 'Gratis' : (
+                            <IoIosLock className="h-2 lg:h-4 inline-block text-current object-contain text-white" alt="Berbayar" />
+                        )}
                       </span>
-                    </div>
+                      
                   </div>
+                </div>
 
-                  <div className="absolute gap-1 bottom-5 left-0 right-0 flex justify-center items-center lg:justify-center lg:space-x-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-30 p-1 w-full">
-                    <a href="/tes/detailsoal" className="w-3/4 lg:w-1/4 text-xs lg:text-base text-center bg-paleBlue text-deepBlue py-3 lg:py-2 rounded-full inline-block hover:bg-orange hover:text-deepBlue mb-2 lg:mb-0">
+                <div className="absolute gap-1 bottom-5 left-0 right-0 flex justify-center items-center lg:justify-center lg:space-x-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-30 p-1 w-full">
+                    <a href= {`/tes/detailsoal/${test.id}`} className="w-3/4 lg:w-1/4 text-xs lg:text-base text-center bg-paleBlue text-deepBlue py-3 lg:py-2 rounded-full inline-block hover:bg-orange hover:text-deepBlue mb-2 lg:mb-0">
                       Mulai
                     </a>
-                    <a href="/user/topscore" className="w-3/4 lg:w-2/5 text-xs lg:text-base text-center bg-paleBlue text-deepBlue py-1 lg:py-2 rounded-full inline-block hover:bg-orange hover:text-deepBlue mb-2 lg:mb-0">
+                    <a href={`/user/topscore/${test.id}`}className="w-3/4 lg:w-2/5 text-xs lg:text-base text-center bg-paleBlue text-deepBlue py-1 lg:py-2 rounded-full inline-block hover:bg-orange hover:text-deepBlue mb-2 lg:mb-0">
                       <i className="fa-solid fa-medal"></i>
-                       <span className="ml-1">Top Score</span>
+                      <span className="ml-1">Top Score</span>
                     </a>
                     <button 
                       onClick={() => toggleLike(test.id)} 
@@ -658,7 +715,7 @@ export default function Pemrograman() {
                     >
                       <i className={`fa${likedItems[test.id] ? "s" : "r"} fa-heart ${likedItems[test.id] ? "text-red-500" : "text-deepBlue"}`}></i>
                     </button>
-                  </div>
+                </div>
 
               </div>
             ))}
@@ -690,18 +747,21 @@ export default function Pemrograman() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-5">
             {freeTestsByCategory.slice(gratiscurrentIndex, gratiscurrentIndex + gratisitemsToShow).map((test) => (
               <div key={test.testId} className="bg-abumuda shadow-lg p-1 relative group">
+              
                 {/* Overlay background abu-abu yang muncul saat hover */}
                 <div className="absolute inset-0 bg-gray-500 opacity-0 group-hover:opacity-40 transition-opacity duration-300 z-10"></div>
 
                 <div className="flex justify-between items-center group-hover:blur-[2px] transition-opacity duration-300 z-10">
-                  <div className="flex items-center space-x-2 font-bold text-deepBlue">
-                    <img src="/images/eye-icon.png" alt="Views" className="h-3 lg:h-4 object-contain" />
+                  <div className="flex items-center space-x-2 font-bold text-deepBlue p-2">
+                    <FaEye />
                     <span className="text-[0.6rem] lg:text-sm font-poppins">{test.accessCount}</span>
                   </div>
                 </div>
 
                 <div className="flex justify-center mt-2 lg:mt-4 relative z-20 group-hover:blur-[2px] transition duration-300">
-                  <img src="/images/tes.png" alt={test.category} className="h-9 lg:h-20 object-contain" />
+                  <div className="text-8xl">
+                    <SlBookOpen />
+                  </div>
                 </div>
 
                 <div className="flex justify-center mt-2 lg:mt-4 text-deepBlue relative z-20 group-hover:blur-[2px] transition duration-300">
@@ -718,20 +778,32 @@ export default function Pemrograman() {
 
                   <div className="flex justify-between space-x-2 leading-relaxed mt-1">
                     <div className="flex text-left space-x-1 lg:space-x-4">
-                      <img src={test.author.authorPhoto || '/images/profile.png'} alt={test.author.name} className="h-3 lg:h-5 object-contain" />
-                      <span className="text-[0.375rem] lg:text-sm font-semibold">{test.author.name}</span>
+                        {test.author.authorPhoto ? (
+                          <img
+                            src={test.author.authorPhoto}
+                            alt={test.category}
+                            className="h-3 lg:h-6 object-contain"
+                          />
+                        ) : (
+                          <IoPersonCircle className="h-3 lg:h-6 text-white" />
+                        )}
+                          <span className="text-[0.375rem] lg:text-sm font-semibold">{test.author.name}</span>
                     </div>
-                    <span className="text-[0.375rem] lg:text-sm font-semibold">
-                      {Number(test.price) === 0 ? 'Gratis' : <img src="/images/lock.png" alt="Berbayar" className="h-2 lg:h-4 inline-block object-contain" />}
-                    </span>
+                    
+                      <span className="text-[0.375rem] lg:text-sm font-semibold">
+                        {Number(test.price) === 0 ? 'Gratis' : (
+                            <IoIosLock className="h-2 lg:h-4 inline-block text-current object-contain text-white" alt="Berbayar" />
+                        )}
+                      </span>
+                      
                   </div>
                 </div>
 
                 <div className="absolute gap-1 bottom-5 left-0 right-0 flex justify-center items-center lg:justify-center lg:space-x-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-30 p-1 w-full">
-                    <a href="/tes/detailsoal" className="w-3/4 lg:w-1/4 text-xs lg:text-base text-center bg-paleBlue text-deepBlue py-3 lg:py-2 rounded-full inline-block hover:bg-orange hover:text-deepBlue mb-2 lg:mb-0">
+                    <a href= {`/tes/detailsoal/${test.id}`} className="w-3/4 lg:w-1/4 text-xs lg:text-base text-center bg-paleBlue text-deepBlue py-3 lg:py-2 rounded-full inline-block hover:bg-orange hover:text-deepBlue mb-2 lg:mb-0">
                       Mulai
                     </a>
-                    <a href="/user/topscore" className="w-3/4 lg:w-2/5 text-xs lg:text-base text-center bg-paleBlue text-deepBlue py-1 lg:py-2 rounded-full inline-block hover:bg-orange hover:text-deepBlue mb-2 lg:mb-0">
+                    <a href={`/user/topscore/${test.id}`}className="w-3/4 lg:w-2/5 text-xs lg:text-base text-center bg-paleBlue text-deepBlue py-1 lg:py-2 rounded-full inline-block hover:bg-orange hover:text-deepBlue mb-2 lg:mb-0">
                       <i className="fa-solid fa-medal"></i>
                       <span className="ml-1">Top Score</span>
                     </a>
@@ -742,6 +814,8 @@ export default function Pemrograman() {
                       <i className={`fa${likedItems[test.id] ? "s" : "r"} fa-heart ${likedItems[test.id] ? "text-red-500" : "text-deepBlue"}`}></i>
                     </button>
                 </div>
+
+
               </div>
             ))}
           </div>

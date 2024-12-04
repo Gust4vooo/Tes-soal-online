@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { AiOutlineStar } from "react-icons/ai";
 import { AiOutlineLaptop } from "react-icons/ai";
-import { AiOutlineProduct } from "react-icons/ai";
+import { AiOutlineCode } from "react-icons/ai";
 import { AiOutlineBook } from "react-icons/ai";
 
 const TestimonialsSection = () => {
@@ -207,12 +207,13 @@ const LandingPage = () => {
             </div>
 
             <div className="text-2xl font-bold text-white">
-              <Image
-                src="/images/Vector.png"
-                alt="Etam Test Logo"
-                width={64}
-                height={64}
+            <Link href="/">
+              <img
+                src="/images/etamtest.png"
+                alt="EtamTest"
+                className="h-[30px] lg:h-10 pl-3"
               />
+            </Link>
             </div>
           </div>
 
@@ -358,56 +359,51 @@ const LandingPage = () => {
       Tes soal dikelompokkan berdasarkan kategori yang dibuat oleh author terpercaya dan berkualitas. Temukan kategori tes soal yang kamu butuhkan atau buat soal baru di kategori yang ada!
     </p>
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
-      {[
-        {
-          title: "CPNS",
-          desc: "Tes soal online yang dapat membantu persiapan ujian CPNS.",
-          Icon : AiOutlineStar,
-          bgColor: "#FFC74D",
-        },
-        {
-          title: "Psikotes",
-          desc: "Soal psikotes yang dibuat pengguna untuk pengembangan diri.",
-          Icon: AiOutlineLaptop,
-          bgColor: "#4DFFD5",
-        },
-        {
-          title: "Kategori 3",
-          desc: "Deskripsi singkat untuk kategori 3.",
-          img: "/images/Puzzle.png",
-          bgColor: "#FF4D50",
-        },
-        {
-          title: "Kategori 4",
-          desc: "Deskripsi singkat untuk kategori 4.",
-          img: "/images/Book And Pencil.png",
-          bgColor: "#4DC7FF",
-        },
-      ].map((category, index) => (
-        <div
-          key={index}
-          className="bg-[#CAE6F9] p-6 rounded-lg shadow-md hover:shadow-lg flex flex-col items-center"
-        >
-          <div
-            className="w-16 h-16 rounded-full flex items-center justify-center mb-4 overflow-hidden"
-            style={{ backgroundColor: category.bgColor }}
-          >
-            <Image
-              src={category.img}
-              alt={category.title}
-              width={32}
-              height={32}
-              className="object-contain"
-            />
-          </div>
-          <h2 className="text-xl font-semibold text-gray-800">
-            {category.title}
-          </h2>
-          <p className="text-gray-600 mt-2">{category.desc}</p>
-        </div>
-      ))}
+  {[
+    {
+      title: "CPNS",
+      desc: "Tes soal online yang dapat membantu persiapan ujian CPNS.",
+      icon: <AiOutlineStar size={48} color="#000000" />,
+      bgColor: "#FFC74D",
+    },
+    {
+      title: "Psikotes",
+      desc: "Soal psikotes yang dibuat pengguna untuk pengembangan diri.",
+      icon: <AiOutlineLaptop size={48} color="#000000" />,
+      bgColor: "#4DFFD5",
+    },
+    {
+      title: "Pemrograman",
+      desc: "Tes pemrograman pilihan ganda dan essay yang dibangun bersama komunitas.",
+      icon: <AiOutlineCode size={48} color="#000000" />,
+      bgColor: "#FF4D50",
+    },
+    {
+      title: "UTBK",
+      desc: "Pengguna berbagi soal ujian sekolah yang relevan dan menantang.",
+      icon: <AiOutlineBook size={48} color="#000000" />,
+      bgColor: "#4DC7FF",
+    },
+  ].map((category, index) => (
+    <div
+      key={index}
+      className="bg-[#CAE6F9] p-6 rounded-lg shadow-md hover:shadow-lg flex flex-col items-center"
+    >
+      <div
+        className="w-16 h-16 rounded-full flex items-center justify-center mb-4 overflow-hidden"
+        style={{ backgroundColor: category.bgColor }}
+      >
+        {/* Ikon dimasukkan langsung tanpa <icon /> */}
+        {category.icon}
+      </div>
+      <h2 className="text-xl font-semibold text-gray-800">
+        {category.title}
+      </h2>
+      <p className="text-gray-600 mt-2">{category.desc}</p>
     </div>
-  </div>
+  ))}
+</div>
+</div>
 </div>
 
 
