@@ -5,10 +5,12 @@ import { useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import jwtDecode from 'jwt-decode';
+import { useRouter } from 'next/navigation';
 
 
 export default function Pemrograman() {
   const [isDropdownOpen, setDropdownOpen] = useState(false);
+  const sessionId = localStorage.getItem('sessionId');
   const [isModalOpen, setModalOpen] = useState(true);
   const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState("");
@@ -20,6 +22,7 @@ export default function Pemrograman() {
   const [testId, setTestId] = useState(null);
   const [userId, setUserId] = useState(null);
   const [userRank, setUserRank] = useState(null);
+  const router = useRouter(); 
   const [userData, setUserData] = useState({
     
     score: 0, // score sebagai angka
@@ -28,10 +31,6 @@ export default function Pemrograman() {
     correctAnswers: 0,
     wrongAnswers: 0,
   });
-  
-
-
-
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -47,14 +46,30 @@ export default function Pemrograman() {
   }, []);
 
   useEffect(() => {
-    if (!resultId) return;  // Pastikan resultId tersedia sebelum melakukan apa pun
-
-    // Ambil workTime dari localStorage berdasarkan resultId
-    const savedWorkTime = localStorage.getItem(`workTime_${resultId}`);
-    if (savedWorkTime) {
-      setWorkTime(parseInt(savedWorkTime)); // Konversi ke angka dan simpan di state
+    if (!sessionId) {
+        console.warn('Session ID tidak tersedia');
+        return;
     }
-  }, [resultId]); // Efek ini dijalankan ulang setiap kali resultId berubah
+
+    // Ambil workTime dari localStorage berdasarkan sessionId
+    const savedWorkTime = localStorage.getItem(`workTime_${sessionId}`);
+    if (savedWorkTime) {
+        setWorkTime(parseInt(savedWorkTime, 10)); // Konversi ke angka
+        console.log('Work time diambil:', savedWorkTime);
+    } else {
+        console.warn('Work time tidak ditemukan untuk sessionId:', sessionId);
+    }
+}, [sessionId]);
+
+const saveWorkTime = (time) => {
+  if (!sessionId) {
+      console.error('Session ID tidak ditemukan. Tidak dapat menyimpan waktu.');
+      return;
+  }
+
+  localStorage.setItem(`workTime_${sessionId}`, time.toString());
+  console.log('Work time disimpan:', time);
+};
 
   useEffect(() => {
     const fetchTestDataAndLeaderboard = async () => {
@@ -294,6 +309,32 @@ export default function Pemrograman() {
       // Tampilkan pesan error ke pengguna
     }
   };
+  
+  const handleHome = (event) => {
+    event.preventDefault(); // Mencegah perilaku default link
+  
+    // Ambil sessionId dari localStorage
+    const sessionId = localStorage.getItem('sessionId');
+    
+    if (sessionId) {
+      console.log('Session ID ditemukan:', sessionId);
+  
+      // Hapus data terkait sessionId dari localStorage
+      localStorage.removeItem('resultId');
+      localStorage.removeItem('answers');
+      localStorage.removeItem(`remainingTime_${sessionId}`);
+      localStorage.removeItem(`workTime_${sessionId}`);
+      localStorage.removeItem(`sessionId`);
+  
+      console.log('Data session dan pengerjaan tes telah dihapus dari localStorage');
+    } else {
+      console.log('Session ID tidak ditemukan');
+    }
+  
+    // Redirect ke halaman dashboard
+    router.push('/user/dashboard');
+  };
+  
 
   return (
     <>
@@ -315,9 +356,9 @@ export default function Pemrograman() {
               <nav className="mt-0 lg:mt-1">
                 <ol className="list-reset flex space-x-2">
                   <li>
-                    <Link href="/user/dashboard" legacyBehavior>
-                      <a className="text-[0.6rem] lg:text-sm hover:text-orange font-poppins font-bold">Home</a>
-                    </Link>
+                  <Link href="#" legacyBehavior>
+                      <a onClick={handleHome} className="text-[0.6rem] lg:text-sm hover:text-orange font-poppins font-bold">Home</a>
+                  </Link>
                   </li>
                   <li>/</li>
                   <li>
@@ -516,4 +557,3 @@ export default function Pemrograman() {
     </>
   );
 }
-

@@ -1,4 +1,17 @@
-import { submitFinalAnswers, saveDraftAnswer, updateDraftAnswer, getAnswersByResultId} from '../services/answerTestService.js';
+import { getQuestionsAndOptions, submitFinalAnswers, saveDraftAnswer, updateDraftAnswer, getAnswersByResultId} from '../services/answerTestService.js';
+
+export const getTestQuestions = async (req, res) => {
+    const { testId } = req.params;  // Mendapatkan testId dari URL parameter
+
+    try {
+        // Memanggil fungsi untuk mendapatkan soal dan opsi berdasarkan testId
+        const questions = await getQuestionsAndOptions(testId);
+        res.status(200).json({ data: questions });  // Mengirimkan data soal dan opsi dalam format JSON
+    } catch (error) {
+        console.error('Error fetching test questions:', error.message);
+        res.status(500).json({ error: 'Gagal mengambil soal dan opsi.' });
+    }
+};
 
 export const submitFinal = async (req, res) => {
     const { resultId } = req.body; // Ambil resultId dari body request
@@ -46,10 +59,6 @@ export const submitFinal = async (req, res) => {
         return res.status(500).json({ message: `Kesalahan tidak terduga: ${error.message}` });
     }
 };
-
-
-
-
 
 export const saveDraft = async (req, res) => {
     const token = req.headers.authorization?.split(" ")[1];

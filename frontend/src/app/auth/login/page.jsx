@@ -40,12 +40,16 @@ const Login = () => {
             if (!response.ok) {
                 // Tangani kesalahan berdasarkan status
                 if (response.status === 400) {
-                    throw new Error(data.error || 'Data yang Anda masukkan tidak valid.');
+                    // Periksa apakah pesan error terkait dengan email belum diverifikasi
+                    if (data.message === 'Email not verified. Please check your inbox and verify your email.') {
+                        throw new Error('Email Anda belum diverifikasi. Silakan cek email Anda dan verifikasi email Anda.');
+                    } else {
+                        throw new Error(data.message || 'Data yang Anda masukkan tidak valid.');
+                    }
                 } else if (response.status === 401) {
                     throw new Error('Kredensial tidak valid. Silakan coba lagi.');
                 } else if (response.status === 403) {
-                    throw new Error('Akses sebagai Author ditolak. Anda tidak memiliki hak akses, pastikan anda telah mengirimkan persyaratan yang dibutuhkan, dan tunggu sampai admin memverifikasi.');
-                    router.push('/auth/syarat');
+                    throw new Error('Akses sebagai Author ditolak. Anda tidak memiliki hak akses, pastikan Anda telah mengirimkan persyaratan yang dibutuhkan, dan tunggu sampai admin memverifikasi.');
                 } else {
                     throw new Error('Terjadi kesalahan yang tidak diketahui. Silakan coba lagi.');
                 }
@@ -68,8 +72,6 @@ const Login = () => {
                 icon: 'error',
                 title: 'Error',
                 text: err.message, 
-            }).then(() => {
-                
             });
     
             setError(err.message); // Simpan pesan error di state (opsional, jika perlu)

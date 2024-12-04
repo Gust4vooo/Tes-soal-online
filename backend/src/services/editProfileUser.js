@@ -1,5 +1,5 @@
 import prisma from '../../prisma/prismaClient.js';
-import bcrypt from 'bcrypt';
+import { hashPassword, validatePassword } from "./auth/utils/hash.js";
 import firebaseAdmin from '../../firebase/firebaseAdmin.js';
 
 // Get user by ID
@@ -53,7 +53,7 @@ export const updateUserEmail = async (userId, email) => {
   }
 };
 
-// Memperbarui kata sandi pengguna
+// Fungsi untuk memperbarui password
 export const updateUserPassword = async (userId, currentPassword, newPassword) => {
   try {
     const user = await prisma.user.findUnique({
@@ -62,23 +62,44 @@ export const updateUserPassword = async (userId, currentPassword, newPassword) =
     });
 
     if (!user) {
-      throw new Error('User not found');
+      throw new Error("User not found");
     }
 
-    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    console.log("Stored Hash from DB:", user.password);
+    console.log("Input currentPassword:", currentPassword);
+
+    const isMatch = validatePassword(currentPassword, user.password);
+    console.log("Password Match:", isMatch); // Pastikan hasil validasi benar
+
     if (!isMatch) {
-      throw new Error('Current password is incorrect');
+      throw new Error("Current password is incorrect");
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    await firebaseAdmin.auth().updateUser(userId, { password: newPassword });
-    await prisma.user.update({
-      where: { id: userId },
-      data: { password: hashedPassword },
+    const hashedPassword = hashPassword(newPassword);
+    const updateResults = await Promise.allSettlecd([
+      prisma.user.update({
+        where: { id: userId },
+        data: { password: hashedPassword },
+      }),
+      firebaseAdmin.auth().updateUser(userId, { password: newPassword }),
+      firebaseAdmin.firestore().collection("users").doc(userId).update({ password: hashedPassword }),
+    ]);
+
+    updateResults.forEach((result, index) => {
+      if (result.status === "rejected") {
+        console.error(`Error in update operation ${index + 1}:`, result.reason);
+      } else {
+        console.log(`Update operation ${index + 1} succeeded.`);
+      }
     });
 
-    return { message: 'Password updated successfully' };
+    if (updateResults.every((result) => result.status === "fulfilled")) {
+      return { message: "Password updated successfully" };A
+    }
+
+    throw new Error("Some update operations failed. Check logs for details.");
   } catch (error) {
+    console.error("Error updating password:", error);
     throw new Error(`Failed to update password: ${error.message}`);
   }
 };

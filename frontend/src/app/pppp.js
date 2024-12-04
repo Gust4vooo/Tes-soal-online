@@ -5,7 +5,6 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from 'next/navigation';
 import  Swal from 'sweetalert2';
 import { useRef } from 'react';
-import { v4 as uuidv4 } from 'uuid';
 
 const MengerjakanTes = () => {
     const { testId } = useParams(); // Ambil testId dari URL path
@@ -15,14 +14,12 @@ const MengerjakanTes = () => {
     const [markedReview, setMarkedReview] = useState([]);
     const [showNav, setShowNav] = useState(false);
     const [resultId, setResultId] = useState(null);
-    const [sessionId, setSessionId] = useState(null);
     const [answers, setAnswers] = useState({});
     const [title, setTitle] = useState('');
     const [token, setToken] = useState('');
     const [remainingTime, setRemainingTime] = useState(0);
     const [workTime, setWorkTime] = useState(0); 
     const [timerActive, setTimerActive] = useState(false);
-    const countdownInterval = useRef(null);
     const totalOptions = 5;
     const [answeredQuestions, setAnsweredQuestions] = useState(new Array(totalOptions).fill(false));
     const [answeredOptions, setAnsweredOptions] = useState(new Array(totalOptions).fill(false));
@@ -40,6 +37,14 @@ const MengerjakanTes = () => {
             window.removeEventListener('beforeunload', handleBeforeUnload);
         };
     }, []);
+
+    useEffect(() => {
+        const savedResultId = localStorage.getItem('resultId');
+        if (savedResultId) {
+            setResultId(savedResultId);
+            console.log('Loaded resultId from localStorage:', savedResultId);
+        }
+    }, []);    
 
     useEffect(() => {
         const storedAnswers = localStorage.getItem('answers');
@@ -63,17 +68,7 @@ const MengerjakanTes = () => {
             window.removeEventListener('beforeunload', handleBeforeUnload);  // Hapus event listener ketika komponen unmount
         };
     }, [questions, currentOption]);
-    
-    // Ambil atau buat sessionId
-    useEffect(() => {
-        let localSessionId = localStorage.getItem('sessionId');
-        if (!localSessionId) {
-            localSessionId = uuidv4();
-            localStorage.setItem('sessionId', localSessionId);
-        }
-        setSessionId(localSessionId);
-    }, []);
-    
+
     useEffect(() => {
         if (!testId) return; // Tunggu hingga testId tersedia dari URL path
 
@@ -171,131 +166,117 @@ const MengerjakanTes = () => {
         const savedResultId = localStorage.getItem('resultId');
         if (savedResultId) setResultId(savedResultId);
     }, []);
-
-    // Fungsi untuk mengupdate waktu tersisa
-    const updateRemainingTime = (newTime) => {
-        if (!sessionId) return;
-        if (newTime <= 0) {
-            setTimerActive(false);
-            clearInterval(countdownInterval.current); // Hentikan timer
-            alert('Waktu habis!');
-        } else {
-            localStorage.setItem(`remainingTime_${sessionId}`, newTime);
-        }
-        return newTime;
-    };
-
-const startWorkTime = () => {
-    workTimeInterval.current = setInterval(() => {
-        setWorkTime((prevWorkTime) => {
-            const newWorkTime = prevWorkTime + 1;
-            // Simpan work time dengan sessionId
-            localStorage.setItem(`workTime_${sessionId}`, newWorkTime);
-            return newWorkTime;
-        });
-    }, 1000);
-};
-
-useEffect(() => {
-    if (!sessionId) return; // Jangan lanjutkan jika sessionId belum ada
-
-    const storedWorkTime = localStorage.getItem(`workTime_${sessionId}`);
-    setWorkTime(storedWorkTime ? parseInt(storedWorkTime) : 0);
-
-    const fetchRemainingTime = async () => {
-        if (!sessionId) return; // Validasi sessionId sebelum digunakan
-        const storedRemainingTime = localStorage.getItem(`remainingTime_${sessionId}`);
-        if (storedRemainingTime) {
-            const time = Number(storedRemainingTime);
-            if (!isNaN(time) && time > 0) {
-                setRemainingTime(time);
-                setTimerActive(true);
-                startWorkTime();
-                startCountdown(time);
-            }
-        } else {
-            // Fetch dari backend jika tidak ditemukan di localStorage
-            try {
-                const response = await fetch(`http://localhost:2000/timer/${testId}/worktime`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                if (!response.ok) throw new Error('Failed to fetch worktime');
-
-                const data = await response.json();
-                const { hours, minutes, seconds } = data;
-                const totalWorkTimeInSeconds = hours * 3600 + minutes * 60 + seconds;
-
-                if (totalWorkTimeInSeconds > 0) {
-                    setRemainingTime(totalWorkTimeInSeconds);
-                    setTimerActive(true);
-                    localStorage.setItem(`remainingTime_${sessionId}`, totalWorkTimeInSeconds);
-                    startWorkTime();
-                    startCountdown(totalWorkTimeInSeconds);
-                } else {
-                    setRemainingTime(0);
-                    alert('Waktu sudah habis!');
-                }
-            } catch (error) {
-                console.error('Failed to fetch worktime:', error);
-                alert('Gagal mengambil waktu kerja.');
-            }
-        }
-    };
-
-    fetchRemainingTime();
-
-    return () => {
-        clearInterval(workTimeInterval.current);
-        clearInterval(countdownInterval.current);
-    };
-}, [sessionId, testId, token]);
-
-    // Fungsi untuk memulai countdown waktu pengerjaan    // Memulai countdown timer
-    const startCountdown = () => {
-        if (countdownInterval.current) return; // Jangan buat interval baru jika sudah ada
-        countdownInterval.current = setInterval(() => {
-            setRemainingTime((prevTime) => {
-                const newTime = prevTime - 1;
-                return updateRemainingTime(newTime);
-            });
-        }, 1000);
-    };
-
-        // Bersihkan interval saat komponen dilepas
-    useEffect(() => {
-        return () => clearInterval(countdownInterval.current);
-    }, []);
-
-    // Jalankan countdown jika timer aktif
-    useEffect(() => {
-        if (timerActive && remainingTime > 0) {
-            startCountdown();
-        } else {
-            clearInterval(countdownInterval.current);
-        }
-    }, [timerActive, remainingTime]);
-
-        // Fungsi untuk memulai timer (contoh dari backend atau tombol start)
-    const initializeTimer = (initialTime) => {
-        setRemainingTime(initialTime);
-        setTimerActive(true);
-    };
-
     
     const formatRemainingTime = (timeInSeconds) => {
-        if (typeof timeInSeconds !== 'number' || isNaN(timeInSeconds) || timeInSeconds < 0) {
-            return '00:00:00';
+        if (typeof timeInSeconds !== "number" || isNaN(timeInSeconds) || timeInSeconds < 0) {
+            return "00:00:00";
         }
 
         const hours = Math.floor(timeInSeconds / 3600);
         const minutes = Math.floor((timeInSeconds % 3600) / 60);
         const seconds = timeInSeconds % 60;
 
-        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
     };
-    
-    // Format remaining time for display
-    const remainingTimeFormatted = formatRemainingTime(remainingTime);
+
+    useEffect(() => {
+        // Cek atau buat resultId di localStorage
+        let storedResultId = localStorage.getItem("resultId");
+
+        if (!storedResultId) {
+            const newResultId = `result_${Date.now()}`; // ID unik
+            localStorage.setItem("resultId", newResultId);
+            storedResultId = newResultId;
+        }
+
+        setResultId(storedResultId);
+    }, []); // Hanya berjalan saat komponen pertama kali dimuat
+
+    useEffect(() => {
+        if (!resultId) return;
+
+        // Ambil waktu tersisa dari localStorage atau backend
+        const fetchRemainingTime = async () => {
+            const storedRemainingTime = localStorage.getItem(`remainingTime_${resultId}`);
+            console.log("Stored remaining time from localStorage:", storedRemainingTime);
+
+            if (storedRemainingTime) {
+                const time = Number(storedRemainingTime);
+                if (!isNaN(time) && time > 0) {
+                    setRemainingTime(time);
+                    setTimerActive(true);
+                    startWorkTime(); // Jalankan workTime di latar belakang
+                    startCountdown(time); // Mulai countdown
+                }
+            } else {
+                try {
+                    const response = await fetch(`http://localhost:2000/timer/${testId}/worktime`, {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    });
+
+                    if (!response.ok) throw new Error("Failed to fetch worktime");
+
+                    const data = await response.json();
+                    console.log("Fetched worktime from backend:", data);
+
+                    const { hours, minutes, seconds } = data;
+                    const totalWorkTimeInSeconds = hours * 3600 + minutes * 60 + seconds;
+
+                    if (totalWorkTimeInSeconds > 0) {
+                        setRemainingTime(totalWorkTimeInSeconds);
+                        setTimerActive(true);
+                        localStorage.setItem(`remainingTime_${resultId}`, totalWorkTimeInSeconds); // Simpan waktu tersisa ke localStorage
+                        startWorkTime(); // Jalankan workTime di latar belakang
+                        startCountdown(totalWorkTimeInSeconds); // Mulai countdown
+                    } else {
+                        setRemainingTime(0);
+                        alert("Waktu sudah habis!");
+                    }
+                } catch (error) {
+                    console.error("Failed to fetch worktime:", error);
+                    alert("Gagal mengambil waktu kerja.");
+                }
+            }
+        };
+
+        // Work time berjalan di latar belakang
+        const startWorkTime = () => {
+            workTimeInterval.current = setInterval(() => {
+                const storedWorkTime = parseInt(localStorage.getItem(`workTime_${resultId}`), 10) || 0;
+                const newWorkTime = storedWorkTime + 1;
+                localStorage.setItem(`workTime_${resultId}`, newWorkTime); // Simpan workTime ke localStorage
+            }, 1000); // Tambah 1 detik setiap 1 detik
+        };
+
+        // Waktu mundur untuk pengerjaan tes
+        const startCountdown = (initialTime) => {
+            const countdownTimer = setInterval(() => {
+                setRemainingTime((prevTime) => {
+                    const newTime = prevTime - 1;
+
+                    if (newTime <= 0) {
+                        clearInterval(countdownTimer); // Hentikan jika waktu habis
+                        setTimerActive(false);
+                        alert("Waktu habis!");
+                        return 0;
+                    }
+
+                    localStorage.setItem(`remainingTime_${resultId}`, newTime); // Simpan waktu tersisa ke localStorage
+                    return newTime;
+                });
+            }, 1000);
+
+            return () => clearInterval(countdownTimer);
+        };
+
+        fetchRemainingTime();
+
+        return () => {
+            clearInterval(workTimeInterval.current); // Bersihkan interval workTime saat komponen dilepas
+        };
+    }, [resultId, testId, token]);
 
     const saveDraftAnswer = async (testId, optionId, selectedOption) => {
         try {
@@ -581,7 +562,6 @@ useEffect(() => {
         console.log("answeredOptions:", answeredOptions);
     }, [markedReview, answeredOptions, currentOption]);
 
-
     return (
         <div className="min-h-screen flex flex-col p-6 bg-white font-sans">
             {/* Header */}
@@ -633,7 +613,7 @@ useEffect(() => {
                         <div className="flex items-center justify-center space-x-2 flex-grow">
                             <p className="text-white font-bold lg:text-lg md:text-lg text-sm">{currentOption}/{questions.length}</p>
                         </div>
-                        <div className="bg-[#0B61AA] text-white px-4 sm:px-2 py-2 sm:py-1 rounded-[10px] border border-white font-bold lg:text-lg md:text-lg text-xs">Waktu Tersisa: {remainingTimeFormatted}</div>
+                        <div className="bg-[#0B61AA] text-white px-4 sm:px-2 py-2 sm:py-1 rounded-[10px] border border-white font-bold lg:text-lg md:text-lg text-xs">Waktu Tersisa: {formatRemainingTime(remainingTime)}</div>
                     </div>
 
                     {/* Soal dan Opsi */}

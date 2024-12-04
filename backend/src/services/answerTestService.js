@@ -6,6 +6,40 @@ dotenv.config();
 
 export const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_here';
 
+export const getQuestionsAndOptions = async (testId) => {
+    try {
+        // Ambil data soal dan opsi terkait dengan testId
+        const questions = await prismaClient.multiplechoice.findMany({
+            where: {
+                testId: testId,  // Filter berdasarkan testId
+            },
+            include: {
+                option: true,  // Sertakan opsi yang terkait dengan soal
+            },
+        });
+
+        if (!questions || questions.length === 0) {
+            throw new Error('Tidak ada soal ditemukan untuk testId: ' + testId);
+        }
+
+        // Format data pertanyaan dan opsi agar sesuai dengan struktur yang diinginkan
+        const formattedQuestions = questions.map((question) => ({
+            id: question.id,
+            questionText: question.question,
+            options: question.option.map((opt) => ({
+                id: opt.id,
+                label: opt.optionDescription,
+                value: opt.optionDescription,
+            })),
+        }));
+
+        return formattedQuestions;  // Kembalikan soal dan opsi yang sudah diformat
+    } catch (error) {
+        console.error('Gagal mendapatkan soal dan opsi:', error.message);
+        throw new Error(`Gagal mendapatkan soal dan opsi: ${error.message}`);
+    }
+};
+
 // Fungsi untuk menyimpan jawaban sementara sebagai draft
 export const saveDraftAnswer = async (testId, token, answers) => {
     // 1. Verifikasi token JWT

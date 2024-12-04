@@ -312,7 +312,7 @@ const handleStartTryOut = async () => {
 
         {/* Sidebar ketika tampilan mobile */}
         <aside className={`fixed top-17 pt-5 left-0 w-64 bg-white h-full transition-transform transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:hidden z-40`}>
-        <ul className="p-4 space-y-4 text-deepblue round-lg">
+        <ul className="p-4 space-y-4 text-deepblue round-full">
             <div className="flex flex-col items-center">
             <li>
                 <img 
