@@ -311,27 +311,25 @@ const saveWorkTime = (time) => {
   };
   
   const handleHome = (event) => {
-    event.preventDefault(); // Mencegah perilaku default link
-  
-    // Ambil sessionId dari localStorage
+    event.preventDefault();
+
     const sessionId = localStorage.getItem('sessionId');
     
     if (sessionId) {
       console.log('Session ID ditemukan:', sessionId);
-  
-      // Hapus data terkait sessionId dari localStorage
+
       localStorage.removeItem('resultId');
       localStorage.removeItem('answers');
       localStorage.removeItem(`remainingTime_${sessionId}`);
       localStorage.removeItem(`workTime_${sessionId}`);
       localStorage.removeItem(`sessionId`);
+      localStorage.removeItem(`currentOption`);
   
       console.log('Data session dan pengerjaan tes telah dihapus dari localStorage');
     } else {
       console.log('Session ID tidak ditemukan');
     }
-  
-    // Redirect ke halaman dashboard
+
     router.push('/user/dashboard');
   };
   

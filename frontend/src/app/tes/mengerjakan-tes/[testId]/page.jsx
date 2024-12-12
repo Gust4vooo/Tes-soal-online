@@ -11,7 +11,6 @@ const MengerjakanTes = () => {
     const { testId } = useParams(); // Ambil testId dari URL path
     const [questions, setQuestions] = useState([]);
     const [selectedOption, setSelectedOption] = useState(null);
-    const [currentOption, setCurrentOption] = useState(1);
     const [markedReview, setMarkedReview] = useState([]);
     const [showNav, setShowNav] = useState(false);
     const [resultId, setResultId] = useState(null);
@@ -28,6 +27,11 @@ const MengerjakanTes = () => {
     const [answeredOptions, setAnsweredOptions] = useState(new Array(totalOptions).fill(false));
     const workTimeInterval = useRef(null);
     const router = useRouter();
+        // Inisialisasi `currentOption` langsung dari localStorage
+    const [currentOption, setCurrentOption] = useState(() => {
+        const storedOption = localStorage.getItem('currentOption');
+        return storedOption ? Number(storedOption) : 1; // Ambil dari localStorage atau default ke 1
+    });
 
     useEffect(() => {
         const handleBeforeUnload = (event) => {
@@ -151,26 +155,35 @@ const MengerjakanTes = () => {
             console.error('Kesalahan saat mengambil jawaban:', error);
         }
     };
-
+    // Simpan `currentOption` ke localStorage setiap kali berubah
     useEffect(() => {
-        const currentQuestionId = questions[currentOption - 1]?.id;
-    
-        // Cek apakah ada jawaban yang tersimpan untuk pertanyaan saat ini
-        if (currentQuestionId && answers[currentQuestionId]) {
-            setSelectedOption(answers[currentQuestionId].optionLabel);  // Set jawaban yang sudah tersimpan
-            console.log(`Jawaban ditemukan untuk pertanyaan ${currentQuestionId}: ${answers[currentQuestionId].optionLabel}`);
-        } else {
-            setSelectedOption(null);  // Jika tidak ada jawaban, kosongkan pilihan
+        if (currentOption !== null) {
+            localStorage.setItem('currentOption', currentOption);
         }
-    }, [currentOption, answers, questions]);
-    
+    }, [currentOption]);
+
+    // Load token dan resultId dari localStorage saat komponen pertama kali dimuat
     useEffect(() => {
         const storedToken = localStorage.getItem('token');
         if (storedToken) setToken(storedToken);
-    
+
         const savedResultId = localStorage.getItem('resultId');
         if (savedResultId) setResultId(savedResultId);
     }, []);
+
+    // Perbarui jawaban yang sudah tersimpan untuk `currentOption`
+    useEffect(() => {
+        const currentQuestionId = questions[currentOption - 1]?.id;
+
+        if (currentQuestionId && answers[currentQuestionId]) {
+            setSelectedOption(answers[currentQuestionId].optionLabel);
+            console.log(
+                `Jawaban ditemukan untuk pertanyaan ${currentQuestionId}: ${answers[currentQuestionId].optionLabel}`
+            );
+        } else {
+            setSelectedOption(null);
+        }
+    }, [currentOption, answers, questions]);
 
     // Fungsi untuk mengupdate waktu tersisa
     const updateRemainingTime = (newTime) => {
@@ -471,19 +484,9 @@ useEffect(() => {
     };
 
     const handlemarkreview = () => {
-        // console.log("Button clicked");
-        // const updatedMarkedReview = [...markedReview];
-        // updatedMarkedReview[currentOption - 1] = !updatedMarkedReview[currentOption - 1];
-        // setMarkedReview(updatedMarkedReview);
-        // console.log(updatedMarkedReview);
 
         console.log("Button clicked");
-        // setMarkedReview(prevMarkedReview => {
-        //     const updatedMarkedReview = [...prevMarkedReview];
-        //     updatedMarkedReview[currentOption - 1] = !updatedMarkedReview[currentOption - 1]; // Toggle status
-        //     console.log("Updated Marked Review:", updatedMarkedReview);
-        //     return updatedMarkedReview;
-        // });
+
         const updatedMarkedReview = [...markedReview];
         // Toggle status pada markedReview untuk currentOption
         updatedMarkedReview[currentOption - 1] = !updatedMarkedReview[currentOption - 1];
@@ -674,9 +677,6 @@ useEffect(() => {
                                         Soal sebelumnya
                                     </button>
                                     <button
-                                    //    className={`bg-[#F8B75B] text-black px-4 py-2 rounded-[15px] hover:bg-yellow-500 w-full 
-                                    //     ${markedReview[currentOption - 1] ? 'bg-yellow-500' : ' '}`}
-                                        // className={`bg-[#F8B75B] text-black px-4 py-2 rounded-[15px] hover:bg-yellow-500 w-full ${markedReview[currentOption - 1] || answeredOptions[currentOption - 1] ? 'bg-yellow-500' : 'bg-gray-300'}`}
                                         className={`bg-[#F8B75B] text-black px-4 py-2 rounded-[15px] hover:bg-yellow-500 w-full 
                                             ${(markedReview[currentOption - 1] || answeredOptions[currentOption - 1]) ? 'bg-yellow-500' : 'bg-gray-300'}
                                         `}
@@ -702,11 +702,10 @@ useEffect(() => {
                                 </div>
                                 <div className=" block md:hidden w-full">
                                     <button
-                                        // className={`bg-[#F8B75B] text-black px-4 py-2 rounded-[15px] hover:bg-yellow-500 w-full ${markedReview[currentOption - 1] ? 'bg-yellow-500' : ''}`}
+
                                         className={`bg-[#F8B75B] text-black px-4 py-2 rounded-[15px] hover:bg-yellow-500 w-full 
                                             ${markedReview[currentOption - 1] ? 'bg-yellow-500' : ''}`}
-                                        // className={`bg-[#F8B75B] text-black px-4 py-2 rounded-[15px] hover:bg-yellow-500 w-full 
-                                        //     ${markedReview[currentOption - 1] || answeredOptions[currentOption - 1] ? 'bg-yellow-500' : 'bg-gray-300'}`}
+
                                         style={{ height: '40px' }}
                                         onClick={handlemarkreview}>
                                         Ragu-Ragu

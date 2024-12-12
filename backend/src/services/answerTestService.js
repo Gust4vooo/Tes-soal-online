@@ -254,8 +254,6 @@ export const submitFinalAnswers = async (resultId, token) => {
     }
 };
 
-
-
 export const getAnswersByResultId = async (resultId) => {
     try {
         const answers = await prismaClient.detail_result.findMany({
