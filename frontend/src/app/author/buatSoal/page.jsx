@@ -16,6 +16,7 @@ const KotakNomor = () => {
   const [renameValue, setRenameValue] = useState('');
   const [activeTab, setActiveTab] = useState('buatSoal');
 
+
   useEffect(() => {
     const savedPages = localStorage.getItem(`pages-${testId}`);
     if (savedPages) {
@@ -371,7 +372,7 @@ const KotakNomor = () => {
           </ul>
         </nav>
 
-      <div className="w-full p-4 ml-44">
+      <div className="w-full p-4 ml-2">
         {Array.isArray(pages) && pages.map((page, pageIndex) => (
           <div key={page.pageNumber} className="my-4">
             <div className="flex justify-between items-center bg-[#0B61AA] text-white p-2" style={{ maxWidth: '1486px', height: '61px' }}>
@@ -434,7 +435,7 @@ const KotakNomor = () => {
             </div>
 
             <div className="">
-            <div className="flex flex-row flex-wrap p-8 gap-4 justify-start border border-gray-300" style={{ maxWidth: '79.6%', padding: '0.8%' }}>
+            <div className="flex flex-row flex-wrap p-8 gap-4 justify-start border border-gray-300 sm:max-w-full lg:max-w-[78.6%]" style={{ padding: '0.8%' }}>
               {Array.isArray(page.questions) && page.questions.map((question, questionIndex) => (
                 <div
                   key={`${pageIndex}-${question}`}
@@ -462,7 +463,7 @@ const KotakNomor = () => {
         ))}
       </div>
  
-      <div className="flex justify-between mt-2 ml-48">
+      <div className="flex justify-between mt-2 ml-12">
         <button
           onClick={addPage}
           className="bg-[#0B61AA] border border-black flex items-center space-x-2 px-4 py-2 hover:text-white font-poppins rounded-[15px] shadow-lg"
@@ -470,7 +471,7 @@ const KotakNomor = () => {
           + Tambah Page
         </button>
         
-        <div className="flex justify-end space-x-2 mr-60">
+        <div className="flex justify-end space-x-2 mr-28 ">
           <button
             onClick={handleSave} 
             className="bg-[#E8F4FF] border border-black flex items-center space-x-2 px-4 py-2 hover:text-black font-poppins rounded-[15px] shadow-lg"
