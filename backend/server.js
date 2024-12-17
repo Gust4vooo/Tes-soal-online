@@ -49,7 +49,6 @@ app.use(cors({
 app.use("/author", authorRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/tests", testRoutes);
-// app.use("/test", testRoutes);
 app.use("/api/multiplechoice", multiplechoiceRoutes);
 app.use("/answer", answerTest);
 app.use("/auth", authRoutes);

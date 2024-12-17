@@ -49,7 +49,7 @@ class PaymentService {
             const transaction = await prisma.transaction.create({
                 data: {
                     testId,
-                    userId: "cm2vedsc50000hity09oao84f",
+                    userId: "cm4s3ni9e0000vndcyp4s0wim",
                     paymentMethod: 'midtrans',
                     total: test.price,
                     paymentStatus: 'PENDING',

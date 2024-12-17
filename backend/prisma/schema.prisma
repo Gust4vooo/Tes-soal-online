@@ -9,17 +9,11 @@ datasource db {
   url = env("DATABASE_URL") // uses connection pooling
 }
 
-enum PaymentStatus {
-  PENDING
-  PAID
-  FAILED
-  EXPIRED
-}
-
 model Test {
   id                String        @id @default(cuid())
   authorId         String
   category         Category
+  type             Type
   title            String
   testDescription  String
   price            Decimal?
@@ -37,18 +31,11 @@ model Test {
   transaction      Transaction[]
 }
 
-model Transaction {
-  id             String            @id @default(cuid())
-  testId         String
-  userId         String
-  paymentMethod  String?
-  paymentTime    DateTime?        @default(now())
-  total          Int?
-  paymentId      String?
-  paymentStatus  PaymentStatus
-  test           Test              @relation(fields: [testId], references: [id])
-  user           User              @relation(fields: [userId], references: [id])
+enum Type {
+  PilihanGanda
+  Essay
 }
+
 
 model History {
   id        String       @id @default(cuid())
@@ -57,6 +44,7 @@ model History {
   user      User         @relation(fields: [userId], references: [id])
   test      Test         @relation(fields: [testId], references: [id])
 }
+
 
 model User {
   id                String          @id @default(cuid())
@@ -75,7 +63,7 @@ model User {
   testimoni        Testimoni[]
   author           Author[]
   revokedTokens    RevokedToken[]
-  transaction      Transaction[]
+  transaction      Transaction[]
 }
 
 model Author {
@@ -90,6 +78,7 @@ model Author {
   isApproved        Boolean       @default(false)
   user              User          @relation(fields: [userId], references: [id])
   test              Test[]
+  withdrawal        Withdrawal[]
 }
 
 model Favourite {
@@ -105,15 +94,16 @@ model Favourite {
 model Multiplechoice {
   id                String       @id @default(cuid())
   testId           String
+  pageName         String
   question         String
   number           Int
-  questionPhoto    String
-  weight           Int
+  questionPhoto    String?
+  weight           Float
   discussion       String
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
   test             Test         @relation(fields: [testId], references: [id])
-  option           Option[]
+  option           Option[]
 }
 
 model Result {
@@ -159,6 +149,22 @@ model Option {
   detail_result     Detail_result[]
 }
 
+// Enum untuk status transaks
+
+// Model Transaksi
+model Transaction {
+  id             String            @id @default(cuid())
+  testId         String
+  userId         String
+  paymentMethod  String?
+  paymentTime    DateTime?        @default(now())
+  total          Int?
+  paymentId      String?
+  paymentStatus  PaymentStatus
+  test           Test              @relation(fields: [testId], references: [id])
+  user           User              @relation(fields: [userId], references: [id])
+}
+
 
 
 model Testimoni {
@@ -187,4 +193,33 @@ enum Category {
   UTBK
   Pemrograman
   Psikotes
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  EXPIRED
+}
+
+enum WithdrawalStatus {
+  PENDING
+  PROCESSING
+  SUCCESS
+  FAILED
+}
+
+model Withdrawal {
+  id            String           @id @default(cuid())
+  authorId      String
+  amount        Int
+  bankCode      String      
+  accountNumber String     
+  accountName   String         
+  status        WithdrawalStatus @default(PENDING)
+  reference     String?         
+  notes         String?        
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  author        Author          @relation(fields: [authorId], references: [id])
 }
