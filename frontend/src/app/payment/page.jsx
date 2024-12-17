@@ -2,11 +2,9 @@
 
 import React from 'react';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
 
 function App() {
-  const router = useRouter();
-  const { testId } = router.query;
+  const [testId] = useState('cm4s3p8ar0002vndccis1vora');
   const [testTitle, setTestTitle] = useState('');
   const [testSimilarity, setTestSimilarity] = useState();
   const [testPrice, setTestPrice] = useState();
@@ -30,7 +28,7 @@ function App() {
   useEffect(() => {
     const fetchTestDetail = async () => {
       try {
-        const response = await fetch(`http://localhost:2000/api/tests/test-detail/${testId}`);
+        const response = await fetch(`http://localhost:2000/api/tests/test-detail/cm4s3p8ar0002vndccis1vora`);
         if (!response.ok) {
           const errorMessage = await response.text();
           throw new Error(`Error: ${response.status} - ${errorMessage}`)
