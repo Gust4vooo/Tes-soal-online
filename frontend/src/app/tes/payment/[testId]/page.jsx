@@ -1,16 +1,14 @@
 'use client';
 
 import React from 'react';
-import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { jwtDecode } from "jwt-decode";
+import { useState, useEffect } from 'react';
 
 function App() {
   const { testId } = useParams();
-  const [userId, setUserId] = useState(null);
   const [testTitle, setTestTitle] = useState('');
-  const [testSimilarity, setTestSimilarity] = useState(null);
-  const [testPrice, setTestPrice] = useState(null);
+  const [testSimilarity, setTestSimilarity] = useState();
+  const [testPrice, setTestPrice] = useState();
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -23,13 +21,6 @@ function App() {
 
     document.body.appendChild(script)
 
-     // Decode token to get userId
-    const token = localStorage.getItem('token');
-    if (token) {
-      const decodedToken = jwtDecode(token);
-      setUserId(decodedToken.id);
-    }
-
     return () => {
       document.body.removeChild(script)
     }
@@ -38,7 +29,7 @@ function App() {
   useEffect(() => {
     const fetchTestDetail = async () => {
       try {
-        const response = await fetch(`http://localhost:2000/api/tests/get-tests/${testId}`);
+        const response = await fetch(`http://localhost:2000/api/tests/test-detail/${testId}`);
         if (!response.ok) {
           const errorMessage = await response.text();
           throw new Error(`Error: ${response.status} - ${errorMessage}`)
@@ -53,30 +44,37 @@ function App() {
         setError('Terjadi kesalahan: ' + error.message);
       }
     };
+
+    if (testId) {
       fetchTestDetail(); // Memanggil API ketika testId ada
+    }
   }, [testId]);
 
-
   const handlePayment = async () => {
+    const token = localStorage.getItem('token'); // Ambil token dari localStorage
+  
+    if (!token) {
+      console.error('Token is missing!');
+      return; // Jangan lanjutkan jika token tidak ada
+    }
+  
     if (testId) {
       try {
-        const token = localStorage.getItem('token'); // Ambil token dari localStorage
-        
-        // Ambil token dari backend
+        // Panggil API untuk membuat payment token
         const response = await fetch('http://localhost:2000/api/payment/payment-process', {
           method: 'POST',
           headers: {
+            'Authorization': `Bearer ${token}`, // Sertakan token dalam header
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}` // Tambahkan token ke header
           },
-          body: JSON.stringify({ testId }), 
+          body: JSON.stringify({ testId }),
         });
   
         const data = await response.json();
+        console.log('Payment token created:', data);
   
-        // Cek apakah token berhasil didapatkan
+        // Validasi respons dan tampilkan Snap Midtrans
         if (response.ok && data.token) {
-          // Menampilkan Midtrans Snap
           window.snap.pay(data.token, {
             onSuccess: function (result) {
               console.log('Payment success:', result);

@@ -1,8 +1,9 @@
 'use client'
 import Head from "next/head";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function DashboardAuthor() {
+  const [authorData, setAuthorData] = useState(null);
   const [asideHeight, setAsideHeight] = useState('1000px'); // State untuk mengelola tinggi elemen <aside>
   const [showHistory, setShowHistory] = useState(false);
   const [showNotification, setShowNotification] = useState(false); // For initial validation notification
@@ -18,6 +19,31 @@ export default function DashboardAuthor() {
   const serviceFee = 1000; // Biaya layanan tetap
 
   const banks = ['BNI', 'BRI', 'BCA', 'MANDIRI', 'BANK LAINNYA'];
+
+  useEffect(() => {
+    const fetchAuthorData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        
+        if (!token) {
+          throw new Error('No authentication token found');
+        }
+
+        const response = await axios.get('http://localhost:2000/author/authorID', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        console.log(response.data);
+
+        setAuthorData(response.data.data);
+      } catch (err) {
+        console.error('Error fetching author data:', err);
+        setError(err.message);      }
+    };
+
+    fetchAuthorData();
+  }, []);
 
   const handleAddNewTest = () => {
     alert("Fungsi untuk menambahkan tes baru belum diimplementasikan."); // Placeholder untuk fungsi penambahan tes
@@ -115,7 +141,7 @@ export default function DashboardAuthor() {
         </aside>
         <main className="relative main-content flex-grow bg-white">
             <header className="header bg-[#0b61aa] top-0 text-white p-4 flex justify-end items-center">
-                <span className="text-[26px] font-bold pr-6 mr-2"> Hai, Abeliaaa!</span>
+                <span className="text-[26px] font-bold pr-6 mr-2"> Hai, {authorData.name} !</span>
                 <div className='w-[35px] h-[35px] flex justify-center items-center'>
                 <img src="/images/Profil.png" alt="profile" />
                 </div>
@@ -133,8 +159,8 @@ export default function DashboardAuthor() {
                 <section className="saldo-section bg-[#f1f1f1] rounded-lg p-5 shadow-md w-full">
                 <div className="saldo-container flex items-center justify-between mb-5 px-8">
                     <div className="saldo-amount text-[48px] md:text-[45px] sm:text-[24px] font-normal whitespace-nowrap text-[#0B61AA]">
-                    {/* Memformat Saldo dengan titik pemisah ribuan */}
-                    Rp {Number(1000000).toLocaleString('id-ID')}.00,-
+                        {/* Menggunakan profit dari authorData dengan format rupiah */}
+                        Rp {Number(authorData.profit).toLocaleString('id-ID')}.00,-
                     </div>
                     <button
                     onClick={handleWithdrawClick}

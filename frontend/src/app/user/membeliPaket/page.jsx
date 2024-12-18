@@ -1,5 +1,96 @@
-'use client'
+'use client';
+
 import React from 'react';
+import { useParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
+
+function App() {
+  const { testId } = useParams();
+  const [testTitle, setTestTitle] = useState('');
+  const [testSimilarity, setTestSimilarity] = useState();
+  const [testPrice, setTestPrice] = useState();
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const snapScript = "https://app.sandbox.midtrans.com/snap/snap.js"
+    const clientKey = process.env.PUBLIC_CLIENT_KEY
+    const script = document.createElement('script')
+    script.src = snapScript
+    script.setAttribute('data-client-key', clientKey)
+    script.async = true
+
+    document.body.appendChild(script)
+
+    return () => {
+      document.body.removeChild(script)
+    }
+  }, []);
+
+  useEffect(() => {
+    const fetchTestDetail = async () => {
+      try {
+        const response = await fetch(`http://localhost:2000/api/tests/test-detail/cm4s3p8ar0002vndccis1vora`);
+        if (!response.ok) {
+          const errorMessage = await response.text();
+          throw new Error(`Error: ${response.status} - ${errorMessage}`)
+        }
+        const data = await response.json();
+        console.log('Data fetched:', data);
+        setTestTitle(data.title);
+        setTestSimilarity(data.similarity);
+        setTestPrice(data.price);
+      } catch (error) {
+        console.error('Failed to fetch test details:', error);
+        setError('Terjadi kesalahan: ' + error.message);
+      }
+    };
+
+    if (testId) {
+      fetchTestDetail(); // Memanggil API ketika testId ada
+    }
+  }, [testId]);
+
+  const handlePayment = async () => {
+    if (testId) {
+      try {
+        // Ambil token dari backend
+        const response = await fetch('http://localhost:2000/api/payment/payment-process', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ testId }), 
+        });
+  
+        const data = await response.json();
+  
+        // Cek apakah token berhasil didapatkan
+        if (response.ok && data.token) {
+          // Menampilkan Midtrans Snap
+          window.snap.pay(data.token, {
+            onSuccess: function (result) {
+              console.log('Payment success:', result);
+            },
+            onPending: function (result) {
+              console.log('Payment pending:', result);
+            },
+            onError: function (result) {
+              console.log('Payment error:', result);
+            },
+            onClose: function () {
+              console.log('Payment dialog closed');
+            },
+          });
+        } else {
+          console.error('Failed to get payment token:', data.error);
+        }
+      } catch (error) {
+        console.error('Error during payment:', error);
+      }
+    } else {
+      console.error('Test ID not found');
+    }
+  };  
 
 // Navbar Component
 const Navbar = () => {
@@ -14,7 +105,7 @@ const Navbar = () => {
       <div className="flex items-center space-x-4">
         {/* Vektor EtamTest */}
         <img 
-          src="/images/Vector.png" 
+          src="/img/Vector.png" 
           alt="EtamTest Logo" 
           className="h-8"  // Menyesuaikan ukuran dengan teks
         />
@@ -47,10 +138,10 @@ const PaymentBox = () => {
         />
 
         {/* Header */}
-        <h1 className="text-2xl font-bold mb-2">Try Out CPNS 2025 #2</h1>
+        <h1 className="text-2xl font-bold mb-2">{testTitle}</h1>
 
         {/* Sub-header */}
-        <h2 className="text-lg text-gray-500 mb-4">prediksi kemiripan 75%</h2>
+        <h2 className="text-lg text-gray-500 mb-4">Prediksi Kemiripan: {testSimilarity}%</h2>
 
         {/* Bullet List */}
         <ul className="text-left text-gray-700 list-disc list-inside space-y-2 mb-6">
@@ -61,10 +152,12 @@ const PaymentBox = () => {
         </ul>
 
         {/* Harga */}
-        <div className="text-right text-2xl font-bold text-gray-800 mb-8">Rp.30.000,-</div>
+        <div className="text-right text-2xl font-bold text-gray-800 mb-8">{testPrice}</div>
 
         {/* Button Beli */}
-        <button className="absolute bottom-4 right-4 bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600">
+        <button className="absolute bottom-4 right-4 bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600"
+        onClick={handlePayment}
+        >
           Beli
         </button>
       </div>
@@ -72,8 +165,6 @@ const PaymentBox = () => {
   );
 }
 
-// Main Component
-const App = () => {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Navbar */}

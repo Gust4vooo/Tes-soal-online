@@ -59,7 +59,7 @@ const Login = () => {
             localStorage.setItem('token', data.token);
             
             // Redirect berdasarkan role
-            if (data.role === 'AUTHOR') {
+            if (data.user.role === 'AUTHOR') {
                 router.push('/author/dashboard'); // Ganti dengan jalur dashboard author
             } else {
                 router.push('/user/dashboard'); // Ganti dengan jalur dashboard user
