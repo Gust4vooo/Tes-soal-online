@@ -16,6 +16,7 @@ const KotakNomor = () => {
   const [renameValue, setRenameValue] = useState('');
   const [activeTab, setActiveTab] = useState('buatSoal');
 
+
   useEffect(() => {
     const savedPages = localStorage.getItem(`pages-${testId}`);
     if (savedPages) {
@@ -340,21 +341,23 @@ const KotakNomor = () => {
   };
 
   return (
-    <div className="container mx-auto p-0" style={{ maxWidth: '1440px' }}>
-      <header className="bg-[#0B61AA] text-white p-4 sm:p-6 font-poppins" style={{ maxWidth: '1443px', height: '108px' }}>
-        <div className="container mx-auto flex justify-start items-center p-4">
+    <div className="container mx-auto p-0" style={{ maxWidth: '14540px' }}>
+      <header className="bg-[#0B61AA] text-white p-4 sm:p-6 font-poppins w-full " style={{ height: '108px' }}>
+        <div className="flex justify-start items-start h-full">
           <Link href="/">
-            <img src="/images/etamtest.png" alt="etamtest" className="h-6 ml-4" style={{ maxWidth: '279px', height: '50px' }} />
+            <img src="/images/etamtest.png" alt="Etamtest" className="h-[60px]" style={{ maxWidth: '179px' }} />
           </Link>
         </div>
       </header>
 
       <div className="w-full p-0">
-        <nav className="bg-[#FFFFFF] text-black p-4">
-          <ul className="grid grid-cols-2 flex justify-start sm:flex sm:justify-around gap-4 sm:gap-10">
+        <nav className="bg-putih text-black p-4">
+          <ul className="grid grid-cols-2 gap-4 sm:flex sm:justify-around sm:gap-10">
             <li>
               <button
-                className={`w-[140px] sm:w-[180px] px-4 sm:px-8 py-2 sm:py-4 rounded-full shadow-xl font-bold font-poppins ${activeTab === 'buatSoal' ? 'bg-[#78AED6]' : ''}`}
+                className={`w-[140px] sm:w-[180px] px-4 sm:px-8 py-2 sm:py-4 rounded-full shadow-xl font-bold font-poppins ${
+                  activeTab === 'buatSoal' ? 'bg-[#78AED6]' : ''
+                } text-sm sm:text-base`}
                 onClick={() => setActiveTab('buatSoal')}
               >
                 Buat Soal
@@ -362,7 +365,9 @@ const KotakNomor = () => {
             </li>
             <li>
               <button
-                className={`w-[140px] sm:w-[180px] px-4 sm:px-8 py-2 sm:py-4 rounded-full shadow-xl font-bold font-poppins ${activeTab === 'publikasi' ? 'bg-[#78AED6]' : ''}`}
+                className={`w-[140px] sm:w-[180px] px-4 sm:px-8 py-2 sm:py-4 rounded-full shadow-xl font-bold font-poppins ${
+                  activeTab === 'publikasi' ? 'bg-[#78AED6]' : ''
+                } text-sm sm:text-base`}
                 onClick={() => setActiveTab('publikasi')}
               >
                 Publikasi
@@ -371,10 +376,11 @@ const KotakNomor = () => {
           </ul>
         </nav>
 
-      <div className="w-full p-4">
+
+      <div className="w-full p-4 ml-[-4px] sm:ml-20">
         {Array.isArray(pages) && pages.map((page, pageIndex) => (
           <div key={page.pageNumber} className="my-4">
-            <div className="flex justify-between items-center bg-[#0B61AA] text-white p-2" style={{ maxWidth: '1486px', height: '61px' }}>
+            <div className="flex justify-between items-center bg-[#0B61AA] text-white p-2" style={{ maxWidth: '1182px', height: '61px' }}>
               {isRenaming === pageIndex ? (
                 <div className="flex items-center">
                   <input
@@ -433,13 +439,13 @@ const KotakNomor = () => {
               </div>
             </div>
 
-            <div className="flex flex-row flex-wrap items-center gap-3 justify-start border border-gray-300 
-             max-w-[100%] sm:max-w-[99.7%] px-[2%] sm:px-[4%] py-4">
+            <div className="">
+            <div className="flex flex-row flex-wrap p-8 gap-4 justify-start border border-gray-300 sm:max-w-full lg:max-w-[78.6%]" style={{ padding: '0.8%' }}>
               {Array.isArray(page.questions) && page.questions.map((question, questionIndex) => (
                 <div
                   key={`${pageIndex}-${question}`}
                   className="flex flex-col items-center border border-gray-300 p-2 bg-white rounded-lg shadow-md cursor-pointer"
-                  style={{ width: '50px', height: '50px' }}
+                  style={{ width: '60px', height: '60px' }}
                   onClick={() => handleQuestionSelect(question, pageIndex)} 
                 >
                   <span className="bg-white border rounded-full w-8 h-8 flex items-center justify-center mb-2 rounded-[15px]">
@@ -458,21 +464,22 @@ const KotakNomor = () => {
               </div>
             </div>
           </div>
+        </div>
         ))}
       </div>
  
-      <div className="flex justify-between mt-4 ml-6">
+      <div className="flex justify-between mt-2 ml-6 sm:ml-24">
         <button
           onClick={addPage}
-          className="bg-[#0B61AA] border border-black flex items-center space-x-2 px-4 py-2 hover:text-white font-poppins rounded-[15px] shadow-lg"
+          className="bg-[#0B61AA] border border-black flex items-center space-x-2 px-2 py-1 text-sm sm:px-4 sm:py-2 sm:text-base hover:text-white font-poppins rounded-[15px] shadow-lg"
         >
           + Tambah Page
         </button>
         
-        <div className="flex justify-end space-x-2 mr-8">
+        <div className="flex justify-end space-x-2 mr-4 sm:mr-48">
           <button
-            onClick={handleSave} 
-            className="bg-[#E8F4FF] border border-black flex items-center space-x-2 px-4 py-2 hover:text-black font-poppins rounded-[15px] shadow-lg"
+            onClick={handleSave}
+            className="bg-[#E8F4FF] border border-black flex items-center space-x-2 px-2 py-1 text-sm sm:px-4 sm:py-2 sm:text-base hover:text-black font-poppins rounded-[15px] shadow-lg"
           >
             Simpan
           </button>
