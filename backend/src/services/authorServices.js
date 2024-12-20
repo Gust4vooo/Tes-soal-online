@@ -162,11 +162,24 @@ export const getAuthorByUserId = async (token) => {
     }
 };
 
+export const getAuthorById = async (userId) => {
+  try {
+    const author = await prisma.author.findFirst({
+      where: { 
+        userId: userId 
+      }
+    })
 
+    if (!author) {
+      throw new Error('Author not found')
+    }
 
-
-
-import admin from '../../firebase/firebaseAdmin.js'; // Sesuaikan path jika perlu
+    return author
+  } catch (error) {
+    console.error('Error fetching author by user ID:', error)
+    throw error
+  }
+}
 
 export const editAuthorProfileService = async (token, profileData, file) => {
   console.log('Starting editAuthorProfileService');

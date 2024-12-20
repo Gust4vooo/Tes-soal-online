@@ -144,5 +144,20 @@ export const getAuthorTestsService = async (userId) => {
   }
 };
 
+export const getTestDetailById = async (testId) => {
+  try {
+      const test = await prisma.test.findUnique({
+          where: {
+              id: testId,
+          },
+      });
+
+      return test; 
+  } catch (error) {
+      console.error("Error fetching test detail from database:", error);
+      throw new Error('Database error'); 
+  }
+};
+
 
 export { createTestService, getTestService, getTestResult }; // Menggunakan named export

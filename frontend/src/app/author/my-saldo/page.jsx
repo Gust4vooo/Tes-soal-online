@@ -1,5 +1,6 @@
 'use client'
 import Head from "next/head";
+import axios from 'axios';
 import { useState, useEffect } from "react";
 
 export default function DashboardAuthor() {
@@ -141,7 +142,9 @@ export default function DashboardAuthor() {
         </aside>
         <main className="relative main-content flex-grow bg-white">
             <header className="header bg-[#0b61aa] top-0 text-white p-4 flex justify-end items-center">
-                <span className="text-[26px] font-bold pr-6 mr-2"> Hai, {authorData.name} !</span>
+            <span className="text-[26px] font-bold pr-6 mr-2">
+            Hai, {authorData ? authorData.name : 'Loading...'}!
+            </span>
                 <div className='w-[35px] h-[35px] flex justify-center items-center'>
                 <img src="/images/Profil.png" alt="profile" />
                 </div>
@@ -160,7 +163,7 @@ export default function DashboardAuthor() {
                 <div className="saldo-container flex items-center justify-between mb-5 px-8">
                     <div className="saldo-amount text-[48px] md:text-[45px] sm:text-[24px] font-normal whitespace-nowrap text-[#0B61AA]">
                         {/* Menggunakan profit dari authorData dengan format rupiah */}
-                        Rp {Number(authorData.profit).toLocaleString('id-ID')}.00,-
+                        Rp {authorData ? Number(authorData.profit).toLocaleString('id-ID') : 'Loading'} ,- 
                     </div>
                     <button
                     onClick={handleWithdrawClick}
