@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 const KotakNomor = () => {
   const router = useRouter();
   const [testId, setTestId] = useState('');
+  const [category, setCategory] = useState('');
   const [pages, setPages] = useState([]);
   const [multiplechoiceId, setMultiplechoiceId] = useState('');
   const [isDropdownOpen, setDropdownOpen] = useState(false);
@@ -30,8 +31,11 @@ const KotakNomor = () => {
     const url = new URL(window.location.href);
     const params = new URLSearchParams(url.search);
     const testIdFromUrl = params.get("testId");
+    const categoryFromUrl = params.get("category");
     const multiplechoiceIdFromUrl = params.get("multiplechoiceId");
     const pageNameFromUrl = params.get("pageName") || localStorage.getItem('pageName');
+
+    console.log("Fetched category:", categoryFromUrl);
 
     if (testIdFromUrl) {
       setTestId(testIdFromUrl);
@@ -41,6 +45,10 @@ const KotakNomor = () => {
       } else {
         fetchPagesFromDB(testIdFromUrl); // Fetch pages from DB if not in local storage
       }
+    }
+
+    if (categoryFromUrl) {
+      setCategory(categoryFromUrl);
     }
 
     if (multiplechoiceIdFromUrl) {
@@ -312,14 +320,16 @@ const KotakNomor = () => {
     const multiplechoiceId = await fetchMultipleChoiceId(testId, questionNumber);
     const pageName = pages[pageIndex]?.pageName || '';
   
+    const baseUrl = category === 'CPNS'  ? '/author/buatSoal/page2' : '/author/buatSoal/page1';
+
     if (multiplechoiceId !== "null") {
       console.log("multiplechoiceId not found. You can create a new one.");
-      router.push(`/author/buatSoal/page1?testId=${testId}&multiplechoiceId=${multiplechoiceId}&nomor=${questionNumber}&pageName=${pageName}`);
+      router.push(`${baseUrl}?testId=${testId}&category=${category}&multiplechoiceId=${multiplechoiceId}&nomor=${questionNumber}&pageName=${pageName}`);
     }
   
     setSelectedNumber(questionNumber);
     
-    router.push(`/author/buatSoal/page1?testId=${testId}&multiplechoiceId=${multiplechoiceId}&nomor=${questionNumber}&pageName=${pageName}`);
+    router.push(`${baseUrl}?testId=${testId}&category=${category}&multiplechoiceId=${multiplechoiceId}&nomor=${questionNumber}&pageName=${pageName}`);
   };    
   
   const handleSave = () => {

@@ -73,8 +73,11 @@ const MembuatSoal = () => {
         setQuestion(data.question);
         setOptions(data.option);
         setDiscussion(data.discussion);
-        if (data.questionPhoto) {
+        if (data.questionPhoto && data.questionPhoto !== "") {
           setQuestionPhoto(data.questionPhoto);
+          console.log("Loaded question photo URL:", data.questionPhoto);
+        } else {
+          setQuestionPhoto(null);
         }
 
         if (data.option && Array.isArray(data.option)) {
@@ -111,13 +114,6 @@ const MembuatSoal = () => {
       isCorrect: i === index,  // Setel hanya opsi yang dipilih ke true
     }));
     setOptions(newOptions);
-  };
-
-  const cleanHtml = (html) => {
-    return sanitizeHtml(html, {
-      allowedTags: [], 
-      allowedAttributes: {},
-    });
   };
 
   const handleWeightChange = (e) => {
@@ -250,21 +246,13 @@ const MembuatSoal = () => {
     setJawabanBenar(index);
   };
 
-  // const uploadImage = () => {
-  //   if (questionPhoto == null) return;
-  //     const imageRef = ref(storage, `question/${questionPhoto.name + v4()}`)
-  //     uploadBytes(imageRef, questionPhoto).then(() => {
-  //       alert("image uploaded");
-  //     })
-  // };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
   
     try {
       // Handle image upload if exists
-      let uploadedImageUrl = "";
-      if (questionPhoto) {
+      let uploadedImageUrl = questionPhoto;
+      if (questionPhoto instanceof File) {
         const imageRef = ref(storage, `question/${questionPhoto.name + v4()}`);
         const snapshot = await uploadBytes(imageRef, questionPhoto);
         uploadedImageUrl = await getDownloadURL(snapshot.ref); // Mendapatkan URL download gambar
@@ -273,11 +261,11 @@ const MembuatSoal = () => {
       // Prepare common data structure
       const questionData = {
         pageName,
-        question: cleanHtml(question),
+        question: question,
         number: parseInt(number),
         questionPhoto: uploadedImageUrl,
         weight: parseFloat(weight),
-        discussion: cleanHtml(discussion),
+        discussion: discussion,
         options: options.map(option => ({
           ...option,
           optionDescription: option.optionDescription,
@@ -458,12 +446,30 @@ const MembuatSoal = () => {
             </div>
 
             <div className="mb-4">
+            {typeof questionPhoto === 'string' && questionPhoto ? (
+              // Show existing image from Firebase
+              <div className="mb-2">
+                <img 
+                  src={questionPhoto} 
+                  alt="Question" 
+                  className="max-w-md h-auto"
+                />
+                <button 
+                  type="button"
+                  onClick={() => setQuestionPhoto(null)}
+                  className="mt-2 bg-red-500 text-white px-2 py-1 rounded"
+                >
+                  Hapus Gambar
+                </button>
+              </div>
+            ) : (
               <input
                 type="file"
                 onChange={(event) => setQuestionPhoto(event.target.files[0])}
                 className="border p-2 w-full"
                 accept="image/*"
               />
+            )}
             </div>
   
             <div>

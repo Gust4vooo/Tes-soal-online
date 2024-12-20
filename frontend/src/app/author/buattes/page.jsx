@@ -43,7 +43,6 @@ const BuatTes = () => {
         setAuthorId(authorData.id);
       } catch (error) {
         console.error('Error fetching author data:', error);
-        // Handle error (e.g., redirect to login page)
       }
     };
 
@@ -88,8 +87,9 @@ const BuatTes = () => {
         console.log('Tes berhasil disimpan!');
         const result = await response.json();
         const testId = result.id;  // Menggunakan 'id' dari respons
-        if (testId) {
-          router.push(`/author/buatSoal?testId=${testId}`);
+        const testCategory = result.category;
+        if (testId && testCategory) {
+          router.push(`/author/buatSoal?testId=${testId}&category=${kategoriTes}`);
         } else {
           console.error('Test ID tidak ditemukan dalam respons:', result);
         }

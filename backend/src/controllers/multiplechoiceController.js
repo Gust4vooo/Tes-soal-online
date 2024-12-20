@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 import { initializeApp } from 'firebase/app';
-import { createMultipleChoiceService, updateMultipleChoiceService, getMultipleChoiceService, getQuestionNumbersServices, updateQuestionNumberServices, getMultipleChoiceByIdService, deleteMultipleChoiceService, getQuestionsByTestId, fetchMultipleChoiceByNumberAndTestId, updateMultipleChoicePageNameService, getPagesByTestIdService } from '../services/multiplechoiceSevice.js';
+import { createMultipleChoiceService, updateMultipleChoiceService, getQuestionNumbersServices, updateQuestionNumberServices, getMultipleChoiceByIdService, deleteMultipleChoiceService,  fetchMultipleChoiceByNumberAndTestId, updateMultipleChoicePageNameService, getPagesByTestIdService } from '../services/multiplechoiceSevice.js';
 import { Buffer } from 'buffer';
 import { uploadFileToStorage } from '../../firebase/firebaseBucket.js';
 
@@ -79,14 +79,12 @@ const createMultipleChoice = async (req, res) => {
             questions.map(async (question) => {
                 const questionData = { ...question };
 
-                // Cek apakah ada file yang diunggah untuk soal ini
                 if (req.files && req.files[index]) {
-                    const fileBuffer = req.files[index].buffer; // Ambil buffer dari file
-                    const fileName = `questions/${Date.now()}_${req.files[index].originalname}`; // Buat nama file unik
+                    const fileBuffer = req.files[index].buffer; 
+                    const fileName = `questions/${Date.now()}_${req.files[index].originalname}`; 
 
-                    // Upload ke Firebase
                     const imageUrl = await uploadFileToStorage(fileBuffer, fileName);
-                    questionData.questionPhoto = imageUrl; // Simpan URL gambar di questionData
+                    questionData.questionPhoto = imageUrl; 
                 }
 
                 return questionData;
@@ -136,39 +134,6 @@ const updateMultipleChoice = async (req, res) => {
 
 export { updateMultipleChoice };
 
-const getMultipleChoice = async (req, res) => {
-    try {
-        const { testId } = req.params;  
-        const { pageName } = req.query;
-
-        if (!testId) {
-            return res.status(400).send({
-                message: 'testId is required',
-            });
-        }
-
-        const multipleChoices = await getMultipleChoiceService(testId, pageName);
-
-        if (!multipleChoices || multipleChoices.length === 0) {
-            return res.status(404).send({
-                message: 'No questions found for this test',
-            });
-        }
-
-        res.status(200).send({
-            data: multipleChoices,
-            message: 'Questions fetched successfully',
-        });
-    } catch (error) {
-        res.status(500).send({
-            message: 'Failed to fetch questions',
-            error: error.message,
-        });
-    }
-};
-
-export { getMultipleChoice };
-
 const getMultipleChoiceById = async (req, res) => {
     try {
         const { id } = req.params;  
@@ -216,22 +181,6 @@ const deleteMultipleChoice = async (req, res) => {
 };
 
 export { deleteMultipleChoice };
-
-const getQuestions = async (req, res) => {
-    const { testId } = req.params; 
-    try {
-        const questions = await getQuestionsByTestId(testId);
-        if (questions.length === 0) {
-            return res.status(404).json({ message: 'Questions not found.' });
-        }
-        res.status(200).json(questions); 
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-};
-
-export { getQuestions };
-
 
 const getMultipleChoiceByNumberAndTestId = async (req, res) => {
     const { testId, number, pageName } = req.params;
@@ -304,8 +253,8 @@ const getPagesByTestIdController = async (req, res) => {
 
   const getQuestionNumbers = async (req, res) => {
     try {
-      const { testId } = req.params;
-      const questionNumbers = await getQuestionNumbersServices(testId);
+      const { testId, category } = req.params;
+      const questionNumbers = await getQuestionNumbersServices(testId, category);
       res.json({ questionNumbers });
     } catch (error) {
       res.status(500).json({ error: 'Error getting question numbers' });
