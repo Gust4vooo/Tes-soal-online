@@ -167,19 +167,24 @@ export const getAuthorById = async (userId) => {
     const author = await prisma.author.findFirst({
       where: { 
         userId: userId 
-      }
-    })
+      },
+      select: {  // Menentukan kolom yang ingin diambil
+        name: true,
+        profit: true,
+      },
+    });
 
     if (!author) {
-      throw new Error('Author not found')
+      throw new Error('Author not found');
     }
 
-    return author
+    return author;
   } catch (error) {
-    console.error('Error fetching author by user ID:', error)
-    throw error
+    console.error('Error fetching author by user ID:', error);
+    throw error;
   }
-}
+};
+
 
 export const editAuthorProfileService = async (token, profileData, file) => {
   console.log('Starting editAuthorProfileService');
