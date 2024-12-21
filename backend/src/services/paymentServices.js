@@ -61,7 +61,6 @@ class PaymentService {
                     data: {
                         testId,
                         userId: userId, 
-                        paymentMethod: 'midtrans',
                         total: test.price,
                         paymentStatus: 'PENDING',
                         paymentId: orderId
@@ -97,6 +96,7 @@ class PaymentService {
 
                 console.log('Transaction status:', transactionStatus);
                 console.log('VA Numbers:', vaNumbers);
+                console.log('Payment Type:', paymentType);
         
                 if (!orderId) {
                     throw new Error('Missing order_id in notification');
@@ -121,11 +121,12 @@ class PaymentService {
                 paymentStatus = paymentStatus.toUpperCase();
 
                 const vaNumber = vaNumbers && vaNumbers[0]?.va_number;
+                const paymentMethod = vaNumbers && vaNumbers[0]?.bank;
         
                 // Update transaksi
                 const updatedTransaction = await prisma.transaction.update({
                     where: { id: transaction.id },
-                    data: { paymentStatus, vaNumber}
+                    data: { paymentStatus, vaNumber, paymentMethod}
                 });
         
                 // Tambahkan logika pembagian keuntungan HANYA jika pembayaran berhasil
