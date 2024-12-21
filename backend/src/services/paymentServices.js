@@ -53,9 +53,13 @@ class PaymentService {
                         finish: 'https://d149-2001-448a-6002-6c58-dc6e-d11c-1964-d04a.ngrok-free.app/user/thanks',
                       },
                     enabled_payments: [
-                        "mandiri_clicpay", "bca_clicpay", "bni_va", "bca_va",
-                    ],
+                    "mandiri_clicpay", "bca_clicpay", "bni_va", "bca_va", 
+                    "gopay", "ovo", 
+                    "credit_card" 
+                ],
                 };
+
+                console.log('Enabled payments:', parameter.enabled_payments);
     
                 const transaction = await prisma.transaction.create({
                     data: {
