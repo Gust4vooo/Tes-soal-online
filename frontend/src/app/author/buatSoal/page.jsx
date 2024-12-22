@@ -198,13 +198,14 @@ const KotakNomor = () => {
         let defaultPageName = 'Beri Nama Tes';
         if (category === 'CPNS') {
           const usedNames = new Set(prevPages.map(p => p.pageName));
-          defaultPageName = pageNameOptions.find(name => !usedNames.has(name)) || pageNameOptions[0];
+          const availableName = pageNameOptions.find(name => !usedNames.has(name));
+          defaultPageName = availableName || pageNameOptions[0];
         }
 
         const newPage = {
           pageNumber: prevPages.length + 1,
           questions: [nextNumber],
-          pageName: 'Beri Nama Tes',
+          pageName: defaultPageName,
           isDropdownOpen: false
         };
   
@@ -339,10 +340,16 @@ const KotakNomor = () => {
     
     const multiplechoiceId = await fetchMultipleChoiceId(testId, questionNumber);
     const pageName = pages[pageIndex]?.pageName || '';
+
+    console.log("Current pageName:", pageName);
+    console.log("Page Index:", pageIndex);
+    console.log("Is TKP?:", pageName === 'Tes Karakteristik Pribadi');
   
     const baseUrl = pageName === 'Tes Karakteristik Pribadi' 
     ? '/author/buatSoal/page2'
     : '/author/buatSoal/page1';
+
+    console.log("Selected baseUrl:", baseUrl);
 
     if (multiplechoiceId !== "null") {
       console.log("multiplechoiceId not found. You can create a new one.");
@@ -365,48 +372,47 @@ const KotakNomor = () => {
 
   const renderPageNameInput = (pageIndex, page) => {
     if (category === 'CPNS') {
-      if (isRenaming === pageIndex) {
-        return (
-          <div className="flex items-center">
-            <select
-              value={renameValue}
-              onChange={(e) => setRenameValue(e.target.value)}
-              className="text-black p-1 border border-gray-300 rounded-md"
-            >
-              {pageNameOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-            <button
-              onClick={() => saveRename(pageIndex)}
-              className="ml-2 bg-white text-black px-2 py-1 rounded-md"
-            >
-              Save
-            </button>
-          </div>
-        );
-      } else {
-        return (
-          <div className="flex items-center">
-            <select
-              value={page.pageName}
-              onChange={(e) => {
-                setRenameValue(e.target.value);
-                saveRename(pageIndex);
-              }}
-              className="text-white bg-transparent border-none"
-            >
-              {pageNameOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
-        );
-      }
+      return (
+        <div className="flex items-center">
+          <select
+            value={page.pageName}
+            onChange={(e) => {
+              const newPageName = e.target.value;
+              setPages(prevPages => {
+                const updatedPages = prevPages.map((p, idx) => {
+                  if (idx === pageIndex) {
+                    return { ...p, pageName: newPageName };
+                  }
+                  return p;
+                });
+                localStorage.setItem(`pages-${testId}`, JSON.stringify(updatedPages));
+                return updatedPages;
+              });
+
+              fetch(`http://localhost:2000/api/multiplechoice/update-pageName`, {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  testId: testId,
+                  pageIndex: pageIndex,
+                  pageName: newPageName,
+                }),
+              }).catch(error => {
+                console.error("Error updating pageName:", error);
+              });
+            }}
+            className="text-black bg-white border rounded-md p-2"
+          >
+            {pageNameOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </div>
+      );
     } else {
       if (isRenaming === pageIndex) {
         return (
