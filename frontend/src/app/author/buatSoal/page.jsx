@@ -97,8 +97,7 @@ const KotakNomor = () => {
   const getNextAvailableNumber = (pages) => {
     const usedNumbers = getAllUsedNumbers(pages);
     let nextNumber = 1;
-    
-    // Mencari nomor terendah yang belum digunakan
+
     while (usedNumbers.includes(nextNumber)) {
       nextNumber++;
     }
@@ -115,23 +114,18 @@ const KotakNomor = () => {
 
   const updateQuestionNumbersInDB = async (testId, maxQuestionNumber) => {
     try {
-      // Dapatkan semua nomor soal yang ada di database untuk tes ini
       const response = await fetch(`http://localhost:2000/api/multiplechoice/getQuestionNumbers?testId=${testId}`);
       if (!response.ok) {
         throw new Error(`HTTP error ${response.status}`);
       }
       const data = await response.json();
       const questionNumbers = data.questionNumbers;
-  
-      // Filter nomor soal yang lebih besar dari nomor terbesar di halaman saat ini
       const numbersToUpdate = questionNumbers.filter(num => num > maxQuestionNumber);
-  
-      // Jika tidak ada nomor yang lebih besar, keluar dari fungsi
+
       if (numbersToUpdate.length === 0) {
         return;
       }
-  
-      // Update nomor soal di database
+
       for (const number of numbersToUpdate) {
         const updateResponse = await fetch(`http://localhost:2000/api/multiplechoice/update-questionNumber?testId=${testId}`, {
           method: 'PUT',
@@ -156,16 +150,13 @@ const KotakNomor = () => {
   const addQuestion = async (pageIndex) => {
     try {
       const maxQuestionNumber = getMaxQuestionNumberInPage(pages[pageIndex]);
-  
-      // Cek apakah nomor sebelumnya sudah ada di database
       const multiplechoiceId = await fetchMultipleChoiceId(testId, maxQuestionNumber);
+
       if (!multiplechoiceId) {
-        // Tampilkan peringatan jika nomor sebelumnya belum ada di database
         alert(`Silakan isi nomor soal ${maxQuestionNumber} terlebih dahulu.`);
         return;
       }
-  
-      // Update nomor soal di database yang lebih besar dari nomor terbesar di halaman saat ini
+
       await updateQuestionNumbersInDB(testId, maxQuestionNumber);
 
       setPages(prevPages => {
@@ -195,18 +186,13 @@ const KotakNomor = () => {
       }
   
       setPages(prevPages => {
-        let defaultPageName = 'Beri Nama Tes';
-        if (category === 'CPNS') {
-          const usedNames = new Set(prevPages.map(p => p.pageName));
-          const availableName = pageNameOptions.find(name => !usedNames.has(name));
-          defaultPageName = availableName || pageNameOptions[0];
-        }
+        const defaultPageName = category === "CPNS" ? pageNameOptions[0] : "Beri Nama Tes";
 
         const newPage = {
           pageNumber: prevPages.length + 1,
           questions: [nextNumber],
-          pageName: defaultPageName,
-          isDropdownOpen: false
+          pageName: defaultPageName
+          // isDropdownOpen: false
         };
   
         const updatedPages = [...prevPages, newPage];
@@ -270,11 +256,9 @@ const KotakNomor = () => {
     if (confirm("Apakah Anda yakin ingin menghapus tes ini?")) {
       setPages((prevPages) => {
         const updatedPages = prevPages.filter((_, index) => index !== pageIndex);
-        
-        // Recalculate all question numbers after deletion
         const finalPages = updatedPages.reduce((acc, page, idx) => {
-          if (idx === 0) return [page];
-          
+
+          if (idx === 0) return [page];   
           const prevPageLastNumber = Math.max(...acc[idx - 1].questions);
           const numQuestions = page.questions.length;
           const newQuestions = Array.from(
@@ -388,7 +372,8 @@ const KotakNomor = () => {
                 localStorage.setItem(`pages-${testId}`, JSON.stringify(updatedPages));
                 return updatedPages;
               });
-
+              
+              // Save to database
               fetch(`http://localhost:2000/api/multiplechoice/update-pageName`, {
                 method: 'PUT',
                 headers: {
@@ -435,7 +420,7 @@ const KotakNomor = () => {
         return <h2 className="text-lg">{page.pageName}</h2>;
       }
     }
-  };
+  };  
 
   return (
     <div className="w-full p-4">
