@@ -38,43 +38,6 @@ const createMultipleChoice = async (req, res) => {
             });
         }
 
-        // const processedQuestions = await Promise.all(
-        //     questions.map(async (question) => {
-        //         let questionContent = question.question;
-                
-        //         // Ekstrak semua gambar base64 dari konten pertanyaan
-        //         const base64Images = extractBase64Images(questionContent);
-                
-        //         // Upload setiap gambar ke Firebase dan update konten
-        //         for (const base64Image of base64Images) {
-        //             try {
-        //                 // Konversi base64 ke buffer
-        //                 const imageBuffer = Buffer.from(
-        //                     base64Image.replace(/^data:image\/\w+;base64,/, ''),
-        //                     'base64'
-        //                 );
-                        
-        //                 // Generate nama file unik
-        //                 const fileName = `questions/${Date.now()}_${Math.random().toString(36).substring(7)}.png`;
-                        
-        //                 // Upload ke Firebase
-        //                 const imageUrl = await uploadFileToStorage(imageBuffer, fileName);
-                        
-        //                 // Ganti URL base64 dengan URL Firebase dalam konten
-        //                 questionContent = replaceImageUrlInContent(questionContent, base64Image, imageUrl);
-        //             } catch (error) {
-        //                 console.error('Error processing image:', error);
-        //             }
-        //         }
-                
-        //         return {
-        //             ...question,
-        //             question: questionContent
-        //         };
-        //     })
-        // );
-
-        // const multipleChoices = await createMultipleChoiceService(testId, processedQuestions);
         const uploadedQuestion = await Promise.all(
             questions.map(async (question) => {
                 const questionData = { ...question };
@@ -109,8 +72,8 @@ export { createMultipleChoice };
 
 const updateMultipleChoice = async (req, res) => {
     try {
-        const { multiplechoiceId } = req.params; // Ambil multiplechoiceId dari URL
-        const updatedData = req.body; // Ambil updatedData dari body JSON
+        const { multiplechoiceId } = req.params; 
+        const updatedData = req.body; 
 
         if (!multiplechoiceId || !updatedData) {
             return res.status(400).send({
@@ -209,8 +172,8 @@ const updateMultipleChoicePageNameController = async (req, res) => {
     try {
         const { testId, number, newPageName } = req.body;
 
-        if (!newPageName) {
-            return res.status(400).json({ message: 'Page name is required' });
+        if (!testId || !number || !newPageName) {
+            return res.status(400).json({ message: 'testId, number, and Page name is required' });
         }
 
         const result = await updateMultipleChoicePageNameService(testId, number, newPageName);
@@ -247,11 +210,11 @@ const getPagesByTestIdController = async (req, res) => {
       console.error('Error fetching pages:', error);
       return res.status(500).json({ message: 'Failed to fetch pages', error: error.message });
     }
-  };
+};
   
-  export { getPagesByTestIdController };
+export { getPagesByTestIdController };
 
-  const getQuestionNumbers = async (req, res) => {
+const getQuestionNumbers = async (req, res) => {
     try {
       const { testId, category } = req.params;
       const questionNumbers = await getQuestionNumbersServices(testId, category);

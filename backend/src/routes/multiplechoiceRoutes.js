@@ -15,13 +15,13 @@ router.post('/add-questions', upload.array('questionPhoto'), (req, res) => {
     createMultipleChoice(req, res);
 });
 
+router.put('/update-question/:multiplechoiceId', updateMultipleChoice); //perlu
 router.get('/question/:id', getMultipleChoiceById); //perlu
 router.delete('/question/:multiplechoiceId', deleteMultipleChoice); //perlu
-router.put('/update-question/:multiplechoiceId', updateMultipleChoice); //perlu
-router.get('/getQuestionNumbers', getQuestionNumbers); //perlu
-router.put('/update-questionNumber', updateQuestionNumber); //perlu
+router.get('/:testId/:number', getMultipleChoiceByNumberAndTestId); //perlu
 router.put('/update-pageName', updateMultipleChoicePageNameController); //perlu
 router.get('/get-pages/:testId', getPagesByTestIdController); //perlu
-router.get('/:testId/:number', getMultipleChoiceByNumberAndTestId); //perlu
+router.get('/getQuestionNumbers', getQuestionNumbers); //perlu
+router.put('/update-questionNumber', updateQuestionNumber); //perlu
 
 export default router; 

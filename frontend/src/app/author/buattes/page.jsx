@@ -2,6 +2,9 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+// import dotenv from 'dotenv';
+// dotenv.config();
+// const URL = process.env.NEXT_PUBLIC_API_URL;
 
 const BuatTes = () => {
   const router = useRouter();

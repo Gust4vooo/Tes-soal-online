@@ -8,24 +8,27 @@ const createMultipleChoiceService = async (testId, questions) => {
     
     const multipleChoices = await Promise.all(
         questions.map(async (question) => {
-
-            if (!/^\d+(\.\d+)?$/.test(question.weight)) {
-                throw new Error(`Invalid weight value for question number ${question.number}. Weight must be a positive number without any signs, and can contain at most one decimal point.`);
-            }
+            // if (!/^\d+(\.\d+)?$/.test(question.weight)) {
+            //     throw new Error(`Invalid weight value for question number ${question.number}. Weight must be a positive number without any signs, and can contain at most one decimal point.`);
+            // }
 
             const multiplechoice = await prisma.multiplechoice.create({
                 data: {
-                    testId: testId,
                     pageName: question.pageName,
                     question: question.question,
                     number: question.number,
                     questionPhoto: question.questionPhoto || null, 
-                    weight: parseFloat(question.weight),
-                    discussion: question.discussion || "",  
+                    weight: question.isWeighted ? null : parseFloat(question.weight),
+                    discussion: question.discussion || "",
+                    isWeighted: question.isWeighted || false,  
+                    test: {
+                        connect: { id: testId },
+                    },
                     option: {
                         create: question.options.map((option) => ({
                             optionDescription: option.optionDescription,
-                            isCorrect: option.isCorrect,
+                            isCorrect: question.isWeighted ? null : option.isCorrect, 
+                            points: question.isWeighted ? option.points : null, 
                         })),
                     },
                 },
@@ -40,7 +43,7 @@ const createMultipleChoiceService = async (testId, questions) => {
     return multipleChoices;
 };
 
-export { createMultipleChoiceService }; 
+export { createMultipleChoiceService };
 
 const updateMultipleChoiceService = async (multiplechoiceId, updatedData) => {
     const { 
@@ -54,6 +57,8 @@ const updateMultipleChoiceService = async (multiplechoiceId, updatedData) => {
         isWeighted
     } = updatedData;
 
+    const weightValue = isWeighted ? 0 : parseFloat(weight);
+
     const updateMultipleChoice = await prisma.multiplechoice.update({
         where: {id: multiplechoiceId},
         data: {
@@ -61,13 +66,17 @@ const updateMultipleChoiceService = async (multiplechoiceId, updatedData) => {
             question,
             number,
             questionPhoto,
-            weight,
+            weight: weightValue,
             discussion,
-            isWeighted,  
+            isWeighted, 
         },
     });
 
     if (options && options.length > 0) {
+        const existingOptions = await prisma.option.findMany({
+            where: { multiplechoiceId },
+        });
+
         await Promise.all(
             options.map(async (option) => {
                 const optionData = {
@@ -91,8 +100,17 @@ const updateMultipleChoiceService = async (multiplechoiceId, updatedData) => {
                 }
             })
         );
-    }
+        const optionIdsInRequest = options.map((option) => option.id).filter(Boolean);
+        const optionIdsToDelete = existingOptions
+            .filter((option) => !optionIdsInRequest.includes(option.id))
+            .map((option) => option.id);
 
+        if (optionIdsToDelete.length > 0) {
+            await prisma.option.deleteMany({
+                where: { id: { in: optionIdsToDelete } },
+            });
+        }
+    }
     return updateMultipleChoice;
 };
 
@@ -120,7 +138,6 @@ export { getMultipleChoiceByIdService };
 const deleteMultipleChoiceService = async (multiplechoiceId) => {
     try {
         return await prisma.$transaction(async (tx) => {
-
             const questionToDelete = await tx.multiplechoice.findUnique({
                 where: { id: multiplechoiceId },
                 select: {
@@ -132,22 +149,16 @@ const deleteMultipleChoiceService = async (multiplechoiceId) => {
             if (!questionToDelete) {
                 throw new Error('Multiple choice question not found');
             }
-
-            // 2. Delete all related options first
             await tx.option.deleteMany({
                 where: {
                     multiplechoiceId: multiplechoiceId
                 }
             });
-
-            // 3. Delete the question itself
             await tx.multiplechoice.delete({
                 where: {
                     id: multiplechoiceId
                 }
             });
-
-            // 4. Update the numbers of remaining questions
             await tx.multiplechoice.updateMany({
                 where: {
                     testId: questionToDelete.testId,
@@ -162,7 +173,6 @@ const deleteMultipleChoiceService = async (multiplechoiceId) => {
                 }
             });
 
-            // 5. Get updated questions for verification
             const updatedQuestions = await tx.multiplechoice.findMany({
                 where: { testId: questionToDelete.testId },
                 orderBy: { number: 'asc' },
@@ -184,7 +194,6 @@ const deleteMultipleChoiceService = async (multiplechoiceId) => {
 };
 
 export { deleteMultipleChoiceService };
-
 
 const fetchMultipleChoiceByNumberAndTestId = async (testId, number, pageName) => {
     return await prisma.multiplechoice.findFirst({
@@ -222,10 +231,9 @@ const getPagesByTestIdService = async (testId) => {
     });
   };
   
-  export { getPagesByTestIdService };
-  
+export { getPagesByTestIdService };
 
-const getQuestionNumbersServices = async (testId) => {
+const getQuestionNumbersServices = async (testId, category) => {
     const result = await prisma.multiplechoice.findMany({
       where: {
         testId: testId,

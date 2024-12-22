@@ -12,6 +12,10 @@ import { AiOutlineCloseSquare } from 'react-icons/ai';
 const ReactQuill = dynamic(() => import('react-quill'), {
   ssr: false 
 });
+// import dotenv from 'dotenv';
+
+// dotenv.config();
+// const URL = process.env.NEXT_PUBLIC_API_URL;
 
 const MembuatSoal = () => {
   const router = useRouter();
@@ -82,15 +86,14 @@ const MembuatSoal = () => {
           setQuestionPhoto(data.questionPhoto);
         }
 
-        // if (data.option && Array.isArray(data.option)) {
-        //   setOptions(data.option.map(opt => ({
-        //     id: opt.id,
-        //     optionDescription: opt.optionDescription,
-        //     isCorrect: question.isWeighted ? null : option.isCorrect, 
-        //     points: question.isWeighted ? options.points : null, 
-        //   })));
-        // }
-        
+        if (data.option && Array.isArray(data.option)) {
+          setOptions(data.option.map(opt => ({
+            id: opt.id,
+            optionDescription: opt.optionDescription,
+            points: parseFloat(opt.points), 
+            isCorrect: opt.isCorrect,
+          })));
+        }
       } catch (error) {
         console.error('Error fetching question:', error);
         setError('Terjadi kesalahan saat memuat data: ' + error.message);
@@ -101,7 +104,7 @@ const MembuatSoal = () => {
   }, [multiplechoiceId]);
   
   const addOption = () => {
-    setOptions([...options, { optionDescription: '', isCorrect: false, weight:'' }]);
+    setOptions([...options, { optionDescription: '',  points:'' }]);
   };
 
   const handleOptionChange = (index, field, value) => {
@@ -118,13 +121,6 @@ const MembuatSoal = () => {
     }));
     setOptions(newOptions);
   };
-
-  // const cleanHtml = (html) => {
-  //   return sanitizeHtml(html, {
-  //     allowedTags: [], 
-  //     allowedAttributes: {},
-  //   });
-  // };
 
   const handleWeightChange = (e) => {
     const value = e.target.value;
@@ -233,12 +229,6 @@ const MembuatSoal = () => {
     }
   };
 
-  const [jawabanBenar, setJawabanBenar] = useState(null);
-
-  const handleJawabanBenarChange = (index) => {
-    setJawabanBenar(index);
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
   
@@ -250,25 +240,25 @@ const MembuatSoal = () => {
         uploadedImageUrl = await getDownloadURL(snapshot.ref); // Mendapatkan URL download gambar
       }
 
-      const isWeighted = category === "CPNS";
+      const formattedOptions = options.map(option => ({
+        optionDescription: option.optionDescription,
+        points: parseFloat(option.points) || 0,
+        isCorrect: null,
+      }));
       
       const questionData = {
-        category,
         pageName,
         question: question,
         number: parseInt(number),
-        questionPhoto: uploadedImageUrl,
-        weight: isWeighted ? null : parseFloat(weight),
-        isWeighted: isWeighted,
+        questionPhoto: uploadedImageUrl || null,
+        weight: null,
         discussion: discussion,
-        options: options.map(option => ({
-          ...option,
-          optionDescription: option.optionDescription,
-          isCorrect: isWeighted ? null : option.isCorrect, 
-          points: isWeighted ? parseFloat(option.points) : null, 
-        })),
+        isWeighted: true,
+        options: formattedOptions
       };
-  
+
+      console.log("opt:", options);
+
       let response;
       let result;
 
@@ -389,19 +379,6 @@ const MembuatSoal = () => {
                   <div className='flex items-center'>
                     <label className="block mb-2">Soal Pilihan Ganda</label>
                   </div>
-                  {/* <div className='flex items-center'>
-                    <label className="font-medium-bold mr-2">Bobot</label>
-                    <input
-                      type="text"
-                      step="0.01"
-                      min="0"
-                      id="weight"
-                      value={weight}
-                      onChange={handleWeightChange}
-                      className="border p-2 w-full"
-                      required
-                    />
-                  </div> */}
                 </div>
                 <ReactQuill 
                   value={question} 
@@ -448,53 +425,39 @@ const MembuatSoal = () => {
   
             <div>
               <h2 className="text-lg font-semi-bold mb-2">Jawaban</h2>
-              {category === "CPNS" ? (
-                options.map((option, index) => (
-                  <div key={index} className="flex items-center space-x-4 mb-4">
+              {options.map((option, index) => (
+                <div key={index} className="flex items-center space-x-2 mb-2">
                     <input
-                      type="text"
-                      value={option.optionDescription}
-                      onChange={(e) => handleOptionChange(index, "optionDescription", e.target.value)}
-                      placeholder="Tulis jawaban untuk opsi"
-                      className="p-2 border border-gray-400 rounded-md w-full"
-                      required
+                        type="text"
+                        value={option.optionDescription}
+                        onChange={(e) => handleOptionChange(index, 'optionDescription', e.target.value)}
+                        placeholder="Tulis jawaban untuk opsi"
+                        className="p-2 w-full"
+                        theme='snow'
+                        required
                     />
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={option.points || ""}
-                      onChange={(e) => handleOptionChange(index, "points", e.target.value)}
-                      placeholder="Bobot poin"
-                      className="p-2 border border-gray-400 rounded-md w-[100px]"
-                      required
-                    />
+                    <div className="flex items-center justify-between px-2 space-x-50 border border-black rounded-[10px]">
+                    <label className="font-medium-bold mr-4">Bobot</label>
+                        <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            id="weight"
+                            value={option.points}
+                            onChange={(e) => handleOptionChange(index, 'points', e.target.value)}
+                            className="border p-2 w-[100px]"
+                            required
+                        />
                     <button
                         type="button"
                         onClick={() => handleDeleteJawaban(index, option.id)}
-                        className="text-red-600 hover:text-red-800"
+                        className="ml-4"
                     >
                       <AiOutlineCloseSquare className="w-6 h-6" />
                     </button>
                   </div>
-                ))
-              ) : (
-                <div className="flex items-center space-x-4 mb-4">
-                  <div className="mb-4">
-                    <label className="block mb-2">Bobot</label>
-                    <input
-                      type="text"
-                      step="0.01"
-                      min="0"
-                      value={weight || ""}
-                      onChange={handleWeightChange}
-                      placeholder="Masukkan bobot soal"
-                      className="p-2 border border-gray-400 rounded-md w-full"
-                      required
-                    />
-                  </div>
                 </div>
-              )}
+              ))}
               <button type="button" onClick={addOption} className="bg-[#7bb3b4] hover:bg-[#8CC7C8] text-black font-bold py-2 px-4 rounded-[15px] border border-black">
                 + Tambah
               </button>

@@ -16,6 +16,12 @@ const KotakNomor = () => {
   const [renameValue, setRenameValue] = useState('');
   const [activeTab, setActiveTab] = useState('');
 
+  const [pageNameOptions] = useState([
+    'Tes Karakteristik Pribadi',
+    'Tes Wawasan Kebangsaan',
+    'Tes Intelegensi Umum'
+  ]);
+
   useEffect(() => {
     const savedPages = localStorage.getItem(`pages-${testId}`);
     if (savedPages) {
@@ -43,12 +49,19 @@ const KotakNomor = () => {
       if (savedPages) {
         setPages(JSON.parse(savedPages));
       } else {
-        fetchPagesFromDB(testIdFromUrl); // Fetch pages from DB if not in local storage
+        fetchPagesFromDB(testIdFromUrl); 
       }
     }
 
     if (categoryFromUrl) {
       setCategory(categoryFromUrl);
+
+      if (categoryFromUrl === 'CPNS') {
+        setPages(prevPages => prevPages.map((page, index) => ({
+          ...page,
+          pageName: pageNameOptions[index] || pageNameOptions[0]
+        })));
+      }
     }
 
     if (multiplechoiceIdFromUrl) {
@@ -142,7 +155,6 @@ const KotakNomor = () => {
 
   const addQuestion = async (pageIndex) => {
     try {
-      // Dapatkan nomor terbesar di halaman saat ini
       const maxQuestionNumber = getMaxQuestionNumberInPage(pages[pageIndex]);
   
       // Cek apakah nomor sebelumnya sudah ada di database
@@ -174,18 +186,21 @@ const KotakNomor = () => {
 
   const addPage = async () => {
     try {
-      // Get the next available question number
       const nextNumber = getNextAvailableNumber(pages);
-  
-      // Check if the previous question number is already in the database
       const multiplechoiceId = await fetchMultipleChoiceId(testId, nextNumber - 1);
+
       if (!multiplechoiceId) {
-        // Show a warning if the previous question number is not filled
         alert(`Silakan isi nomor soal ${nextNumber - 1} terlebih dahulu.`);
         return;
       }
   
       setPages(prevPages => {
+        let defaultPageName = 'Beri Nama Tes';
+        if (category === 'CPNS') {
+          const usedNames = new Set(prevPages.map(p => p.pageName));
+          defaultPageName = pageNameOptions.find(name => !usedNames.has(name)) || pageNameOptions[0];
+        }
+
         const newPage = {
           pageNumber: prevPages.length + 1,
           questions: [nextNumber],
@@ -212,8 +227,13 @@ const KotakNomor = () => {
   };
 
   const handleRename = (pageIndex) => {
-    setIsRenaming(pageIndex);
-    setRenameValue(pages[pageIndex].pageName);
+    if (category === 'CPNS') {
+      setIsRenaming(pageIndex);
+      setRenameValue(pages[pageIndex].pageName);
+    } else {
+      setIsRenaming(pageIndex);
+      setRenameValue(pages[pageIndex].pageName);
+    }
   };
 
   const saveRename = async (pageIndex) => {
@@ -320,17 +340,19 @@ const KotakNomor = () => {
     const multiplechoiceId = await fetchMultipleChoiceId(testId, questionNumber);
     const pageName = pages[pageIndex]?.pageName || '';
   
-    const baseUrl = category === 'CPNS'  ? '/author/buatSoal/page2' : '/author/buatSoal/page1';
+    const baseUrl = pageName === 'Tes Karakteristik Pribadi' 
+    ? '/author/buatSoal/page2'
+    : '/author/buatSoal/page1';
 
     if (multiplechoiceId !== "null") {
       console.log("multiplechoiceId not found. You can create a new one.");
-      router.push(`${baseUrl}?testId=${testId}&category=${category}&multiplechoiceId=${multiplechoiceId}&nomor=${questionNumber}&pageName=${pageName}`);
+      router.push(`${baseUrl}?testId=${testId}&category=${category}&multiplechoiceId=${multiplechoiceId}&nomor=${questionNumber}&pageName=${encodeURIComponent(pageName)}`);
     }
   
     setSelectedNumber(questionNumber);
     
-    router.push(`${baseUrl}?testId=${testId}&category=${category}&multiplechoiceId=${multiplechoiceId}&nomor=${questionNumber}&pageName=${pageName}`);
-  };    
+    router.push(`${baseUrl}?testId=${testId}&category=${category}&multiplechoiceId=${multiplechoiceId}&nomor=${questionNumber}&pageName=${encodeURIComponent(pageName)}`);
+  };  
   
   const handleSave = () => {
     if (!testId) {
@@ -339,6 +361,74 @@ const KotakNomor = () => {
     }
 
     router.push(`/author/buattes/publik/syarat?testId=${testId}`);
+  };
+
+  const renderPageNameInput = (pageIndex, page) => {
+    if (category === 'CPNS') {
+      if (isRenaming === pageIndex) {
+        return (
+          <div className="flex items-center">
+            <select
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              className="text-black p-1 border border-gray-300 rounded-md"
+            >
+              {pageNameOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={() => saveRename(pageIndex)}
+              className="ml-2 bg-white text-black px-2 py-1 rounded-md"
+            >
+              Save
+            </button>
+          </div>
+        );
+      } else {
+        return (
+          <div className="flex items-center">
+            <select
+              value={page.pageName}
+              onChange={(e) => {
+                setRenameValue(e.target.value);
+                saveRename(pageIndex);
+              }}
+              className="text-white bg-transparent border-none"
+            >
+              {pageNameOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+        );
+      }
+    } else {
+      if (isRenaming === pageIndex) {
+        return (
+          <div className="flex items-center">
+            <input
+              type="text"
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              className="text-black p-1 border border-gray-300 rounded-md"
+            />
+            <button
+              onClick={() => saveRename(pageIndex)}
+              className="ml-2 bg-white text-black px-2 py-1 rounded-md"
+            >
+              Save
+            </button>
+          </div>
+        );
+      } else {
+        return <h2 className="text-lg">{page.pageName}</h2>;
+      }
+    }
   };
 
   return (
@@ -373,60 +463,54 @@ const KotakNomor = () => {
           </ul>
         </nav>
 
-      {Array.isArray(pages) && pages.map((page, pageIndex) => (
-        <div key={page.pageNumber} className="my-4">
-          <div className="flex justify-between items-center bg-[#0B61AA] text-white p-2" style={{ maxWidth: '1376px', height: '61px' }}>
-            {isRenaming === pageIndex ? (
-              <div className="flex items-center">
-                <input
-                  type="text"
-                  value={renameValue}
-                  onChange={(e) => setRenameValue(e.target.value)}
-                  className="text-black p-1 border border-gray-300 rounded-md"
-                />
-                <button
-                  onClick={() => saveRename(pageIndex)}
-                  className="ml-2 bg-white text-black px-2 py-1 rounded-md"
+        {Array.isArray(pages) && pages.map((page, pageIndex) => (
+          <div key={page.pageNumber} className="my-4">
+            <div className="flex justify-between items-center bg-[#0B61AA] text-black p-2" style={{ maxWidth: '1376px', height: '61px' }}>
+              {renderPageNameInput(pageIndex, page)}
+  
+              <div className="relative">
+                <button 
+                  className="text-white font-bold text-2xl mr-2"
+                  onClick={() => toggleDropdown(pageIndex)}
                 >
-                  Save
+                  :
                 </button>
+  
+                {page.isDropdownOpen && (
+                  <div
+                    className="absolute right-0 mt-2 w-36 bg-white rounded-lg shadow-lg z-10 p-1
+                    before:content-[''] before:absolute before:-top-4 before:right-5 before:border-8
+                    before:border-transparent before:border-b-white"
+                    onMouseEnter={() => setDropdownOpen(true)}
+                    onMouseLeave={() => setDropdownOpen(false)}
+                  >
+                    {category === 'CPNS' ? (
+                      <button
+                        onClick={() => deletePage(pageIndex)}
+                        className="block px-4 py-2 text-deepBlue text-sm text-gray-700 hover:bg-deepBlue hover:text-white rounded-md"
+                      >
+                        Delete page
+                      </button>
+                    ) : (
+                      <>
+                      <button
+                        onClick={() => handleRename(pageIndex)}
+                        className="block px-4 py-2 text-deepBlue text-sm text-gray-700 hover:bg-deepBlue hover:text-white rounded-md"
+                      >
+                        Rename
+                      </button>
+                      <button
+                        onClick={() => deletePage(pageIndex)}
+                        className="block px-4 py-2 text-deepBlue text-sm text-gray-700 hover:bg-deepBlue hover:text-white rounded-md"
+                      >
+                        Delete page
+                      </button>
+                    </>
+                    )}
+                  </div>
+                )}
               </div>
-            ) : (
-              <h2 className="text-lg">{page.pageName}</h2>
-            )}
-
-            <div className="relative">
-              <button 
-                className="text-white font-bold text-2xl mr-2"
-                onClick={() => toggleDropdown(pageIndex)}
-              >
-                :
-              </button>
-
-              {page.isDropdownOpen && (
-                <div
-                  className="absolute right-0 mt-2 w-36 bg-white rounded-lg shadow-lg z-10 p-1
-                  before:content-[''] before:absolute before:-top-4 before:right-5 before:border-8
-                  before:border-transparent before:border-b-white"
-                  onMouseEnter={() => setDropdownOpen(true)}
-                  onMouseLeave={() => setDropdownOpen(false)}
-                >
-                  <button
-                      onClick={() => handleRename(pageIndex)}
-                      className="block px-4 py-2 text-deepBlue text-sm text-gray-700 hover:bg-deepBlue hover:text-white rounded-md"
-                  >
-                      Rename
-                  </button>
-                  <button
-                      onClick={() => deletePage(pageIndex)}
-                      className="block px-4 py-2 text-deepBlue text-sm text-gray-700 hover:bg-deepBlue hover:text-white rounded-md"
-                  >
-                      Delete page
-                  </button>
-                </div>
-              )}
             </div>
-          </div>
 
           <div className="mt-4"></div>
           <div className="flex flex-row flex-wrap p-4 gap-3 justify-start border" style={{ maxWidth: '100%', padding: '0 2%' }}>
