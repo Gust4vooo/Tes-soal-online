@@ -576,23 +576,27 @@ const MembuatSoal = () => {
               >
                 Hapus
               </button>
-              </div>
-              <div className="flex justify-end space-x-2">
-                <button
-                  onClick={handleSubmit} 
-                  className="bg-[#E8F4FF] border border-black px-4 py-2 hover:text-white font-poppins rounded-[15px]"
-                >
-                  Simpan
-                </button>
-              </div>
-              <div className="flex justify-end space-x-2">
-                <button
-                  onClick={handleBack}
-                  className="bg-[#A6D0F7] border border-black px-4 py-2 hover:text-white font-poppins rounded-[15px]"
-                >
-                  Kembali
-                </button>
-              </div>
+            </div>
+
+            <div className="flex justify-end space-x-2">
+              <button
+                type="button" // Menetapkan type button agar tidak trigger form submit
+                onClick={handleBack} 
+                className="bg-[#E8F4FF] border border-black px-4 py-2 hover:text-white font-poppins rounded-[15px]"
+              >
+                Simpan
+              </button>
+            </div>
+
+            <div className="flex justify-end space-x-2">
+              <button
+                type="button" // Menetapkan type button agar tidak trigger form submit
+                onClick={handleBack} // Memastikan yang dipanggil adalah fungsi handleBack
+                className="bg-[#A6D0F7] border border-black px-4 py-2 hover:text-white font-poppins rounded-[15px]"
+              >
+                Kembali
+              </button>
+            </div>
           </div>
         </div>
       </div>

@@ -3,9 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-// import dotenv from 'dotenv';
-// dotenv.config();
-// const URL = process.env.NEXT_PUBLIC_API_URL;
+import axios from 'axios'
 
 const KotakNomor = () => {
   const router = useRouter();
@@ -117,12 +115,13 @@ const KotakNomor = () => {
       }
       const data = await response.json();
       const questionNumbers = data.questionNumbers;
+  
       const numbersToUpdate = questionNumbers.filter(num => num > maxQuestionNumber);
-
+  
       if (numbersToUpdate.length === 0) {
         return;
       }
-
+  
       for (const number of numbersToUpdate) {
         const updateResponse = await fetch(`http://localhost:2000/api/multiplechoice/update-questionNumber?testId=${testId}`, {
           method: 'PUT',
@@ -153,16 +152,44 @@ const KotakNomor = () => {
         alert(`Silakan isi nomor soal ${maxQuestionNumber} terlebih dahulu.`);
         return;
       }
-
-      await updateQuestionNumbersInDB(testId, maxQuestionNumber);
-
+  
+      // Cek apakah ada halaman setelah halaman saat ini
+      const hasNextPages = pageIndex < pages.length - 1;
+      
+      if (hasNextPages) {
+        // Kumpulkan semua nomor soal yang perlu diupdate (dari halaman-halaman setelahnya)
+        const numbersToUpdate = pages.slice(pageIndex + 1).reduce((acc, page) => {
+          return [...acc, ...(page.questions || [])];
+        }, []);
+  
+        // Urutkan nomor dari besar ke kecil untuk menghindari konflik
+        numbersToUpdate.sort((a, b) => b - a);
+  
+        // Update nomor soal di database untuk setiap nomor yang terkumpul
+        for (const number of numbersToUpdate) {
+          await updateQuestionNumberInDB(testId, number, number + 1);
+        }
+      }
+  
+      // Update state lokal
       setPages(prevPages => {
         const updatedPages = [...prevPages];
+        
+        // Update halaman saat ini
         const currentPage = { ...updatedPages[pageIndex] };
-        currentPage.questions = [...(currentPage.questions || []), getNextAvailableNumber(updatedPages)];
-        currentPage.questions.sort((a, b) => a - b);    
+        currentPage.questions = [...(currentPage.questions || []), maxQuestionNumber + 1];
+        currentPage.questions.sort((a, b) => a - b);
         updatedPages[pageIndex] = currentPage;
-
+  
+        // Update halaman-halaman setelahnya jika ada
+        if (hasNextPages) {
+          for (let i = pageIndex + 1; i < updatedPages.length; i++) {
+            const nextPage = { ...updatedPages[i] };
+            nextPage.questions = (nextPage.questions || []).map(num => num + 1);
+            updatedPages[i] = nextPage;
+          }
+        }
+  
         const finalPages = reorderAllPages(updatedPages);
         localStorage.setItem(`pages-${testId}`, JSON.stringify(finalPages));
         return finalPages;
@@ -172,11 +199,22 @@ const KotakNomor = () => {
     }
   };
 
+  const updateQuestionNumberInDB = async (testId, oldNumber, newNumber) => {
+    try {
+      // Implementasi sesuai dengan struktur database Anda
+      await axios.put(`http://localhost:2000/api/multiplechoice/${testId}/questions/${oldNumber}`, {
+        newQuestionNumber: newNumber
+      });
+    } catch (error) {
+      console.error('Error updating question number:', error);
+      throw error;
+    }
+  };
+
   const addPage = async () => {
     try {
       const nextNumber = getNextAvailableNumber(pages);
       const multiplechoiceId = await fetchMultipleChoiceId(testId, nextNumber - 1);
-  
       if (!multiplechoiceId && nextNumber > 1) {
         alert(`Silakan isi nomor soal ${nextNumber - 1} terlebih dahulu.`);
         return;
@@ -258,22 +296,21 @@ const KotakNomor = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          testId: testId,
-          pageIndex: pageIndex,
-          // pageName: renameValue,
+          testId: testId, 
+          pageIndex: pageIndex, 
           currentPageName: currentPageName, 
           newPageName: renameValue, 
         }),
       });
-
+  
       if (!currentPage || !currentPage.questions) {
         console.error("No questions found for the specified page number.");
         return;
       }
+
       console.log("currentPage:", currentPage);
       console.log("currentPage.questions:", currentPage?.questions);
   
-      // Update pageName for each question in the current page
       const questionUpdates = currentPage.questions.map((questionNumber) => {
         console.log("Updating questionNumber:", questionNumber);
         return fetch(`http://localhost:2000/api/multiplechoice/update-question`, {
@@ -287,9 +324,9 @@ const KotakNomor = () => {
           }),
         });
       });
-
+  
       await Promise.all(questionUpdates);
-
+  
       setPages((prevPages) => {
         const updatedPages = prevPages.map((page, index) => {
           if (index === pageIndex) {
@@ -300,11 +337,13 @@ const KotakNomor = () => {
         localStorage.setItem(`pages-${testId}`, JSON.stringify(updatedPages));
         return updatedPages;
       });
+  
       setIsRenaming(null);
     } catch (error) {
       console.error("Error updating pageName:", error);
     }
   };
+  
 
   const deletePage = (pageIndex) => {
     if (confirm("Apakah Anda yakin ingin menghapus tes ini?")) {

@@ -1,7 +1,8 @@
 import dotenv from 'dotenv';
 import { initializeApp } from 'firebase/app';
-import { updatePageNameForQuestion, createMultipleChoiceService, updateMultipleChoiceService, getQuestionNumbersServices, updateQuestionNumberServices, getMultipleChoiceByIdService, deleteMultipleChoiceService,  fetchMultipleChoiceByNumberAndTestId, updateMultipleChoicePageNameService, getPagesByTestIdService } from '../services/multiplechoiceSevice.js'; 
+import { updateQuestionNumberService, updatePageNameForQuestion, createMultipleChoiceService, updateMultipleChoiceService, getQuestionNumbersServices, updateQuestionNumberServices, getMultipleChoiceByIdService, deleteMultipleChoiceService,  fetchMultipleChoiceByNumberAndTestId, updateMultipleChoicePageNameService, getPagesByTestIdService } from '../services/multiplechoiceSevice.js';
 import { Buffer } from 'buffer';
+import * as multiplechoiceService from '../services/multiplechoiceSevice.js';
 import { uploadFileToStorage } from '../../firebase/firebaseBucket.js';
 
 dotenv.config();
@@ -31,6 +32,7 @@ initializeApp(firebaseConfig);
 const createMultipleChoice = async (req, res) => {
     try {
         const { testId, questions } = req.body;
+        console.log('Received request to create multiple choice questions for testId:', req.body);
 
         if (!testId || !questions) {
             return res.status(400).send({
@@ -70,6 +72,68 @@ const createMultipleChoice = async (req, res) => {
 
 export { createMultipleChoice }; 
 
+export const updateQuestionNumberPage = async (req, res) => {
+  try {
+    const { testId, oldNumber } = req.params;
+    const { newQuestionNumber } = req.body;
+
+    if (!newQuestionNumber || isNaN(newQuestionNumber)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'New question number is required and must be a number' 
+      });
+    }
+
+    const updatedQuestion = await multiplechoiceService.updateQuestionNumber(
+      testId,
+      parseInt(oldNumber),
+      parseInt(newQuestionNumber)
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: updatedQuestion,
+      message: 'Question number updated successfully'
+    });
+  } catch (error) {
+    console.error('Error in updateQuestionNumber controller:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Error updating question number'
+    });
+  }
+};
+
+export const updateQuestionNumberDel = async (req, res) => {
+  try {
+      const { testId, oldNumber, newNumber } = req.body;
+      
+      // Validasi input
+      if (!testId || oldNumber === undefined || newNumber === undefined) {
+          return res.status(400).json({
+              status: 'error',
+              message: 'testId, oldNumber, dan newNumber harus diisi'
+          });
+      }
+
+      const updatedQuestion = await updateQuestionNumberService(testId, oldNumber, newNumber);
+      
+      return res.status(200).json({
+          status: 'success',
+          message: 'Nomor soal berhasil diupdate',
+          data: updatedQuestion
+      });
+
+  } catch (error) {
+      console.error('Error in updateQuestionNumber controller:', error);
+      return res.status(500).json({
+          status: 'error',
+          message: error.message || 'Terjadi kesalahan saat mengupdate nomor soal'
+      });
+  }
+};
+
+
 export const updateQuestionPageName = async (req, res) => {
     const { questionNumber, pageName } = req.body;
     console.log('Received request to update pageName for question:', req.body);
@@ -102,7 +166,7 @@ export const updateQuestionPageName = async (req, res) => {
         message: 'Internal server error.',
       });
     }
-};
+  };
 
 const updateMultipleChoice = async (req, res) => {
     try {
@@ -208,6 +272,7 @@ export{ getMultipleChoiceByNumberAndTestId};
 
 const updateMultipleChoicePageNameController = async (req, res) => {
     const { testId, pageIndex, currentPageName, newPageName } = req.body;
+    console.log('Received request to update pageName for testId:', testId, 'pageIndex:', pageIndex, 'currentPageName:', currentPageName, 'newPageName:', newPageName);
   
     try {
       const result = await updateMultipleChoicePageNameService(testId, currentPageName, newPageName);
@@ -216,7 +281,7 @@ const updateMultipleChoicePageNameController = async (req, res) => {
       console.error('Error updating pageName:', error);
       res.status(500).json({ error: 'Failed to update page name' });
     }
-};
+  };
 
 export {updateMultipleChoicePageNameController};
 

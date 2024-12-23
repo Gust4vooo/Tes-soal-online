@@ -11,6 +11,9 @@ const createMultipleChoiceService = async (testId, questions) => {
             // if (!/^\d+(\.\d+)?$/.test(question.weight)) {
             //     throw new Error(`Invalid weight value for question number ${question.number}. Weight must be a positive number without any signs, and can contain at most one decimal point.`);
             // }
+            if (question.options.length > 5) {
+                throw new Error("Each question can have a maximum of 5 options.");
+            }
 
             if (question.options.length > 5) {
                 throw new Error("Each question can have a maximum of 5 options.");
@@ -201,6 +204,81 @@ const deleteMultipleChoiceService = async (multiplechoiceId) => {
 
 export { deleteMultipleChoiceService };
 
+export const updateQuestionNumber = async (testId, oldNumber, newNumber) => {
+    try {
+      // Memastikan soal yang akan diupdate ada
+      const existingQuestion = await prisma.multiplechoice.findFirst({
+        where: {
+          testId: testId,
+          number: oldNumber
+        }
+      });
+  
+      if (!existingQuestion) {
+        throw new Error(`Question with number ${oldNumber} not found in test ${testId}`);
+      }
+  
+      // Update nomor soal
+      const updatedQuestion = await prisma.multiplechoice.update({
+        where: {
+          id: existingQuestion.id
+        },
+        data: {
+          number: newNumber,
+          updatedAt: new Date()
+        }
+      });
+  
+      return updatedQuestion;
+    } catch (error) {
+      console.error('Error in updateQuestionNumber service:', error);
+      throw error;
+    }
+  };
+
+  export const updateQuestionNumberService = async (testId, oldNumber, newNumber) => {
+    try {
+        console.log('Attempting to update:', {
+            testId,
+            oldNumber,
+            newNumber
+        });
+
+        // Cek dulu apakah soal dengan oldNumber ada
+        const existingQuestion = await prisma.multiplechoice.findFirst({
+            where: {
+                testId: testId,
+                number: oldNumber
+            }
+        });
+
+        console.log('Existing question:', existingQuestion);
+
+        if (!existingQuestion) {
+            console.log('Soal dengan nomor', oldNumber, 'tidak ditemukan');
+            throw new Error(`Soal dengan nomor ${oldNumber} tidak ditemukan`);
+        }
+
+        const updatedQuestion = await prisma.multiplechoice.updateMany({
+            where: {
+                testId: testId,
+                number: oldNumber
+            },
+            data: {
+                number: newNumber
+            }
+        });
+
+        console.log("Update result:", updatedQuestion);
+
+        return updatedQuestion;
+        
+    } catch (error) {
+        console.error('Error in updateQuestionNumberService:', error);
+        throw error;
+    }
+};
+
 export const updatePageNameForQuestion = async (questionNumber, pageName) => {
     try {
         const result = await prisma.multiplechoice.updateMany({
@@ -259,9 +337,10 @@ const updateMultipleChoicePageNameService = async (testId, currentPageName, newP
       console.error('Error in updateMultipleChoicePageNameService:', error);
       throw error;
     }
-};
+  };
   
-export { updateMultipleChoicePageNameService };
+  export { updateMultipleChoicePageNameService };
+  
 
 const getPagesByTestIdService = async (testId) => {
     return await prisma.multiplechoice.findMany({

@@ -186,66 +186,90 @@ const MembuatSoal = () => {
   }, [testId]); 
 
   const handleDelete = async () => {
-    if (confirm("Apakah Anda yakin ingin menghapus soal ini?")) {
-      try {
+    if (!confirm("Apakah Anda yakin ingin menghapus soal ini?")) {
+        return;
+    }
+
+    try {
         const localStorageKey = `pages-${testId}`;
-
-        if (multiplechoiceId != null) {
-          const response = await fetch(`http://localhost:2000/api/multiplechoice/question/${multiplechoiceId}`, {
-            method: 'DELETE',
-          });
-  
-          if (!response.ok) {
-            router.push(`/author/buatSoal?testId=${testId}`);
-          }
-        }
-
+        
+        // 1. Ambil data dari localStorage dulu
         const savedPages = localStorage.getItem(localStorageKey);
-        console.log('Data sebelum dihapus:', savedPages); 
-  
-        if (savedPages) {
-          let pages = JSON.parse(savedPages);
-          let deletedNumber = null;
-          let deletedPageIndex = -1;
+        let pages = savedPages ? JSON.parse(savedPages) : [];
+        
+        console.log('Data di localStorage sebelum delete:', pages);
 
-          pages.forEach((page, pageIndex) => {
-            const questionIndex = page.questions.indexOf(parseInt(number));
-            if (questionIndex !== -1) {
-              deletedNumber = parseInt(number);
-              deletedPageIndex = pageIndex;
-              page.questions.splice(questionIndex, 1);
+        // 2. Hapus soal dari database
+        if (multiplechoiceId != null) {
+            const response = await fetch(`http://localhost:2000/api/multiplechoice/question/${multiplechoiceId}`, {
+                method: 'DELETE',
+            });
+
+            if (!response.ok) {
+                throw new Error('Gagal menghapus soal dari database');
             }
-          });
-  
-          console.log('Nomor yang dihapus:', deletedNumber); 
-          console.log('Data setelah splice:', pages); 
-
-          if (deletedNumber !== null) {
-            const allNumbers = pages.reduce((acc, page) => [...acc, ...page.questions], []);
-            console.log('Semua nomor setelah flatten:', allNumbers); 
-
-            pages = pages.map(page => ({
-              ...page,
-              questions: page.questions.map(num => 
-                num > deletedNumber ? num - 1 : num
-              ).sort((a, b) => a - b)
-            }));
-  
-            console.log('Data setelah reorder:', pages); 
-            pages = pages.filter(page => page.questions.length > 0);
-            localStorage.setItem(localStorageKey, JSON.stringify(pages));
-            console.log('Data final yang disimpan:', pages);
-          }
         }
-  
+
+        // 3. Cari nomor yang dihapus dan update pages
+        let deletedNumber = parseInt(number);
+        let updatedPages = pages.map(page => ({
+            ...page,
+            questions: page.questions.filter(num => num !== deletedNumber)
+        }));
+
+        // 4. Dapatkan semua nomor soal yang ada setelah penghapusan
+        const allRemainingNumbers = updatedPages.reduce((acc, page) => 
+            [...acc, ...page.questions], 
+        []).sort((a, b) => a - b);
+
+        console.log('Remaining numbers after delete:', allRemainingNumbers);
+
+        // 5. Update nomor secara sequential untuk soal yang tersisa
+        for (let i = 0; i < allRemainingNumbers.length; i++) {
+            const currentNum = allRemainingNumbers[i];
+            if (currentNum > deletedNumber) {
+                const newNum = currentNum - 1;
+                console.log(`Updating number: ${currentNum} -> ${newNum}`);
+                
+                const updateResponse = await fetch(`http://localhost:2000/api/multiplechoice/question/update-number`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        testId: testId,
+                        oldNumber: currentNum,
+                        newNumber: newNum
+                    })
+                });
+
+                if (!updateResponse.ok) {
+                    throw new Error(`Gagal mengupdate nomor soal ${currentNum}`);
+                }
+            }
+        }
+
+        // 6. Update data di localStorage
+        updatedPages = updatedPages.map(page => ({
+            ...page,
+            questions: page.questions.map(num => 
+                num > deletedNumber ? num - 1 : num
+            ).sort((a, b) => a - b)
+        }));
+
+        // Hapus halaman kosong
+        updatedPages = updatedPages.filter(page => page.questions.length > 0);
+        
+        console.log('Data yang akan disimpan ke localStorage:', updatedPages);
+        localStorage.setItem(localStorageKey, JSON.stringify(updatedPages));
+
         router.push(`/author/buatSoal?testId=${testId}`);
         
-      } catch (error) {
+    } catch (error) {
         console.error('Error saat menghapus soal:', error);
         alert('Terjadi kesalahan saat menghapus soal. Silakan coba lagi.');
-      }
     }
-  };
+};
 
   const handleDeleteJawaban = async (index, optionId) => {
     const updatedOptions = options.filter((_, i) => i !== index);
@@ -610,8 +634,9 @@ const MembuatSoal = () => {
               >
                 Hapus
               </button>
-              </div>
-              <div className="flex justify-end space-x-2">
+            </div>
+
+            <div className="flex justify-end space-x-2">
               <button
                 onClick={handleSubmit} 
                 className="bg-[#E8F4FF] border border-black px-4 py-2 hover:text-white font-poppins rounded-[15px]"
