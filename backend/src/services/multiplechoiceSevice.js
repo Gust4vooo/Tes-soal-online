@@ -195,6 +195,23 @@ const deleteMultipleChoiceService = async (multiplechoiceId) => {
 
 export { deleteMultipleChoiceService };
 
+export const updatePageNameForQuestion = async (questionNumber, pageName) => {
+    try {
+        const result = await prisma.multiplechoice.updateMany({
+        where: { 
+            number: questionNumber 
+        }, 
+        data: { pageName }, 
+      });
+  
+      return result; // Return the database operation result
+    } catch (error) {
+      throw new Error('Failed to update question pageName: ' + error.message);
+    } finally {
+      await prisma.$disconnect(); // Ensure the Prisma client disconnects
+    }
+  };
+
 const fetchMultipleChoiceByNumberAndTestId = async (testId, number, pageName) => {
     return await prisma.multiplechoice.findFirst({
         where: {
@@ -207,19 +224,39 @@ const fetchMultipleChoiceByNumberAndTestId = async (testId, number, pageName) =>
 
 export {fetchMultipleChoiceByNumberAndTestId};
 
-const updateMultipleChoicePageNameService = async (testId, number, newPageName) => {
-    return await prisma.multiplechoice.updateMany({
+const updateMultipleChoicePageNameService = async (testId, currentPageName, newPageName) => {
+    try {
+      if (!prisma || !prisma.multiplechoice) {
+        throw new Error('Prisma client not initialized properly');
+      }
+  
+      console.log('Updating with params:', {
+        testId,
+        currentPageName,
+        newPageName
+      });
+  
+      const result = await prisma.multiplechoice.updateMany({
         where: {
-            testId: testId,
-            number: number,
+          testId: testId,
+          pageName: currentPageName, 
         },
         data: {
-            pageName: newPageName,
+          pageName: newPageName, 
         },
-    });
-};
-
-export {updateMultipleChoicePageNameService};
+      });
+  
+      console.log('Update result:', result);
+      return result;
+  
+    } catch (error) {
+      console.error('Error in updateMultipleChoicePageNameService:', error);
+      throw error;
+    }
+  };
+  
+  export { updateMultipleChoicePageNameService };
+  
 
 const getPagesByTestIdService = async (testId) => {
     return await prisma.multiplechoice.findMany({

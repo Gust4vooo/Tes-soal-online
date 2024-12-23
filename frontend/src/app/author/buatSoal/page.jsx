@@ -189,7 +189,7 @@ const KotakNomor = () => {
       const nextNumber = getNextAvailableNumber(pages);
       const multiplechoiceId = await fetchMultipleChoiceId(testId, nextNumber - 1);
 
-      if (!multiplechoiceId) {
+      if (!multiplechoiceId && nextNumber > 1) {
         alert(`Silakan isi nomor soal ${nextNumber - 1} terlebih dahulu.`);
         return;
       }
@@ -239,17 +239,65 @@ const KotakNomor = () => {
 
   const saveRename = async (pageIndex) => {
     try {
+      if (!pages || !pages[pageIndex]) {
+        console.error("Invalid page or pageIndex");
+        return;
+      }
+  
+      const currentPage = pages[pageIndex];
+      const currentPageName = currentPage?.pageName;
+  
+      if (!currentPageName) {
+        console.error("Current page name is missing");
+        return;
+      }
+  
+      if (!renameValue) {
+        console.error("New page name is missing");
+        return;
+      }
+
+      // Update the page name in the pages array
       await fetch(`http://localhost:2000/api/multiplechoice/update-pageName`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          testId: testId,
-          pageIndex: pageIndex,
-          pageName: renameValue,
+          testId: testId, 
+          pageIndex: pageIndex, 
+          currentPageName: currentPageName, 
+          newPageName: renameValue, 
         }),
       });
+  
+      if (!currentPage || !currentPage.questions) {
+        console.error("No questions found for the specified page number.");
+        return;
+      }
+
+      console.log("currentPage:", currentPage);
+      console.log("currentPage.questions:", currentPage?.questions);
+  
+      // Update pageName for each question in the current page
+      const questionUpdates = currentPage.questions.map((questionNumber) => {
+        console.log("Updating questionNumber:", questionNumber);
+        return fetch(`http://localhost:2000/api/multiplechoice/update-question`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            questionNumber: questionNumber,
+            pageName: renameValue,
+          }),
+        });
+      });
+  
+      // Wait for all the updates to complete
+      await Promise.all(questionUpdates);
+  
+      // Update local state
       setPages((prevPages) => {
         const updatedPages = prevPages.map((page, index) => {
           if (index === pageIndex) {
@@ -260,11 +308,13 @@ const KotakNomor = () => {
         localStorage.setItem(`pages-${testId}`, JSON.stringify(updatedPages));
         return updatedPages;
       });
+  
       setIsRenaming(null);
     } catch (error) {
       console.error("Error updating pageName:", error);
     }
   };
+  
 
   const deletePage = (pageIndex) => {
     if (confirm("Apakah Anda yakin ingin menghapus tes ini?")) {

@@ -141,55 +141,48 @@ const MembuatSoal = () => {
   }, [testId]); 
 
   const handleDelete = async () => {
+    
     if (confirm("Apakah Anda yakin ingin menghapus soal ini?")) {
       try {
         // Ambil key localStorage yang benar
         const localStorageKey = `pages-${testId}`;
         
-        // Cek apakah multiplechoiceId ada
-        if (multiplechoiceId) {
+        // Tambahkan pengecekan untuk multiplechoiceId
+        if (multiplechoiceId != null) {
           // 1. Hapus data dari database
           const response = await fetch(`http://localhost:2000/api/multiplechoice/question/${multiplechoiceId}`, {
             method: 'DELETE',
           });
-  
+    
           if (!response.ok) {
-            throw new Error('Gagal menghapus soal dari database');
+            router.push(`/author/buatSoal?testId=${testId}`);
           }
+          
         }
   
         // 2. Ambil data pages dari localStorage
         const savedPages = localStorage.getItem(localStorageKey);
-        console.log('Data sebelum dihapus:', savedPages); // Debug
+        console.log('Data sebelum dihapus:', savedPages);
   
         if (savedPages) {
           let pages = JSON.parse(savedPages);
           
-          // 3. Temukan dan hapus nomor soal dari pages
+          // Sisa kode tetap sama...
           let deletedNumber = null;
           let deletedPageIndex = -1;
           
-          // Cari nomor yang akan dihapus
           pages.forEach((page, pageIndex) => {
             const questionIndex = page.questions.indexOf(parseInt(number));
             if (questionIndex !== -1) {
               deletedNumber = parseInt(number);
               deletedPageIndex = pageIndex;
-              // Hapus nomor dari array questions
               page.questions.splice(questionIndex, 1);
             }
           });
   
-          console.log('Nomor yang dihapus:', deletedNumber); // Debug
-          console.log('Data setelah splice:', pages); // Debug
-  
-          // 4. Reorder semua nomor setelah penghapusan
           if (deletedNumber !== null) {
-            // Flatkan semua nomor dari semua halaman
             const allNumbers = pages.reduce((acc, page) => [...acc, ...page.questions], []);
-            console.log('Semua nomor setelah flatten:', allNumbers); // Debug
             
-            // Update nomor-nomor yang lebih besar dari nomor yang dihapus
             pages = pages.map(page => ({
               ...page,
               questions: page.questions.map(num => 
@@ -197,19 +190,11 @@ const MembuatSoal = () => {
               ).sort((a, b) => a - b)
             }));
   
-            console.log('Data setelah reorder:', pages); // Debug
-  
-            // 5. Hapus page jika tidak ada soal tersisa
             pages = pages.filter(page => page.questions.length > 0);
-            
-            // 6. Update localStorage dengan key yang benar
             localStorage.setItem(localStorageKey, JSON.stringify(pages));
-            
-            console.log('Data final yang disimpan:', pages); // Debug
           }
         }
   
-        // 7. Redirect kembali ke halaman luar
         router.push(`/author/buatSoal?testId=${testId}`);
         
       } catch (error) {
@@ -244,6 +229,11 @@ const MembuatSoal = () => {
 
   const handleJawabanBenarChange = (index) => {
     setJawabanBenar(index);
+  };
+
+  const handleBack = () => {
+    console.log("testId:", testId);
+    router.push(`/author/buatSoal?testId=${testId}`);
   };
 
   const handleSubmit = async (e) => {
@@ -554,16 +544,25 @@ const MembuatSoal = () => {
               >
                 Hapus
               </button>
-              </div>
-              <div className="flex justify-end space-x-2">
-                <button type="button" onClick={handleSubmit} className="bg-[#E8F4FF] border border-black px-4 py-2 hover:text-white font-poppins rounded-[15px]">Simpan</button>
-                <button
-                  onClick={handleSubmit}
-                  className="bg-[#A6D0F7] border border-black px-4 py-2 hover:text-white font-poppins rounded-[15px]"
-                >
-                  Kembali
-                </button>
-              </div>
+            </div>
+
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={handleSubmit} 
+                className="bg-[#E8F4FF] border border-black px-4 py-2 hover:text-white font-poppins rounded-[15px]"
+              >
+                Simpan
+              </button>
+            </div>
+
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={handleBack}
+                className="bg-[#A6D0F7] border border-black px-4 py-2 hover:text-white font-poppins rounded-[15px]"
+              >
+                Kembali
+              </button>
+            </div>
           </div>
 
         </div>
