@@ -82,8 +82,11 @@ const MembuatSoal = () => {
         setOptions(data.option);
         setIsOptionWeighted(data.isWeighted);
         setDiscussion(data.discussion);
-        if (data.questionPhoto) {
+        if (data.questionPhoto && data.questionPhoto !== "") {
           setQuestionPhoto(data.questionPhoto);
+          console.log("Loaded question photo URL:", data.questionPhoto);
+        } else {
+          setQuestionPhoto(null);
         }
 
         if (data.option && Array.isArray(data.option)) {
@@ -114,36 +117,36 @@ const MembuatSoal = () => {
     setOptions(newOptions);
   };
 
-  const handleCorrectOptionChange = (index) => {
-    const newOptions = options.map((option, i) => ({
-      ...option,
-      isCorrect: i === index,  
-    }));
-    setOptions(newOptions);
-  };
+  // const handleCorrectOptionChange = (index) => {
+  //   const newOptions = options.map((option, i) => ({
+  //     ...option,
+  //     isCorrect: i === index,  
+  //   }));
+  //   setOptions(newOptions);
+  // };
 
-  const handleWeightChange = (e) => {
-    const value = e.target.value;
-    if (/^\d*\.?\d*$/.test(value)) {
-      setWeight(value); 
-    }
-  }
+  // const handleWeightChange = (e) => {
+  //   const value = e.target.value;
+  //   if (/^\d*\.?\d*$/.test(value)) {
+  //     setWeight(value); 
+  //   }
+  // }
 
   const loadPagesFromLocalStorage = () => {
     if (testId && typeof window !== 'undefined') {
-        const savedPages = localStorage.getItem(`pages_${testId}`);
-        if (savedPages) {
-          return JSON.parse(savedPages);
-        }
+      const savedPages = localStorage.getItem(`pages_${testId}`);
+      if (savedPages) {
+        return JSON.parse(savedPages);
+      }
     }
     return null;
   };
 
   useEffect(() => {
-      const savedPages = loadPagesFromLocalStorage();
-      if (savedPages) {
-          setPages(savedPages);
-      }
+    const savedPages = loadPagesFromLocalStorage();
+    if (savedPages) {
+        setPages(savedPages);
+    }
   }, [testId]); 
 
   const handleDelete = async () => {
@@ -195,7 +198,7 @@ const MembuatSoal = () => {
             console.log('Data setelah reorder:', pages); 
             pages = pages.filter(page => page.questions.length > 0);
             localStorage.setItem(localStorageKey, JSON.stringify(pages));   
-            console.log('Data final yang disimpan:', pages); // Debug
+            console.log('Data final yang disimpan:', pages); 
           }
         }
 
@@ -230,18 +233,22 @@ const MembuatSoal = () => {
   };
 
   const handleBack = () => {
-    router.push('/author/buatSoal');
+    if (testId) {
+      router.push(`/author/buatSoal?testId=${testId}&category=${kategoriTes}`);
+    } else {
+      console.error('Test ID tidak ditemukan dalam respons:', result);
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
   
     try {
-      let uploadedImageUrl = "";
+      let uploadedImageUrl = questionPhoto;
       if (questionPhoto) {
         const imageRef = ref(storage, `question/${questionPhoto.name + v4()}`);
         const snapshot = await uploadBytes(imageRef, questionPhoto);
-        uploadedImageUrl = await getDownloadURL(snapshot.ref); // Mendapatkan URL download gambar
+        uploadedImageUrl = await getDownloadURL(snapshot.ref); 
       }
 
       const formattedOptions = options.map(option => ({
@@ -260,8 +267,6 @@ const MembuatSoal = () => {
         isWeighted: true,
         options: formattedOptions
       };
-
-      console.log("opt:", options);
 
       let response;
       let result;
@@ -419,12 +424,29 @@ const MembuatSoal = () => {
             </div>
 
             <div className="mb-4">
-              <input
-                type="file"
-                onChange={(event) => setQuestionPhoto(event.target.files[0])}
-                className="border p-2 w-full"
-                accept="image/*"
-              />
+              {typeof questionPhoto === 'string' && questionPhoto ? (
+                <div className="mb-2">
+                  <img 
+                    src={questionPhoto} 
+                    alt="Question" 
+                    className="max-w-md h-auto"
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => setQuestionPhoto(null)}
+                    className="mt-2 bg-red-500 text-white px-2 py-1 rounded"
+                  >
+                    Hapus Gambar
+                  </button>
+                </div>
+              ) : (
+                <input
+                  type="file"
+                  onChange={(event) => setQuestionPhoto(event.target.files[0])}
+                  className="border p-2 w-full"
+                  accept="image/*"
+                />
+              )}
             </div>
   
             <div>

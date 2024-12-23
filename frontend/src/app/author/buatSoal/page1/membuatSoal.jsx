@@ -12,12 +12,16 @@ import dynamic from 'next/dynamic';
 const ReactQuill = dynamic(() => import('react-quill'), {
   ssr: false 
 });
+// import dotenv from 'dotenv';
+
+// dotenv.config();
+// const URL = process.env.NEXT_PUBLIC_API_URL;
 
 const MembuatSoal = () => {
   const router = useRouter();
   const [testId, setTestId] = useState('');
+  const [category, setCategory] = useState('');
   const [multiplechoiceId, setMultiplechoiceId] = useState('');
-  const [id, setId] = useState('');
   const [pageName, setPageName] = useState('');
   const [question, setQuestion] = useState('');
   const [number, setNumber] = useState('');
@@ -26,14 +30,13 @@ const MembuatSoal = () => {
   const [discussion, setDiscussion] = useState('');
   const [options, setOptions] = useState([{ optionDescription: '', isCorrect: false }]);
   const [pages, setPages] = useState([{ questions: [] }]);
-  const [isDropdownOpen, setDropdownOpen] = useState(false);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('');
-  const [labelCount, setLabelCount] = useState(0); 
+  const [activeTab, setActiveTab] = useState(''); 
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const testIdFromUrl = params.get("testId");
+    const categoryFromUrl = params.get("category");
     const multiplechoiceIdFromUrl = params.get("multiplechoiceId");
     const pageNameFromUrl = params.get("pageName");
     const numberFromUrl = params.get("nomor");
@@ -111,7 +114,7 @@ const MembuatSoal = () => {
   const handleCorrectOptionChange = (index) => {
     const newOptions = options.map((option, i) => ({
       ...option,
-      isCorrect: i === index,  // Setel hanya opsi yang dipilih ke true
+      isCorrect: i === index,  
     }));
     setOptions(newOptions);
   };
@@ -125,30 +128,27 @@ const MembuatSoal = () => {
 
   const loadPagesFromLocalStorage = () => {
     if (testId && typeof window !== 'undefined') {
-        const savedPages = localStorage.getItem(`pages_${testId}`);
-        if (savedPages) {
-          return JSON.parse(savedPages);
-        }
+      const savedPages = localStorage.getItem(`pages_${testId}`);
+      if (savedPages) {
+        return JSON.parse(savedPages);
+      }
     }
     return null;
   };
 
   useEffect(() => {
-      const savedPages = loadPagesFromLocalStorage();
-      if (savedPages) {
-          setPages(savedPages);
-      }
+    const savedPages = loadPagesFromLocalStorage();
+    if (savedPages) {
+        setPages(savedPages);
+    }
   }, [testId]); 
 
   const handleDelete = async () => {
     if (confirm("Apakah Anda yakin ingin menghapus soal ini?")) {
       try {
-        // Ambil key localStorage yang benar
         const localStorageKey = `pages-${testId}`;
-        
-        // Cek apakah multiplechoiceId ada
+
         if (multiplechoiceId) {
-          // 1. Hapus data dari database
           const response = await fetch(`http://localhost:2000/api/multiplechoice/question/${multiplechoiceId}`, {
             method: 'DELETE',
           });
@@ -157,39 +157,31 @@ const MembuatSoal = () => {
             throw new Error('Gagal menghapus soal dari database');
           }
         }
-  
-        // 2. Ambil data pages dari localStorage
+
         const savedPages = localStorage.getItem(localStorageKey);
-        console.log('Data sebelum dihapus:', savedPages); // Debug
+        console.log('Data sebelum dihapus:', savedPages); 
   
         if (savedPages) {
           let pages = JSON.parse(savedPages);
-          
-          // 3. Temukan dan hapus nomor soal dari pages
           let deletedNumber = null;
           let deletedPageIndex = -1;
-          
-          // Cari nomor yang akan dihapus
+
           pages.forEach((page, pageIndex) => {
             const questionIndex = page.questions.indexOf(parseInt(number));
             if (questionIndex !== -1) {
               deletedNumber = parseInt(number);
               deletedPageIndex = pageIndex;
-              // Hapus nomor dari array questions
               page.questions.splice(questionIndex, 1);
             }
           });
   
-          console.log('Nomor yang dihapus:', deletedNumber); // Debug
-          console.log('Data setelah splice:', pages); // Debug
-  
-          // 4. Reorder semua nomor setelah penghapusan
+          console.log('Nomor yang dihapus:', deletedNumber); 
+          console.log('Data setelah splice:', pages); 
+
           if (deletedNumber !== null) {
-            // Flatkan semua nomor dari semua halaman
             const allNumbers = pages.reduce((acc, page) => [...acc, ...page.questions], []);
-            console.log('Semua nomor setelah flatten:', allNumbers); // Debug
-            
-            // Update nomor-nomor yang lebih besar dari nomor yang dihapus
+            console.log('Semua nomor setelah flatten:', allNumbers); 
+
             pages = pages.map(page => ({
               ...page,
               questions: page.questions.map(num => 
@@ -197,19 +189,13 @@ const MembuatSoal = () => {
               ).sort((a, b) => a - b)
             }));
   
-            console.log('Data setelah reorder:', pages); // Debug
-  
-            // 5. Hapus page jika tidak ada soal tersisa
+            console.log('Data setelah reorder:', pages); 
             pages = pages.filter(page => page.questions.length > 0);
-            
-            // 6. Update localStorage dengan key yang benar
             localStorage.setItem(localStorageKey, JSON.stringify(pages));
-            
-            console.log('Data final yang disimpan:', pages); // Debug
+            console.log('Data final yang disimpan:', pages);
           }
         }
   
-        // 7. Redirect kembali ke halaman luar
         router.push(`/author/buatSoal?testId=${testId}`);
         
       } catch (error) {
@@ -241,22 +227,24 @@ const MembuatSoal = () => {
   };
 
   const handleBack = () => {
-    router.push('/author/buatSoal');
+    if (testId && testCategory) {
+      router.push(`/author/buatSoal?testId=${testId}&category=${kategoriTes}`);
+    } else {
+      console.error('Test ID tidak ditemukan dalam respons:', result);
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
   
     try {
-      // Handle image upload if exists
       let uploadedImageUrl = questionPhoto;
       if (questionPhoto instanceof File) {
         const imageRef = ref(storage, `question/${questionPhoto.name + v4()}`);
         const snapshot = await uploadBytes(imageRef, questionPhoto);
-        uploadedImageUrl = await getDownloadURL(snapshot.ref); // Mendapatkan URL download gambar
+        uploadedImageUrl = await getDownloadURL(snapshot.ref); 
       }
-  
-      // Prepare common data structure
+
       const questionData = {
         pageName,
         question: question,
@@ -275,7 +263,6 @@ const MembuatSoal = () => {
       let result;
 
       if (multiplechoiceId !== "null") {
-        // UPDATE existing question
         response = await fetch(`http://localhost:2000/api/multiplechoice/update-question/${multiplechoiceId}`, {
           method: 'PUT',
           headers: {
@@ -287,8 +274,7 @@ const MembuatSoal = () => {
         if (response.ok) {
           result = await response.json();
           console.log('Update successful:', result);
-          
-          // Update localStorage
+
           const existingPages = JSON.parse(localStorage.getItem(`pages_${testId}`)) || [];
           const updatedPages = existingPages.map(page => 
             page.id === multiplechoiceId 
@@ -298,7 +284,6 @@ const MembuatSoal = () => {
           localStorage.setItem(`pages_${testId}`, JSON.stringify(updatedPages));
         }
       } else {
-        // CREATE new question
         response = await fetch('http://localhost:2000/api/multiplechoice/add-questions', {
           method: 'POST',
           headers: {
@@ -315,8 +300,7 @@ const MembuatSoal = () => {
           console.log('Response dari API:', result);
           const newMultiplechoiceId = result.data[0].id;
           console.log('MultiplechoiceId:', newMultiplechoiceId);
-  
-          // Update localStorage
+
           localStorage.setItem('pageName', pageName);
           const existingPages = JSON.parse(localStorage.getItem(`pages_${testId}`)) || [];
           const newQuestion = { 
