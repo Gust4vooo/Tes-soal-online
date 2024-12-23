@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import axios from 'axios'
 
 const KotakNomor = () => {
   const router = useRouter();
@@ -115,7 +116,6 @@ const KotakNomor = () => {
 
   const updateQuestionNumbersInDB = async (testId, maxQuestionNumber) => {
     try {
-      // Dapatkan semua nomor soal yang ada di database untuk tes ini
       const response = await fetch(`http://localhost:2000/api/multiplechoice/getQuestionNumbers?testId=${testId}`);
       if (!response.ok) {
         throw new Error(`HTTP error ${response.status}`);
@@ -123,15 +123,12 @@ const KotakNomor = () => {
       const data = await response.json();
       const questionNumbers = data.questionNumbers;
   
-      // Filter nomor soal yang lebih besar dari nomor terbesar di halaman saat ini
       const numbersToUpdate = questionNumbers.filter(num => num > maxQuestionNumber);
   
-      // Jika tidak ada nomor yang lebih besar, keluar dari fungsi
       if (numbersToUpdate.length === 0) {
         return;
       }
   
-      // Update nomor soal di database
       for (const number of numbersToUpdate) {
         const updateResponse = await fetch(`http://localhost:2000/api/multiplechoice/update-questionNumber?testId=${testId}`, {
           method: 'PUT',
@@ -160,27 +157,65 @@ const KotakNomor = () => {
       // Cek apakah nomor sebelumnya sudah ada di database
       const multiplechoiceId = await fetchMultipleChoiceId(testId, maxQuestionNumber);
       if (!multiplechoiceId) {
-        // Tampilkan peringatan jika nomor sebelumnya belum ada di database
         alert(`Silakan isi nomor soal ${maxQuestionNumber} terlebih dahulu.`);
         return;
       }
   
-      // Update nomor soal di database yang lebih besar dari nomor terbesar di halaman saat ini
-      await updateQuestionNumbersInDB(testId, maxQuestionNumber);
-
+      // Cek apakah ada halaman setelah halaman saat ini
+      const hasNextPages = pageIndex < pages.length - 1;
+      
+      if (hasNextPages) {
+        // Kumpulkan semua nomor soal yang perlu diupdate (dari halaman-halaman setelahnya)
+        const numbersToUpdate = pages.slice(pageIndex + 1).reduce((acc, page) => {
+          return [...acc, ...(page.questions || [])];
+        }, []);
+  
+        // Urutkan nomor dari besar ke kecil untuk menghindari konflik
+        numbersToUpdate.sort((a, b) => b - a);
+  
+        // Update nomor soal di database untuk setiap nomor yang terkumpul
+        for (const number of numbersToUpdate) {
+          await updateQuestionNumberInDB(testId, number, number + 1);
+        }
+      }
+  
+      // Update state lokal
       setPages(prevPages => {
         const updatedPages = [...prevPages];
+        
+        // Update halaman saat ini
         const currentPage = { ...updatedPages[pageIndex] };
-        currentPage.questions = [...(currentPage.questions || []), getNextAvailableNumber(updatedPages)];
-        currentPage.questions.sort((a, b) => a - b);    
+        currentPage.questions = [...(currentPage.questions || []), maxQuestionNumber + 1];
+        currentPage.questions.sort((a, b) => a - b);
         updatedPages[pageIndex] = currentPage;
-
+  
+        // Update halaman-halaman setelahnya jika ada
+        if (hasNextPages) {
+          for (let i = pageIndex + 1; i < updatedPages.length; i++) {
+            const nextPage = { ...updatedPages[i] };
+            nextPage.questions = (nextPage.questions || []).map(num => num + 1);
+            updatedPages[i] = nextPage;
+          }
+        }
+  
         const finalPages = reorderAllPages(updatedPages);
         localStorage.setItem(`pages-${testId}`, JSON.stringify(finalPages));
         return finalPages;
       });
     } catch (error) {
       console.error('Error adding question:', error);
+    }
+  };
+
+  const updateQuestionNumberInDB = async (testId, oldNumber, newNumber) => {
+    try {
+      // Implementasi sesuai dengan struktur database Anda
+      await axios.put(`http://localhost:2000/api/multiplechoice/${testId}/questions/${oldNumber}`, {
+        newQuestionNumber: newNumber
+      });
+    } catch (error) {
+      console.error('Error updating question number:', error);
+      throw error;
     }
   };
 
@@ -257,7 +292,6 @@ const KotakNomor = () => {
         return;
       }
 
-      // Update the page name in the pages array
       await fetch(`http://localhost:2000/api/multiplechoice/update-pageName`, {
         method: 'PUT',
         headers: {
@@ -279,7 +313,6 @@ const KotakNomor = () => {
       console.log("currentPage:", currentPage);
       console.log("currentPage.questions:", currentPage?.questions);
   
-      // Update pageName for each question in the current page
       const questionUpdates = currentPage.questions.map((questionNumber) => {
         console.log("Updating questionNumber:", questionNumber);
         return fetch(`http://localhost:2000/api/multiplechoice/update-question`, {
@@ -294,10 +327,8 @@ const KotakNomor = () => {
         });
       });
   
-      // Wait for all the updates to complete
       await Promise.all(questionUpdates);
   
-      // Update local state
       setPages((prevPages) => {
         const updatedPages = prevPages.map((page, index) => {
           if (index === pageIndex) {

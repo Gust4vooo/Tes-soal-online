@@ -182,15 +182,50 @@ const MembuatSoal = () => {
   
           if (deletedNumber !== null) {
             const allNumbers = pages.reduce((acc, page) => [...acc, ...page.questions], []);
+        
+            // Cek apakah ada soal dengan nomor yang lebih besar
+            const hasLaterQuestions = allNumbers.some(num => num > deletedNumber);
             
-            pages = pages.map(page => ({
-              ...page,
-              questions: page.questions.map(num => 
-                num > deletedNumber ? num - 1 : num
-              ).sort((a, b) => a - b)
-            }));
-  
+            if (hasLaterQuestions) {
+              // Update nomor untuk soal-soal setelahnya
+              pages = pages.map(page => ({
+                ...page,
+                questions: page.questions.map(num => 
+                  num > deletedNumber ? num - 1 : num
+                ).sort((a, b) => a - b)
+              }));
+    
+              // Update di database untuk setiap nomor yang berubah
+              const updatePromises = [];
+              pages.forEach(page => {
+                page.questions.forEach(async (num) => {
+                  if (num >= deletedNumber) {
+                    // Asumsikan Anda memiliki API endpoint untuk update nomor
+                    updatePromises.push(
+                      fetch(`http://localhost:2000/api/multiplechoice/question/update-number`, {
+                        method: 'PUT',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                          testId: testId,
+                          oldNumber: num + 1,
+                          newNumber: num
+                        })
+                      })
+                    );
+                  }
+                });
+              });
+    
+              // Tunggu semua update selesai
+              await Promise.all(updatePromises);
+            }
+    
+            // Hapus halaman yang kosong
             pages = pages.filter(page => page.questions.length > 0);
+            
+            // Simpan perubahan ke localStorage
             localStorage.setItem(localStorageKey, JSON.stringify(pages));
           }
         }
