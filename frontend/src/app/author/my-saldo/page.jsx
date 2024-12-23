@@ -46,7 +46,7 @@ export default function Home() {
                 throw new Error('No authentication token found');
               }
               
-              const response = await fetch('http://localhost:2000/api/withdrawals/history', {
+              const response = await fetch(`https://${URL}/api/withdrawals/history`, {
                 method: 'GET',
                 headers: {
                   'Authorization': `Bearer ${token}`,
@@ -59,7 +59,7 @@ export default function Home() {
               }
     
               const data = await response.json();
-              setTransactions(data); // Menyimpan data transaksi ke state
+              setTransactions(data); 
             } catch (error) {
               console.error('Error fetching transaction history:', error);
             }
@@ -78,7 +78,7 @@ export default function Home() {
               throw new Error('No authentication token found');
             }
     
-            const response = await axios.get('http://localhost:2000/author/authorID', {
+            const response = await axios.get(`https://${URL}/author/authorID`, {
               headers: {
                 'Authorization': `Bearer ${token}`
               }
@@ -107,7 +107,7 @@ export default function Home() {
 
         try {
           setLoadingUser(true);
-          const response = await fetch(`http://localhost:2000/user/profile`, {
+          const response = await fetch(`https://${URL}/user/profile`, {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -215,7 +215,7 @@ export default function Home() {
             throw new Error('No authentication token found');
         }
 
-        const response = await fetch('http://localhost:2000/api/withdrawals/payout', {
+        const response = await fetch(`https://${URL}/api/withdrawals/payout`, {
             method: 'POST',
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -255,16 +255,15 @@ export default function Home() {
   const [errorMessage, setErrorMessage] = useState('');
 
   const handleWithdrawInput = (e) => {
-    const value = e.target.value.replace(/\D/g, ''); // Hanya izinkan angka
+    const value = e.target.value.replace(/\D/g, '');
     setWithdrawAmount(value);
 
-    // Validasi minimal 50.000 dan kelipatan 1.000
     if (value < 50000) {
       setErrorMessage('Nominal minimal adalah Rp 50.000.');
     } else if (value % 10000 !== 0) {
       setErrorMessage('Nominal harus dalam kelipatan Rp 10.000.');
     } else {
-      setErrorMessage(''); // Bersihkan pesan error jika validasi terpenuhi
+      setErrorMessage(''); 
     }
 
   };

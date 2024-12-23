@@ -2,6 +2,11 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { IoMdArrowRoundBack } from "react-icons/io";
+import dotenv from 'dotenv';
+
+dotenv.config();
+const URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function PublikasiPage() {
   const [namaTes, setNamaTes] = useState('');
@@ -11,38 +16,57 @@ export default function PublikasiPage() {
   const [prediksiKemiripan, setPrediksiKemiripan] = useState('');
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [showErrorPopup, setShowErrorPopup] = useState(false);
+  const [title, setTitle] = useState('');
   const router = useRouter();
 
   useEffect(() => {
     const url = new URL(window.location.href);
     const params = new URLSearchParams(url.search);
     const testIdFromUrl = params.get("testId");
-  
-    console.log("Fetched testId:", testIdFromUrl); // Cek nilai testId yang diambil
-  
+    
     if (testIdFromUrl) {
       setTestId(testIdFromUrl);
     }
   }, []);
 
+  useEffect(() => {
+    const fetchTestDetails = async () => {
+      try {
+        const response = await fetch(`https://${URL}/test/test-detail/${testId}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch test details');
+        }
+        const data = await response.json();
+        setTitle(data.title);
+        setEditableTitle(data.title);
+      } catch (error) {
+        console.error('Error fetching test details:', error);
+      }
+    };
+
+    fetchTestDetails();
+  }, [testId]);
+
   const handlePublish = async () => {
     const [hours, minutes] = durasiTes.split(':').map(Number);
     const totalMinutes = (hours || 0) * 60 + (minutes || 0);
+    const priceAsInteger = parseInt(hargaTes.replace(/[^\d]/g, ''), 10);
 
     const payload = {
-        price: hargaTes,
+        title: title,
+        price: priceAsInteger,
         similarity: parseFloat(prediksiKemiripan),
         worktime: totalMinutes
     };
 
     // Validasi input
-    if (!payload.price || isNaN(payload.similarity) || isNaN(payload.worktime)) {
+    if (!payload.title || !payload.price || isNaN(payload.similarity) || isNaN(payload.worktime)) {
         alert("Semua field harus diisi untuk publikasi.");
         return;
     }
 
     try {
-        const response = await fetch(`http://localhost:2000/test/tests/${testId}/publish`, {
+        const response = await fetch(`https://${URL}/test/tests/${testId}/publish`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
@@ -55,19 +79,18 @@ export default function PublikasiPage() {
             setShowSuccessPopup(true); 
             setShowErrorPopup(false);
             
-            // Menunggu beberapa detik sebelum redirect
             setTimeout(() => {
-                router.push('/author/dashboard'); // Ganti dengan path yang Anda inginkan
-            }, 2000); // Menunggu 2 detik, Anda bisa menyesuaikan waktunya
+                router.push('/author/dashboard');
+            }, 2000); 
         } else {
             console.error('Gagal menyimpan tes.', await response.text());
-            setShowErrorPopup(true);   
-            setShowSuccessPopup(false);  
+            setShowErrorPopup(true);
+            setShowSuccessPopup(false);
         }
     } catch (error) {
         console.error('Error:', error);
-        setShowErrorPopup(true);      
-        setShowSuccessPopup(false);     
+        setShowErrorPopup(true);
+        setShowSuccessPopup(false);
     }
 };
 
@@ -76,35 +99,62 @@ export default function PublikasiPage() {
     setShowErrorPopup(false);
   };
   const [activeTab, setActiveTab] = useState('publikasi');
+
+
+  const handleDurasiTes = (e) => {
+    let value = e.target.value.replace(/[^0-9]/g, ""); 
+
+    if (value.length > 4) value = value.slice(0, 4); 
+
+    if (value.length <= 2) {
+      setDurasiTes(value); 
+  } else {
+      // Format hh:mm
+      setDurasiTes(`${value.slice(0, 2)}:${value.slice(2)}`);
+  }
+};
+const handleHargaTes = (e) => {
+  let value = e.target.value.replace(/[^0-9]/g, ""); 
+
+  if (value === "") {
+      setHargaTes(""); 
+      return;
+  }
+
+  let formattedValue = value.replace(/\B(?=(\d{3})+(?!\d))/g, "."); 
+
+  setHargaTes("Rp " + formattedValue); 
+};
+
   return (
     <div>
       {/* Bar Atas */}
-      <header className="bg-[#0B61AA] text-white p-4 sm:p-6 w-auto h-[80px]">
-        <div className="container  flex items-center">
-          <div className="flex space-x-4 w-full">
-            <Link href="/homeAuthor">
-              <img src="/images/Vector.png" alt="Vector" className="h-6 sm:h-9 absolute left-16 absolute top-5" // Gunakan positioning absolute untuk posisi kiri
-                style={{ maxWidth: '279px' }} />
-            </Link>
-          </div>
-        </div>
-      </header>
+      <header className="bg-[#0B61AA] text-white p-6 font-poppins" style={{ maxWidth: '1440px', height: '108px' }}>
+  <div className="container mx-auto flex justify-start items-center max-w-7xl px-4">
+    <Link href="/author/buatSoal">
+      <IoMdArrowRoundBack className="text-white text-3xl sm:text-3xl lg:text-4xl ml-2" />
+    </Link>
+    <Link href="/author/dashboard">
+      <img src="/images/etamtest.png" alt="Etamtest" className="h-[50px] ml-4" style={{ maxWidth: '179px' }} />
+    </Link>
+  </div>
+</header>
 
 
       {/* Navigasi */}
       <nav className="bg-[#FFFFFF] text-black p-4">
-        <ul className="flex justify-around">
+        <ul className="grid grid-cols-2 sm:flex sm:justify-around gap-4 sm:gap-10">
           <li>
             <button
-              className={`px-20 py-6 rounded-full font-bold font-poppins ${activeTab === 'buatTes' ? 'bg-[#78AED6]' : ''}`}
-              
+              className={`w-[140px] sm:w-[180px] px-4 sm:px-8 py-2 sm:py-4 rounded-full shadow-xl font-bold font-poppins ${activeTab === 'buatTes' ? 'bg-[#78AED6]' : ''}`}
+              onClick={() => setActiveTab('buatTes')}
             >
               Buat Soal
             </button>
           </li>
           <li>
             <button
-              className={`px-20 py-6 rounded-full font-bold font-poppins ${activeTab === 'publikasi' ? 'bg-[#78AED6]' : ''}`}
+              className={`w-[140px] sm:w-[180px] px- sm:px-8 py-2 sm:py-4 rounded-full shadow-xl font-bold font-poppins ${activeTab === 'publikasi' ? 'bg-[#78AED6]' : ''}`}
               onClick={() => setActiveTab('publikasi')}
             >
               Publikasi
@@ -113,8 +163,7 @@ export default function PublikasiPage() {
         </ul>
       </nav>
 
-      
-      <div className="bg-[#78AED6] p-8 rounded-md mx-auto" style={{ width: '1100px', height: '700px', marginTop: '20px' }}>
+      <div className="bg-[#78AED6] p-8 sm:p-8 rounded-md mx-[4px] sm:mx-12 w-auto h-[700px] mt-[20px]">
         <div className="flex justify-start pr-9">
           {/* Bagian Kiri, Teks Rata Kanan */}
           <div className="text-left pr-5">
@@ -127,81 +176,42 @@ export default function PublikasiPage() {
           </div>
 
           {/* Bar putih di samping */}
-          <div className="bg-white p-6 rounded-md shadow-lg" style={{ width: '902px', height: '550px' }}>
+          <div className="bg-white p-6 sm:p-6 rounded-md shadow-lg w-full h-[550px]">
             {/* Input Nama Tes */}
             <div className="mb-4 sm:pt-4">
               <input
                 type="text"
                 className="w-full border border-gray-300 p-2 rounded-full bg-white text-gray-500"
-                value={namaTes}
-                onChange={(e) => setNamaTes(e.target.value)}
+                value={title} 
+                onChange={(e) => setTitle(e.target.value)} 
                 placeholder="Nama Tes"
               />
             </div>
-
             <div className="mb-4 sm:pt-12">
                 <input
                     type="text"
                     className="w-full border border-gray-300 p-2 rounded-full bg-white text-gray-500"
                     value={durasiTes}
-                    onChange={(e) => setDurasiTes(e.target.value)}
+                    onChange={handleDurasiTes}
                     placeholder="hh:mm"
                 />
-            </div>
-
-            {/* Checkbox Acak Pertanyaan */}
-            {/* <div className="mb-4">
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="waktu"
-                  name="waktu"
-                  checked={acakPertanyaan.waktu}
-                  onChange={handleCheckboxChange}
-                  className="mr-2"
-                />
-                <label htmlFor="waktu" className="text-gray-700">Peserta akan memiliki waktu untuk menyelesaikan seluruh kuis.</label>
-              </div>
-              <div className="flex items-center mt-2">
-                <input
-                  type="checkbox"
-                  id="acak"
-                  name="acak"
-                  checked={acakPertanyaan.acak}
-                  onChange={handleCheckboxChange}
-                  className="mr-2"
-                />
-                <label htmlFor="acak" className="text-gray-700">Pertanyaan akan ditampilkan secara acak kepada setiap responden.</label>
-              </div>
-            </div> */}
-
-            {/* Input Maksimum Percobaan Kuis
-            <div className="mb-4">
-              <input
-                type="text"
-                className="w-full border border-gray-300 p-2 rounded-full bg-white text-gray-500"
-                value={maksimumPercobaan}
-                onChange={(e) => setMaksimumPercobaan(e.target.value)}
-                placeholder="Maksimum Percobaan Kuis"
-              />
-            </div> */}
+            </div>
 
             {/* Dropdown Harga Tes */}
             <div className="mb-4 sm:pt-12">
               <input
-                type="number"
-                step="0.01" // Mengizinkan input nilai desimal
+                type="text"
                 className="w-full border border-gray-300 p-2 rounded-full bg-white text-gray-500"
                 value={hargaTes}
-                onChange={(e) => setHargaTes(e.target.value)}
-                placeholder="Masukkan Harga Tes (dalam format desimal)"
+                onChange={handleHargaTes}
+                placeholder="Masukkan Harga Tes"
               />
-            </div>
+            </div>
 
             {/* Dropdown Prediksi Kemiripan */}
             <div className="mb-4 sm:pt-12">
               <select
-                className="w-full border border-gray-300 p-2 rounded-full bg-white text-gray-500"
+                className="w-full sm:w-full border border-gray-300 p-2 rounded-full bg-white text-gray-500"
                 value={prediksiKemiripan}
                 onChange={(e) => setPrediksiKemiripan(e.target.value)}
               >
@@ -214,14 +224,16 @@ export default function PublikasiPage() {
           </div>
         </div>
 
-        <div className='pt-4 flex justify-end pr-10'>
+        <div className="relative min-h-[600px] sm:min-h-[450px]">
+          <div className="absolute bottom-90 mt-4 right-9 pb-10  mr-[-20px]">
           <button
             onClick={handlePublish}
-            className="bg-white text-black w-[180px] px-6 py-2 rounded-md hover:bg-[#0B61AA] hover:text-white transition duration-300" 
+            className="bg-white text-black w-[110px] sm:w-[170px] px-6 py-2 rounded-md hover:bg-[#0B61AA] hover:text-white transition duration-300" 
           >
             Publikasi
           </button>
         </div>
+        </div>
       </div>
 
         {/* Pop-up Sukses */}

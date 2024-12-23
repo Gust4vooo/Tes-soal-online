@@ -1,20 +1,19 @@
-import { createTestService, getTestService, getTestResult, getAuthorTestsService, getTestDetailById} from '../services/testServices.js'; // Pastikan menggunakan ekstensi .js
+import { createTestService, getTestService, getTestResult, getAuthorTestsService, getTestDetailById, publishTestService} from '../services/testServices.js'; // Pastikan menggunakan ekstensi .js
 
-const createTest = async (req, res) => {
+const createTestController = async (req, res, next) => {
+    const { authorId, type, category, title, testDescription } = req.body;
+
+    if (!authorId || !type || !category || !title || !testDescription) {
+        return res.status(400).json({
+            message: 'Semua field harus diisi.' 
+        });
+    }
+
     try {
-        const newTest = req.body;
-
-        const test = await createTestService(newTest);
-
-        res.status(201).send({
-            data: test,
-            message: 'Create test success',
-        });
+        const newTest = await createTestService({ authorId, type, category, title, testDescription });
+        res.status(201).json(newTest); 
     } catch (error) {
-        res.status(500).send({
-            message: 'Failed to create test',
-            error: error.message,
-        });
+        next(error); 
     }
 };
 
@@ -47,39 +46,14 @@ const testResultController = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
   };
-  
-
-// backend/src/controllers/discussionController.js
-
-
-//import { createTestService, getTestsByCategory, getAllTestsService, publishTestService } from 'backend/src/services/testServices.js';
-
-// Buat tes
-const createTestController = async (req, res, next) => {
-    const { authorId, type, category, title, testDescription } = req.body;
-    console.log("Data yang diterima:", req.body);
-
-    if (!authorId || !type || !category || !title || !testDescription) {
-        return res.status(400).json({
-            message: 'Semua field harus diisi.' 
-        });
-    }
-
-    try {
-        const newTest = await createTestService({ authorId, type, category, title, testDescription });
-        res.status(201).json(newTest); 
-    } catch (error) {
-        next(error); 
-    }
-};
 
 // Publish Tes
 const publishTestController = async (req, res, next) => {
     const { testId } = req.params;
-    const { price, similarity, worktime } = req.body;
+    const { title, price, similarity, worktime } = req.body;
 
     // Validasi input
-    if (!price || !similarity || !worktime) {
+    if (!title || !price || !similarity || !worktime) {
         const error = new Error('Semua field harus diisi untuk publikasi.');
         error.status = 400; 
         return next(error);
@@ -88,17 +62,17 @@ const publishTestController = async (req, res, next) => {
     try {
         // Mengupdate test dengan isPublished diatur menjadi true
         const updatedTest = await publishTestService(testId, { 
+            title,
             price, 
             similarity, 
             worktime, 
-            isPublished: true // Ganti isPublish menjadi isPublished
+            isPublished: true
         });
         res.status(200).json(updatedTest); 
     } catch (error) {
         next(error);
     }
 };
-
 
 const getAllTests = async (req, res) => {
     try {
@@ -145,7 +119,7 @@ export const getTestDetail = async (req, res) => {
     const { testId } = req.params;
 
     try {
-        const test = await getTestDetailById(testId); // Memanggil service untuk mendapatkan detail test
+        const test = await getTestDetailById(testId); 
 
         if (!test) {
             return res.status(404).json({ error: 'Test not found' });
@@ -163,7 +137,7 @@ export const getTestDetail = async (req, res) => {
 };
 
 
-export { createTest , getTest, testResultController, createTestController,
+export { getTest, testResultController, createTestController,
     publishTestController,
     getAllTests,
     fetchTestsByCategory}; // Menggunakan named

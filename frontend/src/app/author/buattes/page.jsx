@@ -2,20 +2,23 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { IoMdArrowRoundBack } from "react-icons/io";
+import dotenv from 'dotenv';
+
+dotenv.config();
+const URL = process.env.NEXT_PUBLIC_API_URL;
 
 const BuatTes = () => {
   const router = useRouter();
-  const [jenisTes, setJenisTes] = useState('');
+  const [jenisTes, setJenisTes] = useState('PilihanGanda');
   const [kategoriTes, setKategoriTes] = useState('');
   const [namaTes, setNamaTes] = useState(''); 
   const [deskripsi, setDeskripsi] = useState('');
 
-  const [showJenisDropdown, setShowJenisDropdown] = useState(false);
   const [showKategoriDropdown, setShowKategoriDropdown] = useState(false);
 
   const [activeTab, setActiveTab] = useState('buatTes');
 
-  const jenisDropdownRef = useRef(null);
   const kategoriDropdownRef = useRef(null);
   const [authorId, setAuthorId] = useState(null);
 
@@ -27,7 +30,7 @@ const BuatTes = () => {
           throw new Error('No token found');
         }
 
-        const response = await fetch('http://localhost:2000/author/author-data', {
+        const response = await fetch(`https://${URL}/author/author-data`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -43,7 +46,6 @@ const BuatTes = () => {
         setAuthorId(authorData.id);
       } catch (error) {
         console.error('Error fetching author data:', error);
-        // Handle error (e.g., redirect to login page)
       }
     };
 
@@ -52,9 +54,6 @@ const BuatTes = () => {
 
   useEffect(() => {
     function handleClickOutside(event) {
-      if (jenisDropdownRef.current && !jenisDropdownRef.current.contains(event.target)) {
-        setShowJenisDropdown(false);
-      }
       if (kategoriDropdownRef.current && !kategoriDropdownRef.current.contains(event.target)) {
         setShowKategoriDropdown(false);
       }
@@ -69,14 +68,14 @@ const BuatTes = () => {
   
     const newTest = {
       authorId: authorId,
-      type: jenisTes,
+      type: jenisTes, 
       category: kategoriTes,
       title: namaTes,
       testDescription: deskripsi
     };
   
     try {
-      const response = await fetch('http://localhost:2000/test/tests', {
+      const response = await fetch(`https://${URL}/test/tests`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -87,7 +86,7 @@ const BuatTes = () => {
       if (response.ok) {
         console.log('Tes berhasil disimpan!');
         const result = await response.json();
-        const testId = result.id;  // Menggunakan 'id' dari respons
+        const testId = result.id;
         if (testId) {
           router.push(`/author/buatSoal?testId=${testId}`);
         } else {
@@ -104,23 +103,27 @@ const BuatTes = () => {
   return (
     <>
     {/* Header dengan Warna Biru Kustom */}
-      <header className="bg-[#0B61AA] text-white p-4 sm:p-6 w-auto h-[80px]">
-        <div className="container  flex items-center">
-          <div className="flex space-x-4 w-full">
-            <Link href="/homeAuthor">
-              <img src="/images/Vector.png" alt="Vector" className="h-6 sm:h-9 absolute left-16 absolute top-5" // Gunakan positioning absolute untuk posisi kiri
-                style={{ maxWidth: '279px' }} />
-            </Link>
-          </div>
-        </div>
-      </header>
+    <header className="bg-[#0B61AA] text-white p-6 font-poppins" style={{ maxWidth: '1440px', height: '108px' }}>
+  <div className="container mx-auto flex justify-start items-center max-w-7xl px-4">
+    <Link href="/author/dashboard">
+      <IoMdArrowRoundBack className="text-white text-3xl sm:text-3xl lg:text-4xl ml-2" />
+    </Link>
+    <Link href="/author/dashboard">
+      <img src="/images/etamtest.png" alt="Etamtest" className="h-[50px] ml-4" style={{ maxWidth: '179px' }} />
+    </Link>
+  </div>
+</header>
+
+
+
+
 
       {/* Navigasi */}
       <nav className="bg-[#FFFFFF] text-black p-4">
-        <ul className="flex justify-around">
+        <ul className="grid grid-cols-2 flex justify-start sm:flex sm:justify-around gap-4 sm:gap-10">
           <li>
             <button
-              className={`px-20 py-6 rounded-full shadow-xl font-bold font-poppins ${activeTab === 'buatTes' ? 'bg-[#78AED6]' : ''}`}
+              className={`w-[140px] sm:w-[180px] px-4 sm:px-8 py-2 sm:py-4 rounded-full shadow-xl font-bold font-poppins ${activeTab === 'buatTes' ? 'bg-[#78AED6]' : ''}`}
               onClick={() => setActiveTab('buatTes')}
             >
               Buat Soal
@@ -128,7 +131,7 @@ const BuatTes = () => {
           </li>
           <li>
             <button
-              className={`px-20 py-6 rounded-full shadow-xl font-bold font-poppins ${activeTab === 'publikasi' ? 'bg-[#78AED6]' : ''}`}
+              className={`w-[140px] sm:w-[180px] px-4 sm:px-8 py-2 sm:py-4 rounded-full shadow-xl font-bold font-poppins ${activeTab === 'publikasi' ? 'bg-[#78AED6]' : ''}`}
             >
               Publikasi
             </button>
@@ -138,73 +141,34 @@ const BuatTes = () => {
 
       <div className='bg-white p-4'>
       {/* Konten Utama */}
-      <div className="flex justify-center items-start mt-4">
+      <div className="flex justify-center items-start mx-0 sm:mx-12">
         {activeTab === 'buatTes' && (
-          <div className="bg-[#78AED6] p-8 rounded-md mx-auto" style={{ width: '1100px', height: '750px', marginTop: '20px' }}>
+          <div className="bg-[#78AED6] p-8 rounded-md mx-auto w-full h-[750px] mt-[20px]">
             <div className="flex justify-start pr-9">
               {/* Bagian Kiri, Teks Rata Kanan */}
               <div className="text-left pr-8 ">
-                <h3 className="font-poppins text-black sm:text-lg mb-7 mt-7 sm:pt-6 ">Jenis</h3>
-                <h3 className="font-poppins text-black sm:text-lg mb-4 mt-7 sm:pt-12">Kategori</h3>
-                <h3 className="font-poppins text-black sm:text-lg mb-4 mt-7 sm:pt-12">Nama</h3>
-                <h3 className="font-poppins text-black sm:text-lg mb-4 mt-7 sm:pt-12 ">Deskripsi</h3>
+                <h3 className="font-poppins text-black sm:text-lg mb-7 mt-7 sm:mt-8 sm:pt-6 ">Jenis</h3>
+                <h3 className="font-poppins text-black sm:text-lg mb-4 mt-7 sm:mt-.6 sm:pt-12">Kategori</h3>
+                <h3 className="font-poppins text-black sm:text-lg mb-4 mt-16 sm:mt-2 sm:pt-12">Nama</h3>
+                <h3 className="font-poppins text-black sm:text-lg mb-4 mt-10 sm:mt-10 sm:pt-12 ">Deskripsi</h3>
               </div>
 
               {/* Bar putih di samping */}
-              <div className="bg-white p-6 rounded-md shadow-lg" style={{ width: '902px', height: '550px' }}>
-                {/* Dropdown Jenis Tes */}
+              <div className="bg-white p-6 rounded-md shadow-lg w-full h-[550px] sm:mr-0 mr-10">
+                {/* Jenis Tes Langsung Pilihan Ganda */}
                 <div className="mb-4 sm:pt-4">
-                  <div className="relative" ref={jenisDropdownRef}>
-                    <button
-                      className="w-full border border-gray-300 p-2 rounded-full flex justify-between items-center bg-white"
-                      onClick={() => setShowJenisDropdown(!showJenisDropdown)}
-                    >
-                      <span className="font-poppins text-gray-500 italic">{jenisTes || 'Jenis Tes'}</span>
-                      <svg
-                        className="w-4 h-4 ml-2 text-gray-500"
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                        aria-hidden="true"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M6.293 9.293a1 1 0 011.414 0L10 10.586l2.293-2.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    </button>
-                    {showJenisDropdown && (
-                    <div className="absolute z-10 w-full mt-1 border border-gray-300 bg-white rounded-md shadow-lg">
-                      <ul className="absolute z-10 w-full mt-1 border border-gray-300 bg-white rounded-md shadow-lg">
-                        <li>
-                          <button
-                            className="font-poppins  text-left px-4 py-2 text-gray-700 italic hover:bg-gray-100"
-                            onClick={() => { setJenisTes('PilihanGanda'); setShowJenisDropdown(false); }}
-                          >
-                            Pilihan Ganda
-                          </button>
-                        </li>
-                        <li>
-                          <button
-                            className="font-poppins w-full text-left px-4 py-2 text-gray-700 italic hover:bg-gray-100"
-                            onClick={() => { setJenisTes('Essay'); setShowJenisDropdown(false); }}
-                          >
-                            Essay
-                          </button>
-                        </li>
-                      </ul>
-                    </div>
-                    )}
-
-                  </div>
+                  <input
+                    type="text"
+                    className="w-full border border-gray-300 p-2 rounded-full text:sm sm:text-lg"
+                    value="Pilihan Ganda"
+                    readOnly
+                  />
                 </div>
-
                 {/* Dropdown Kategori Tes */}
-                <div className="mb-4 sm:pt-12">
+                <div className="mb-4 sm:pt-12 w-full  mr-0 sm:mr-0">
                   <div className="relative" ref={kategoriDropdownRef}>
                     <button
-                      className="w-full border border-gray-300 p-2 rounded-full flex justify-between items-center bg-white"
+                      className="w-full border border-gray-300 p-2 rounded-full flex justify-between items-center bg-white "
                       onClick={() => setShowKategoriDropdown(!showKategoriDropdown)}
                     >
                       <span className="font-poppins text-gray-500 italic">{kategoriTes || 'Kategori Tes'}</span>
@@ -222,6 +186,7 @@ const BuatTes = () => {
                         />
                       </svg>
                     </button>
+
                     {showKategoriDropdown && (
                       <div className="absolute z-10 w-full mt-1 border border-gray-300 bg-white rounded-md shadow-lg">
                         <ul className="absolute z-10 w-full mt-1 border border-gray-300 bg-white rounded-md shadow-lg">
@@ -244,9 +209,17 @@ const BuatTes = () => {
                           <li>
                             <button
                               className="font-poppins w-full text-left px-4 py-2 text-gray-700 italic hover:bg-gray-100"
-                              onClick={() => { setKategoriTes('PEMROGRAMAN'); setShowKategoriDropdown(false); }}
+                              onClick={() => { setKategoriTes('Pemrograman'); setShowKategoriDropdown(false); }}
                             >
-                              PEMROGRAMAN
+                              Pemrograman
+                            </button>
+                          </li>
+                          <li>
+                            <button
+                              className="font-poppins w-full text-left px-4 py-2 text-gray-700 italic hover:bg-gray-100"
+                              onClick={() => { setKategoriTes('Psikotes'); setShowKategoriDropdown(false); }}
+                            >
+                              Psikotes
                             </button>
                           </li>
                         </ul>
@@ -277,11 +250,12 @@ const BuatTes = () => {
                   />
                 </div>
 
+
                 {/* Tombol Simpan */}
-                <div className="relative min-h-[450px]">
-                  <div className="absolute bottom-60 right-0 pb-10 mr-[-20px]">
+                <div className="relative min-h-[600px] sm:min-h-[450px]">
+                  <div className="absolute bottom-60 right-0 pb-10  mr-[-20px]">
                     <button
-                      className="bg-white text-black w-[180px] px-6 py-2 rounded-md hover:bg-[#0B61AA] hover:text-white transition duration-300" 
+                      className="bg-white text-black w-[150px] sm:w-[170px] px-6 py-2 rounded-md hover:bg-[#0B61AA] hover:text-white transition duration-300" 
                       onClick={handleSubmit}>
                       Selanjutnya
                     </button>
@@ -289,12 +263,6 @@ const BuatTes = () => {
                 </div>
               </div>
             </div>
-          </div>
-        )}
-
-        {activeTab === 'publikasi' && (
-          <div className="bg-[#465C6F] p-6 rounded-md">
-            <h2 className="text-white text-xl">Halaman Publikasi</h2>
           </div>
         )}
       </div>
