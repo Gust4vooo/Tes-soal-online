@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 import { initializeApp } from 'firebase/app';
-import { createMultipleChoiceService, updateMultipleChoiceService, getQuestionNumbersServices, updateQuestionNumberServices, getMultipleChoiceByIdService, deleteMultipleChoiceService,  fetchMultipleChoiceByNumberAndTestId, updateMultipleChoicePageNameService, getPagesByTestIdService } from '../services/multiplechoiceSevice.js';
+import { updatePageNameForQuestion, createMultipleChoiceService, updateMultipleChoiceService, getQuestionNumbersServices, updateQuestionNumberServices, getMultipleChoiceByIdService, deleteMultipleChoiceService,  fetchMultipleChoiceByNumberAndTestId, updateMultipleChoicePageNameService, getPagesByTestIdService } from '../services/multiplechoiceSevice.js'; 
 import { Buffer } from 'buffer';
 import { uploadFileToStorage } from '../../firebase/firebaseBucket.js';
 
@@ -70,6 +70,40 @@ const createMultipleChoice = async (req, res) => {
 
 export { createMultipleChoice }; 
 
+export const updateQuestionPageName = async (req, res) => {
+    const { questionNumber, pageName } = req.body;
+    console.log('Received request to update pageName for question:', req.body);
+  
+    if (!questionNumber || !pageName) {
+      return res.status(400).json({
+        success: false,
+        message: 'questionNumber and pageName are required.',
+      });
+    }
+  
+    try {
+      const result = await updatePageNameForQuestion(questionNumber, pageName);
+  
+      if (result.modifiedCount > 0) {
+        res.status(200).json({
+          success: true,
+          message: 'Page name updated successfully for the question.',
+        });
+      } else {
+        res.status(404).json({
+          success: false,
+          message: 'Question not found or no changes made.',
+        });
+      }
+    } catch (error) {
+      console.error('Error updating pageName for question:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error.',
+      });
+    }
+};
+
 const updateMultipleChoice = async (req, res) => {
     try {
         const { multiplechoiceId } = req.params; 
@@ -135,9 +169,17 @@ const deleteMultipleChoice = async (req, res) => {
         });
     } catch (error) {
         console.error('Controller Error:', error);
-        res.status(error.message === 'Multiple choice question not found' ? 404 : 500).json({
+
+        if (error.message === 'Multiple choice question not found') {
+            return res.status(404).json({
+                success: false,
+                message: 'Multiple choice question not found',
+            });
+        }
+
+        res.status(500).json({
             success: false,
-            message: error.message || 'Failed to delete multiple choice question',
+            message: 'Failed to delete multiple choice question',
             error: error.message
         });
     }
@@ -165,27 +207,14 @@ const getMultipleChoiceByNumberAndTestId = async (req, res) => {
 export{ getMultipleChoiceByNumberAndTestId};
 
 const updateMultipleChoicePageNameController = async (req, res) => {
-    if (req.method !== 'PUT') {
-        return res.status(405).json({ message: 'Method not allowed' });
-    }
-
+    const { testId, pageIndex, currentPageName, newPageName } = req.body;
+  
     try {
-        const { testId, number, newPageName } = req.body;
-
-        if (!testId || !number || !newPageName) {
-            return res.status(400).json({ message: 'testId, number, and Page name is required' });
-        }
-
-        const result = await updateMultipleChoicePageNameService(testId, number, newPageName);
-
-        if (result.count === 0) {
-            return res.status(404).json({ message: 'Multiple choice not found or nothing to update' });
-        }
-
-        return res.status(200).json({ message: 'Page name updated successfully' });
+      const result = await updateMultipleChoicePageNameService(testId, currentPageName, newPageName);
+      res.status(200).json({ message: 'Page name updated successfully', result });
     } catch (error) {
-        console.error('Error updating page name:', error);
-        return res.status(500).json({ message: 'Failed to update page name', error: error.message });
+      console.error('Error updating pageName:', error);
+      res.status(500).json({ error: 'Failed to update page name' });
     }
 };
 

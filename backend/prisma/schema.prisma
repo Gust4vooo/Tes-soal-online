@@ -143,6 +143,7 @@ model Option {
   id                String       @id @default(cuid())
   multiplechoiceId String
   optionDescription String
+  optionPhoto       String?
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
   points            Int?

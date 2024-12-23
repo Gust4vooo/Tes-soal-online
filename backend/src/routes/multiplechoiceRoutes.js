@@ -1,5 +1,5 @@
 import express from 'express';
-import { createMultipleChoice, updateMultipleChoice, getMultipleChoiceById, deleteMultipleChoice,  updateQuestionNumber, getQuestionNumbers, getMultipleChoiceByNumberAndTestId, updateMultipleChoicePageNameController, getPagesByTestIdController } from '../controllers/multiplechoiceController.js';
+import { updateQuestionPageName, createMultipleChoice, updateMultipleChoice, getMultipleChoiceById, deleteMultipleChoice,  updateQuestionNumber, getQuestionNumbers, getMultipleChoiceByNumberAndTestId, updateMultipleChoicePageNameController, getPagesByTestIdController } from '../controllers/multiplechoiceController.js';
 import multer from 'multer';
 
 const router = express.Router();
@@ -16,6 +16,7 @@ router.post('/add-questions', upload.array('questionPhoto'), (req, res) => {
 });
 
 router.put('/update-question/:multiplechoiceId', updateMultipleChoice); //perlu
+router.put('/update-question', updateQuestionPageName);
 router.get('/question/:id', getMultipleChoiceById); //perlu
 router.delete('/question/:multiplechoiceId', deleteMultipleChoice); //perlu
 router.get('/:testId/:number', getMultipleChoiceByNumberAndTestId); //perlu

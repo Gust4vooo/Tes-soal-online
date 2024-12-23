@@ -12,6 +12,10 @@ const createMultipleChoiceService = async (testId, questions) => {
             //     throw new Error(`Invalid weight value for question number ${question.number}. Weight must be a positive number without any signs, and can contain at most one decimal point.`);
             // }
 
+            if (question.options.length > 5) {
+                throw new Error("Each question can have a maximum of 5 options.");
+            }
+
             const multiplechoice = await prisma.multiplechoice.create({
                 data: {
                     pageName: question.pageName,
@@ -27,6 +31,7 @@ const createMultipleChoiceService = async (testId, questions) => {
                     option: {
                         create: question.options.map((option) => ({
                             optionDescription: option.optionDescription,
+                            optionPhoto: option.optionPhoto || null,
                             isCorrect: question.isWeighted ? null : option.isCorrect, 
                             points: question.isWeighted ? option.points : null, 
                         })),
@@ -81,6 +86,7 @@ const updateMultipleChoiceService = async (multiplechoiceId, updatedData) => {
             options.map(async (option) => {
                 const optionData = {
                     optionDescription: option.optionDescription,
+                    optionPhoto: option.optionPhoto || null,
                     isCorrect: isWeighted ? null : option.isCorrect,
                     points: isWeighted ? option.points : null,
                 };
@@ -195,6 +201,23 @@ const deleteMultipleChoiceService = async (multiplechoiceId) => {
 
 export { deleteMultipleChoiceService };
 
+export const updatePageNameForQuestion = async (questionNumber, pageName) => {
+    try {
+        const result = await prisma.multiplechoice.updateMany({
+        where: { 
+            number: questionNumber 
+        }, 
+        data: { pageName }, 
+      });
+  
+      return result; // Return the database operation result
+    } catch (error) {
+      throw new Error('Failed to update question pageName: ' + error.message);
+    } finally {
+      await prisma.$disconnect(); // Ensure the Prisma client disconnects
+    }
+  };
+
 const fetchMultipleChoiceByNumberAndTestId = async (testId, number, pageName) => {
     return await prisma.multiplechoice.findFirst({
         where: {
@@ -207,19 +230,38 @@ const fetchMultipleChoiceByNumberAndTestId = async (testId, number, pageName) =>
 
 export {fetchMultipleChoiceByNumberAndTestId};
 
-const updateMultipleChoicePageNameService = async (testId, number, newPageName) => {
-    return await prisma.multiplechoice.updateMany({
+const updateMultipleChoicePageNameService = async (testId, currentPageName, newPageName) => {
+    try {
+      if (!prisma || !prisma.multiplechoice) {
+        throw new Error('Prisma client not initialized properly');
+      }
+  
+      console.log('Updating with params:', {
+        testId,
+        currentPageName,
+        newPageName
+      });
+  
+      const result = await prisma.multiplechoice.updateMany({
         where: {
-            testId: testId,
-            number: number,
+          testId: testId,
+          pageName: currentPageName, 
         },
         data: {
-            pageName: newPageName,
+          pageName: newPageName, 
         },
-    });
+      });
+  
+      console.log('Update result:', result);
+      return result;
+  
+    } catch (error) {
+      console.error('Error in updateMultipleChoicePageNameService:', error);
+      throw error;
+    }
 };
-
-export {updateMultipleChoicePageNameService};
+  
+export { updateMultipleChoicePageNameService };
 
 const getPagesByTestIdService = async (testId) => {
     return await prisma.multiplechoice.findMany({
