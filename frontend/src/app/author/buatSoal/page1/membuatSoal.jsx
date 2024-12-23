@@ -187,20 +187,11 @@ const MembuatSoal = () => {
             const hasLaterQuestions = allNumbers.some(num => num > deletedNumber);
             
             if (hasLaterQuestions) {
-              // Update nomor untuk soal-soal setelahnya
-              pages = pages.map(page => ({
-                ...page,
-                questions: page.questions.map(num => 
-                  num > deletedNumber ? num - 1 : num
-                ).sort((a, b) => a - b)
-              }));
-    
-              // Update di database untuk setiap nomor yang berubah
               const updatePromises = [];
               pages.forEach(page => {
-                page.questions.forEach(async (num) => {
-                  if (num >= deletedNumber) {
-                    // Asumsikan Anda memiliki API endpoint untuk update nomor
+                page.questions.forEach(originalNum => {
+                  if (originalNum > deletedNumber) {
+                    const newNum = originalNum - 1;
                     updatePromises.push(
                       fetch(`http://localhost:2000/api/multiplechoice/question/update-number`, {
                         method: 'PUT',
@@ -209,8 +200,8 @@ const MembuatSoal = () => {
                         },
                         body: JSON.stringify({
                           testId: testId,
-                          oldNumber: num + 1,
-                          newNumber: num
+                          oldNumber: originalNum,
+                          newNumber: newNum
                         })
                       })
                     );
@@ -220,6 +211,13 @@ const MembuatSoal = () => {
     
               // Tunggu semua update selesai
               await Promise.all(updatePromises);
+
+              pages = pages.map(page => ({
+                ...page,
+                questions: page.questions.map(num => 
+                  num > deletedNumber ? num - 1 : num
+                ).sort((a, b) => a - b)
+              }));
             }
     
             // Hapus halaman yang kosong

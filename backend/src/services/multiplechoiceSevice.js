@@ -11,6 +11,9 @@ const createMultipleChoiceService = async (testId, questions) => {
             // if (!/^\d+(\.\d+)?$/.test(question.weight)) {
             //     throw new Error(`Invalid weight value for question number ${question.number}. Weight must be a positive number without any signs, and can contain at most one decimal point.`);
             // }
+            if (question.options.length > 5) {
+                throw new Error("Each question can have a maximum of 5 options.");
+            }
 
             const multiplechoice = await prisma.multiplechoice.create({
                 data: {
@@ -27,6 +30,7 @@ const createMultipleChoiceService = async (testId, questions) => {
                     option: {
                         create: question.options.map((option) => ({
                             optionDescription: option.optionDescription,
+                            ptionPhoto: option.optionPhoto || null,
                             isCorrect: question.isWeighted ? null : option.isCorrect, 
                             points: question.isWeighted ? option.points : null, 
                         })),
@@ -81,6 +85,7 @@ const updateMultipleChoiceService = async (multiplechoiceId, updatedData) => {
             options.map(async (option) => {
                 const optionData = {
                     optionDescription: option.optionDescription,
+                    ptionPhoto: option.optionPhoto || null,
                     isCorrect: isWeighted ? null : option.isCorrect,
                     points: isWeighted ? option.points : null,
                 };
@@ -238,6 +243,8 @@ export const updateQuestionNumber = async (testId, oldNumber, newNumber) => {
                 number: newNumber
             }
         });
+
+        console.log("count: ", updatedQuestion);
 
         if (updatedQuestion.count === 0) {
             throw new Error('Soal tidak ditemukan');
