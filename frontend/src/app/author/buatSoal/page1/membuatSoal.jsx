@@ -8,8 +8,10 @@ import { storage } from "../../../firebase/config";
 import { v4 } from 'uuid';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { AiOutlineCloseSquare } from 'react-icons/ai';
+import { IoMdArrowRoundBack } from "react-icons/io";
 import { BsImage } from 'react-icons/bs';
 import dynamic from 'next/dynamic';
+import Swal from 'sweetalert2'; 
 const ReactQuill = dynamic(() => import('react-quill'), {
   ssr: false 
 });
@@ -33,6 +35,7 @@ const MembuatSoal = () => {
   const [pages, setPages] = useState([{ questions: [] }]);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState(''); 
+  const [isValid, setIsValid] = useState(true);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -105,6 +108,19 @@ const MembuatSoal = () => {
   }, [multiplechoiceId]);
   
   const addOption = () => {
+    setOptions((prevOptions) => {
+      if (prevOptions.length < 5) {
+        return [...prevOptions, { optionDescription: '', points: '' }];
+      } else {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Maksimal 5 opsi hanya diperbolehkan',
+          text: 'Anda tidak dapat menambahkan lebih dari 5 opsi.',
+          confirmButtonText: 'OK',
+        });
+        return prevOptions;
+      }
+    });
     if (options.length < 6) {
       setOptions([...options, { 
         optionDescription: '', 
@@ -154,12 +170,11 @@ const MembuatSoal = () => {
   const handleCorrectOptionChange = (index) => {
     const newOptions = options.map((option, i) => ({
       ...option,
-      isCorrect: i === index, // Set `true` untuk index yang dipilih, lainnya `false`
+      isCorrect: i === index, 
     }));
     console.log('Options setelah perubahan isCorrect:', newOptions);
     setOptions(newOptions);
   };
-  
 
   const handleWeightChange = (e) => {
     const value = e.target.value;
@@ -189,25 +204,26 @@ const MembuatSoal = () => {
     if (confirm("Apakah Anda yakin ingin menghapus soal ini?")) {
       try {
         const localStorageKey = `pages-${testId}`;
-
+        
         if (multiplechoiceId != null) {
           const response = await fetch(`http://localhost:2000/api/multiplechoice/question/${multiplechoiceId}`, {
             method: 'DELETE',
           });
-  
+    
           if (!response.ok) {
             router.push(`/author/buatSoal?testId=${testId}`);
           }
+          
         }
-
+  
         const savedPages = localStorage.getItem(localStorageKey);
-        console.log('Data sebelum dihapus:', savedPages); 
+        console.log('Data sebelum dihapus:', savedPages);
   
         if (savedPages) {
           let pages = JSON.parse(savedPages);
           let deletedNumber = null;
           let deletedPageIndex = -1;
-
+          
           pages.forEach((page, pageIndex) => {
             const questionIndex = page.questions.indexOf(parseInt(number));
             if (questionIndex !== -1) {
@@ -217,24 +233,51 @@ const MembuatSoal = () => {
             }
           });
   
-          console.log('Nomor yang dihapus:', deletedNumber); 
-          console.log('Data setelah splice:', pages); 
-
           if (deletedNumber !== null) {
             const allNumbers = pages.reduce((acc, page) => [...acc, ...page.questions], []);
-            console.log('Semua nomor setelah flatten:', allNumbers); 
+        
+            // Cek apakah ada soal dengan nomor yang lebih besar
+            const hasLaterQuestions = allNumbers.some(num => num > deletedNumber);
+            
+            if (hasLaterQuestions) {
+              const updatePromises = [];
+              pages.forEach(page => {
+                page.questions.forEach(originalNum => {
+                  if (originalNum > deletedNumber) {
+                    const newNum = originalNum - 1;
+                    updatePromises.push(
+                      fetch(`http://localhost:2000/api/multiplechoice/question/update-number`, {
+                        method: 'PUT',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                          testId: testId,
+                          oldNumber: originalNum,
+                          newNumber: newNum
+                        })
+                      })
+                    );
+                  }
+                });
+              });
+    
+              // Tunggu semua update selesai
+              await Promise.all(updatePromises);
 
-            pages = pages.map(page => ({
-              ...page,
-              questions: page.questions.map(num => 
-                num > deletedNumber ? num - 1 : num
-              ).sort((a, b) => a - b)
-            }));
-  
-            console.log('Data setelah reorder:', pages); 
+              pages = pages.map(page => ({
+                ...page,
+                questions: page.questions.map(num => 
+                  num > deletedNumber ? num - 1 : num
+                ).sort((a, b) => a - b)
+              }));
+            }
+    
+            // Hapus halaman yang kosong
             pages = pages.filter(page => page.questions.length > 0);
+            
+            // Simpan perubahan ke localStorage
             localStorage.setItem(localStorageKey, JSON.stringify(pages));
-            console.log('Data final yang disimpan:', pages);
           }
         }
   
@@ -273,9 +316,54 @@ const MembuatSoal = () => {
     router.push(`/author/buatSoal?testId=${testId}`);
   };
 
+  const validateForm = () => {
+    const validationErrors = [];
+    if (!question.trim()) {
+      validationErrors.push("Soal wajib diisi");
+    }
+    if (!weight || weight <= 0) {
+      validationErrors.push("Bobot harus diisi dengan nilai lebih dari 0");
+    }
+    if (options.length < 2) {
+      validationErrors.push("Minimal harus ada 2 opsi jawaban");
+    } else {
+      const emptyOptions = options.filter((option, index) => 
+        !option.optionDescription.trim() && !option.optionPhoto
+      );
+      
+      if (emptyOptions.length > 0) {
+        validationErrors.push("Semua opsi jawaban harus diisi");
+      }
+    }
+    const correctOptionsCount = options.filter(option => option.isCorrect).length;
+    if (correctOptionsCount === 0) {
+      validationErrors.push("Pilih salah satu jawaban yang benar");
+    } else if (correctOptionsCount > 1) {
+      validationErrors.push("Hanya boleh memilih satu jawaban yang benar");
+    }
+    return {
+      isValid: validationErrors.length === 0,
+      errors: validationErrors
+    };
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
   
+    const valid = validateForm();
+    // setIsValid(valid);
+
+    if (!valid.isValid) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Membuat Soal',
+        html: valid.errors.map(error => `• ${error}`).join('<br>'),
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#0B61AA',
+      });
+      return;
+    }
+
     try {
       let uploadedImageUrl = questionPhoto;
       if (questionPhoto instanceof File) {
@@ -360,9 +448,23 @@ const MembuatSoal = () => {
       } else {
         console.error('Failed to process request:', response.statusText);
       }
-  
+      Swal.fire({
+        icon: 'success',
+        title: 'Berhasil',
+        text: 'Soal berhasil disimpan!',
+        confirmButtonColor: '#0B61AA',
+      }).then(() => {
+        const encodedPageName = encodeURIComponent(pageName);
+        router.push(`/author/buatSoal?testId=${testId}&pageName=${encodedPageName}`);
+      });
     } catch (error) {
       console.error('Error:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Terjadi kesalahan saat menyimpan soal. Silakan coba lagi.',
+        confirmButtonColor: '#0B61AA',
+      });
     }
   };
 
@@ -414,10 +516,13 @@ const MembuatSoal = () => {
 
   return (
     <div className="container mx-auto p-0" style={{ maxWidth: '1440px' }}>
-      <header className="bg-[#0B61AA] text-white p-4 sm:p-6 font-poppins" style={{ maxWidth: '1440px', height: '108px' }}>
-        <div className="container mx-auto flex justify-start items-center">
+      <header className="bg-[#0B61AA] text-white p-4 sm:p-6 font-poppins" style={{ maxWidth: '1440px', height: '108px', marginLeft: '0'}}>
+        <div className="container mx-auto flex justify-start items-center" style={{ marginLeft: '-76px' }}>
+          <Link href="/author/buatSoal">
+            <IoMdArrowRoundBack className="text-white text-2xl sm:text-3xl lg:text-4xl" />
+          </Link>
           <Link href="/">
-            <img src="/img/Vector.png" alt="Vector" className="h-[50px]" style={{ maxWidth: '179px' }} />
+            <img src="/images/etamtest.png" alt="Etamtest" className="h-[50px]" style={{ maxWidth: '179px' }} />
           </Link>
         </div>
       </header>
@@ -434,8 +539,7 @@ const MembuatSoal = () => {
           </li> 
           <li>
             <button
-              className={`w-[120px] sm:w-[220px] h-[48px] rounded-[20px] shadow-md font-bold font-poppins ${activeTab === 'publikasi' ? 'bg-[#78AED6]' : ''}`}
-              onClick={() => setActiveTab('publikasi')}
+              className={`w-[140px] sm:w-[180px] px-4 sm:px-8 py-2 sm:py-4 rounded-full shadow-xl font-bold font-poppins ${activeTab === 'publikasi' ? 'bg-[#78AED6]' : ''}`}
               >
               Publikasi
             </button>
@@ -470,12 +574,17 @@ const MembuatSoal = () => {
                   <div className='flex items-center'>
                     <label className="font-medium-bold mr-2">Bobot</label>
                     <input
-                      type="text"
-                      step="0.01"
-                      min="0"
+                      type="number"
+                      step="0"
+                      min="1"
                       id="weight"
                       value={weight}
-                      onChange={handleWeightChange}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (/^\d*$/.test(value)) {
+                          setWeight(value);
+                        }
+                      }}
                       className="border p-2 w-full"
                       required
                     />
@@ -554,7 +663,7 @@ const MembuatSoal = () => {
                         value={index}
                         checked={option.isCorrect}
                         onChange={() => handleCorrectOptionChange(index)}
-                        className="w-4 h-4"
+                        className={`w-4 h-4 ${!isValid && !options.some(opt => opt.isCorrect) ? 'border border-red-700' : ''}`}
                       />
                       <span>Benar</span>
                     </button>

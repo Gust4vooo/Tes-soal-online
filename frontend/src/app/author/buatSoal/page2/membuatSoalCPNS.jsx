@@ -8,8 +8,10 @@ import { storage } from "../../../firebase/config";
 import { v4 } from 'uuid';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { AiOutlineCloseSquare } from 'react-icons/ai';
+import { IoMdArrowRoundBack } from "react-icons/io";
 import { BsImage } from 'react-icons/bs';
 import dynamic from 'next/dynamic';
+import Swal from 'sweetalert2'; 
 const ReactQuill = dynamic(() => import('react-quill'), {ssr: false});
 // import dotenv from 'dotenv';
 
@@ -37,6 +39,7 @@ const MembuatSoal = () => {
   const [pages, setPages] = useState([{ questions: [] }]);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('');
+  const [isValid, setIsValid] = useState(true);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -305,8 +308,61 @@ const MembuatSoal = () => {
     }
   };
 
+  const validateForm = () => {
+    const validationErrors = [];
+    if (!question.trim()) {
+      validationErrors.push("Soal wajib diisi");
+    }
+    if (!points || points <= 0) {
+      validationErrors.push("Bobot harus diisi dengan nilai lebih dari 0");
+    }
+    if (options.length < 2) {
+      validationErrors.push("Minimal harus ada 2 opsi jawaban");
+    } else if (options.length > 5) {
+      validationErrors.push("Jumlah opsi jawaban tidak boleh lebih dari 5");
+    } else {
+      const emptyOptions = options.filter((option) => 
+        !option.optionDescription.trim() && !option.optionPhoto
+      );
+      if (emptyOptions.length > 0) {
+        validationErrors.push("Semua opsi jawaban harus diisi");
+      }
+  
+      const pointsOutOfRange = options.filter(option => 
+        option.points < 1 || option.points > 5
+      );
+      if (pointsOutOfRange.length > 0) {
+        validationErrors.push("Points harus berada dalam rentang 1–5");
+      }
+  
+      const uniquePoints = new Set(options.map(option => option.points));
+      if (uniquePoints.size !== options.length) {
+        validationErrors.push("Tidak boleh ada opsi dengan points yang sama");
+      }
+    }
+    const correctOptionsCount = options.filter(option => option.isCorrect).length;
+
+    return {
+      isValid: validationErrors.length === 0,
+      errors: validationErrors
+    };
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const valid = validateForm();
+
+    if (!valid.isValid) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Membuat Soal',
+        html: valid.errors.map(error => `• ${error}`).join('<br>'),
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#0B61AA',
+      });
+      return;
+    }
   
     try {
       let uploadedImageUrl = questionPhoto;
@@ -393,9 +449,23 @@ const MembuatSoal = () => {
       } else {
         console.error('Failed to process request:', response.statusText);
       }
-  
+      Swal.fire({
+        icon: 'success',
+        title: 'Berhasil',
+        text: 'Soal berhasil disimpan!',
+        confirmButtonColor: '#0B61AA',
+      }).then(() => {
+        const encodedPageName = encodeURIComponent(pageName);
+        router.push(`/author/buatSoal?testId=${testId}&pageName=${encodedPageName}`);
+      });
     } catch (error) {
       console.error('Error:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Terjadi kesalahan saat menyimpan soal. Silakan coba lagi.',
+        confirmButtonColor: '#0B61AA',
+      });
     }
   };
 

@@ -201,6 +201,60 @@ const deleteMultipleChoiceService = async (multiplechoiceId) => {
 
 export { deleteMultipleChoiceService };
 
+export const updateQuestionNumber = async (testId, oldNumber, newNumber) => {
+    try {
+      const existingQuestion = await prisma.multiplechoice.findFirst({
+        where: {
+          testId: testId,
+          number: oldNumber
+        }
+      });
+  
+      if (!existingQuestion) {
+        throw new Error(`Question with number ${oldNumber} not found in test ${testId}`);
+      }
+ 
+      const updatedQuestion = await prisma.multiplechoice.update({
+        where: {
+          id: existingQuestion.id
+        },
+        data: {
+          number: newNumber,
+          updatedAt: new Date()
+        }
+      });
+  
+      return updatedQuestion;
+    } catch (error) {
+      console.error('Error in updateQuestionNumber service:', error);
+      throw error;
+    }
+};
+
+export const updateQuestionNumberService = async (testId, oldNumber, newNumber) => {
+    try {
+        console.log("data: ", testId, oldNumber, newNumber);
+        const updatedQuestion = await prisma.multiplechoice.updateMany({
+            where: {
+                testId: testId,
+                number: oldNumber
+            },
+            data: {
+                number: newNumber
+            }
+        });
+
+        console.log("update: ", updatedQuestion)
+        if (updatedQuestion.count === 0) {
+            throw new Error('Soal tidak ditemukan');
+        }
+        return updatedQuestion;
+        
+    } catch (error) {
+        throw error;
+    }
+};
+
 export const updatePageNameForQuestion = async (questionNumber, pageName) => {
     try {
         const result = await prisma.multiplechoice.updateMany({
@@ -285,14 +339,14 @@ const getQuestionNumbersServices = async (testId, category) => {
         number: true,
       },
     });
-  
+
     return result.map((item) => item.number);
   };
-  
+
   const updateQuestionNumberServices = async (testId, oldNumber, newNumber) => {
     console.log('Updating question numbers in database:');
     console.log(`testId: ${testId}, oldNumber: ${oldNumber}, newNumber: ${newNumber}`);
-  
+
     await prisma.multiplechoice.updateMany({
       where: {
         testId: testId,
@@ -306,11 +360,11 @@ const getQuestionNumbersServices = async (testId, category) => {
         },
       },
     });
-  
+
     console.log('Question numbers updated successfully');
   };
-  
+
   export{
     getQuestionNumbersServices,
-    updateQuestionNumberServices,
+    updateQuestionNumberServices
   };

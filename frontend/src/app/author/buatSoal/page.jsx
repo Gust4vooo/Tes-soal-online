@@ -3,9 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-// import dotenv from 'dotenv';
-// dotenv.config();
-// const URL = process.env.NEXT_PUBLIC_API_URL;
+import axios from 'axios'
 
 const KotakNomor = () => {
   const router = useRouter();
@@ -31,7 +29,12 @@ const KotakNomor = () => {
     if (savedPages) {
       setPages(JSON.parse(savedPages));
     } else {
-      const initialPages = [{ pageNumber: 1, questions: [1], pageName: 'Beri Nama Tes' }];
+      const initialPages = [{
+        pageNumber: 1,
+        questions: [1],
+        pageName: category === 'CPNS' ? 'Tes Wawasan Kebangsaan' : 'Beri Nama Tes',
+        isCPNSPage: category === 'CPNS'
+      }];
       setPages(initialPages);
       localStorage.setItem(`pages-${testId}`, JSON.stringify(initialPages));
     }
@@ -48,18 +51,17 @@ const KotakNomor = () => {
     console.log("Fetched category:", categoryFromUrl);
 
     if (testIdFromUrl) {
-      if (testIdFromUrl) {
-        setTestId(testIdFromUrl);
-        if (categoryFromUrl) {
-          setCategory(categoryFromUrl);
-          localStorage.setItem(`category-${testIdFromUrl}`, categoryFromUrl);
-        } else {
-          const savedCategory = localStorage.getItem(`category-${testIdFromUrl}`);
-          if (savedCategory) {
-            setCategory(savedCategory);
-          }
+      setTestId(testIdFromUrl);
+      if (categoryFromUrl) {
+        setCategory(categoryFromUrl);
+        localStorage.setItem(`category-${testIdFromUrl}`, categoryFromUrl);
+      } else {
+        const savedCategory = localStorage.getItem(`category-${testIdFromUrl}`);
+        if (savedCategory) {
+          setCategory(savedCategory);
         }
       }
+      fetchPagesFromDB(testIdFromUrl);
     }
   
     if (multiplechoiceIdFromUrl) {
@@ -73,13 +75,6 @@ const KotakNomor = () => {
       })));
     }
   }, []);
-
-  const getMaxQuestionNumberInPage = (page) => {
-    if (Array.isArray(page.questions)) {
-      return Math.max(...page.questions);
-    }
-    return 0;
-  };
 
   const getAllUsedNumbers = (pages) => {
     const usedNumbers = new Set();
@@ -117,12 +112,13 @@ const KotakNomor = () => {
       }
       const data = await response.json();
       const questionNumbers = data.questionNumbers;
+  
       const numbersToUpdate = questionNumbers.filter(num => num > maxQuestionNumber);
-
+  
       if (numbersToUpdate.length === 0) {
         return;
       }
-
+  
       for (const number of numbersToUpdate) {
         const updateResponse = await fetch(`http://localhost:2000/api/multiplechoice/update-questionNumber?testId=${testId}`, {
           method: 'PUT',
@@ -144,6 +140,13 @@ const KotakNomor = () => {
     }
   };
 
+  const getMaxQuestionNumberInPage = (page) => {
+    if (Array.isArray(page.questions)) {
+      return Math.max(...page.questions);
+    }
+    return 0;
+  };
+
   const addQuestion = async (pageIndex) => {
     try {
       const maxQuestionNumber = getMaxQuestionNumberInPage(pages[pageIndex]);
@@ -153,22 +156,50 @@ const KotakNomor = () => {
         alert(`Silakan isi nomor soal ${maxQuestionNumber} terlebih dahulu.`);
         return;
       }
+      const hasNextPages = pageIndex < pages.length - 1;
+      
+      if (hasNextPages) {
+        const numbersToUpdate = pages.slice(pageIndex + 1).reduce((acc, page) => {
+          return [...acc, ...(page.questions || [])];
+        }, []);
+        numbersToUpdate.sort((a, b) => b - a);
 
-      await updateQuestionNumbersInDB(testId, maxQuestionNumber);
+        for (const number of numbersToUpdate) {
+          await updateQuestionNumberInDB(testId, number, number + 1);
+        }
+      }
 
       setPages(prevPages => {
         const updatedPages = [...prevPages];
         const currentPage = { ...updatedPages[pageIndex] };
-        currentPage.questions = [...(currentPage.questions || []), getNextAvailableNumber(updatedPages)];
-        currentPage.questions.sort((a, b) => a - b);    
+        currentPage.questions = [...(currentPage.questions || []), maxQuestionNumber + 1];
+        currentPage.questions.sort((a, b) => a - b);
         updatedPages[pageIndex] = currentPage;
-
+        if (hasNextPages) {
+          for (let i = pageIndex + 1; i < updatedPages.length; i++) {
+            const nextPage = { ...updatedPages[i] };
+            nextPage.questions = (nextPage.questions || []).map(num => num + 1);
+            updatedPages[i] = nextPage;
+          }
+        }
+  
         const finalPages = reorderAllPages(updatedPages);
         localStorage.setItem(`pages-${testId}`, JSON.stringify(finalPages));
         return finalPages;
       });
     } catch (error) {
       console.error('Error adding question:', error);
+    }
+  };
+
+  const updateQuestionNumberInDB = async (testId, oldNumber, newNumber) => {
+    try {
+      await axios.put(`http://localhost:2000/api/multiplechoice/${testId}/questions/${oldNumber}`, {
+        newQuestionNumber: newNumber
+      });
+    } catch (error) {
+      console.error('Error updating question number:', error);
+      throw error;
     }
   };
 
@@ -185,8 +216,9 @@ const KotakNomor = () => {
       console.log("Current category:", category); 
   
       setPages(prevPages => {
-        const usedPageNames = new Set(prevPages.map(page => page.pageName));
-        const availablePageNames = pageNameOptions.filter(name => !usedPageNames.has(name));
+        if (category === 'CPNS') {
+          const usedPageNames = new Set(prevPages.map(page => page.pageName));
+          const availablePageNames = pageNameOptions.filter(name => !usedPageNames.has(name));
         
         console.log("Available page names:", availablePageNames); 
         
@@ -199,7 +231,7 @@ const KotakNomor = () => {
           pageNumber: prevPages.length + 1,
           questions: [nextNumber],
           pageName: availablePageNames[0],
-          isCPNSPage: category === "CPNS"
+          isCPNSPage: true
         };
   
         console.log("New page created:", newPage); 
@@ -207,11 +239,23 @@ const KotakNomor = () => {
         const updatedPages = [...prevPages, newPage];
         localStorage.setItem(`pages-${testId}`, JSON.stringify(updatedPages));
         return updatedPages;
-      });
-    } catch (error) {
-      console.error('Error adding page:', error);
-    }
-  };
+      } else {
+        const newPage = {
+          pageNumber: prevPages.length + 1,
+          questions: [nextNumber],
+          pageName: 'Beri Nama Tes',
+          isCPNSPage: false
+        };
+        
+        const updatedPages = [...prevPages, newPage];
+        localStorage.setItem(`pages-${testId}`, JSON.stringify(updatedPages));
+        return updatedPages;
+      }
+    });
+  } catch (error) {
+    console.error('Error adding page:', error);
+  }
+};
 
   const toggleDropdown = (pageIndex) => {
     setPages(prevPages => 
@@ -272,8 +316,6 @@ const KotakNomor = () => {
       }
       console.log("currentPage:", currentPage);
       console.log("currentPage.questions:", currentPage?.questions);
-  
-      // Update pageName for each question in the current page
       const questionUpdates = currentPage.questions.map((questionNumber) => {
         console.log("Updating questionNumber:", questionNumber);
         return fetch(`http://localhost:2000/api/multiplechoice/update-question`, {
@@ -347,54 +389,60 @@ const KotakNomor = () => {
       const data = await response.json();
   
       if (response.ok) {
-        // Get the saved category
         const savedCategory = localStorage.getItem(`category-${testId}`);
         
-        // If we have pages from DB, process them
         if (data.pages && Array.isArray(data.pages)) {
-          const processedPages = data.pages.map((page, index) => ({
-            ...page,
-            isCPNSPage: savedCategory === 'CPNS',
-            // If it's CPNS, set the page name from pageNameOptions
-            pageName: savedCategory === 'CPNS' ? 
-              pageNameOptions[index % pageNameOptions.length] : 
-              (page.pageName || 'Beri Nama Tes')
-          }));
+          const processedPages = data.pages.map((page, index) => {
+            // For first page in CPNS category, always set to 'Tes Wawasan Kebangsaan'
+            const pageName = savedCategory === 'CPNS' && index === 0 ? 
+              'Tes Wawasan Kebangsaan' : 
+              (page.pageName || 'Beri Nama Tes');
+              
+            return {
+              ...page,
+              isCPNSPage: savedCategory === 'CPNS',
+              pageName: pageName
+            };
+          });
           
           setPages(processedPages);
           localStorage.setItem(`pages-${testId}`, JSON.stringify(processedPages));
+          
+          // Save initial page name to database
+          if (savedCategory === 'CPNS') {
+            fetch(`http://localhost:2000/api/multiplechoice/update-pageName`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                testId: testId,
+                pageIndex: 0,
+                pageName: 'Tes Wawasan Kebangsaan',
+              }),
+            }).catch(error => {
+              console.error("Error updating initial pageName:", error);
+            });
+          }
         } else {
-          // If no pages in DB, create initial page
           const initialPages = [{
             pageNumber: 1,
             questions: [1],
-            pageName: savedCategory === 'CPNS' ? pageNameOptions[0] : 'Beri Nama Tes',
+            pageName: savedCategory === 'CPNS' ? 'Tes Wawasan Kebangsaan' : 'Beri Nama Tes',
             isCPNSPage: savedCategory === 'CPNS'
           }];
           setPages(initialPages);
           localStorage.setItem(`pages-${testId}`, JSON.stringify(initialPages));
         }
-      } else {
-        console.error('Failed to fetch pages:', data.message);
-        // Set default page if fetch fails
-        const savedCategory = localStorage.getItem(`category-${testId}`);
-        const initialPages = [{
-          pageNumber: 1,
-          questions: [1],
-          pageName: savedCategory === 'CPNS' ? pageNameOptions[0] : 'Beri Nama Tes',
-          isCPNSPage: savedCategory === 'CPNS'
-        }];
-        setPages(initialPages);
-        localStorage.setItem(`pages-${testId}`, JSON.stringify(initialPages));
       }
     } catch (error) {
       console.error("Failed to fetch pages from DB:", error);
-      // Set default page if fetch fails
+      // Set default page with correct initial name
       const savedCategory = localStorage.getItem(`category-${testId}`);
       const initialPages = [{
         pageNumber: 1,
         questions: [1],
-        pageName: savedCategory === 'CPNS' ? pageNameOptions[0] : 'Beri Nama Tes',
+        pageName: savedCategory === 'CPNS' ? 'Tes Wawasan Kebangsaan' : 'Beri Nama Tes',
         isCPNSPage: savedCategory === 'CPNS'
       }];
       setPages(initialPages);
@@ -421,7 +469,7 @@ const KotakNomor = () => {
       console.error('Error fetching multiplechoiceId:', error);
       return null; 
     }
-  };  
+  }; 
 
   const handleQuestionSelect = async (questionNumber, pageIndex) => {
     if (!testId) {
@@ -680,3 +728,4 @@ const KotakNomor = () => {
 };
 
 export default KotakNomor;
+
