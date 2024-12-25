@@ -368,3 +368,39 @@ const getQuestionNumbersServices = async (testId, category) => {
     getQuestionNumbersServices,
     updateQuestionNumberServices
   };
+
+  export const deletePageService = async (testId, pageName) => {
+    try {
+        return await prisma.$transaction(async (tx) => {
+            // Get all questions for this page
+            const questionsToDelete = await tx.multiplechoice.findMany({
+                where: {
+                    testId: testId,
+                    pageName: pageName
+                }
+            });
+
+            // Delete options for all questions
+            await tx.option.deleteMany({
+                where: {
+                    multiplechoiceId: {
+                        in: questionsToDelete.map(q => q.id)
+                    }
+                }
+            });
+
+            // Delete all questions for this page
+            await tx.multiplechoice.deleteMany({
+                where: {
+                    testId: testId,
+                    pageName: pageName
+                }
+            });
+
+            return { success: true };
+        });
+    } catch (error) {
+        console.error('Error in deletePageService:', error);
+        throw error;
+    }
+};

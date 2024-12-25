@@ -27,7 +27,7 @@ const MembuatSoal = () => {
   const [question, setQuestion] = useState('');
   const [number, setNumber] = useState('');
   const [questionPhoto, setQuestionPhoto] = useState(null);
-  const [weight, setWeight] = useState();
+  const [weight, setWeight] = useState(null);
   const [discussion, setDiscussion] = useState('');
   const [options, setOptions] = useState([{ 
     optionDescription: '', 
@@ -115,14 +115,19 @@ const MembuatSoal = () => {
   }, [multiplechoiceId]);
   
   const addOption = () => {
-    if (options.length < 6) {
-      setOptions([...options, { 
-        optionDescription: '', 
-        optionPhoto: null,
-        points: ''
-        // isCorrect: false 
-      }]);
-    }
+    setOptions((prevOptions) => {
+      if (prevOptions.length < 5) {
+        return [...prevOptions, { optionDescription: '', optionPhoto: null, points: '' }];
+      } else {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Maksimal 5 opsi hanya diperbolehkan',
+          text: 'Anda tidak dapat menambahkan lebih dari 5 opsi.',
+          confirmButtonText: 'OK',
+        });
+        return prevOptions;
+      }
+    });
   };
 
   const handleOptionChange = async (index, content, type) => {
@@ -179,15 +184,15 @@ const MembuatSoal = () => {
         <textarea
           value={option.optionDescription}
           onChange={(e) => handleOptionChange(index, e.target.value, 'text')}
-          className="w-full p-2 border rounded min-h-[100px]"
+          className="w-full p-2 border rounded min-h-[100px] sm:min-h-[120px] md:min-h-[140px]"
           placeholder="Tulis opsi jawaban atau masukkan gambar..."
         />
         <button
           type="button"
           onClick={() => document.getElementById(`optionInput-${index}`).click()}
-          className="absolute bottom-2 right-2 bg-gray-100 p-2 rounded"
+          className="absolute bottom-2 right-2 bg-gray-100 p-2 rounded-md sm:p-3 md:p-4"
         >
-          <BsImage className="w-5 h-5" />
+          <BsImage className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" />
         </button>
         <input
           id={`optionInput-${index}`}
@@ -308,45 +313,45 @@ const MembuatSoal = () => {
     }
   };
 
-  const validateForm = () => {
-    const validationErrors = [];
-    if (!question.trim()) {
-      validationErrors.push("Soal wajib diisi");
-    }
-    if (!points || points <= 0) {
-      validationErrors.push("Bobot harus diisi dengan nilai lebih dari 0");
-    }
-    if (options.length < 2) {
-      validationErrors.push("Minimal harus ada 2 opsi jawaban");
-    } else if (options.length > 5) {
-      validationErrors.push("Jumlah opsi jawaban tidak boleh lebih dari 5");
-    } else {
-      const emptyOptions = options.filter((option) => 
-        !option.optionDescription.trim() && !option.optionPhoto
-      );
-      if (emptyOptions.length > 0) {
-        validationErrors.push("Semua opsi jawaban harus diisi");
-      }
+  // const validateForm = () => {
+  //   const validationErrors = [];
+  //   if (!question.trim()) {
+  //     validationErrors.push("Soal wajib diisi");
+  //   }
+  //   // if (!points || points <= 0) {
+  //   //   validationErrors.push("Bobot harus diisi dengan nilai lebih dari 0");
+  //   // }
+  //   if (options.length < 2) {
+  //     validationErrors.push("Minimal harus ada 2 opsi jawaban");
+  //   } else if (options.length > 5) {
+  //     validationErrors.push("Jumlah opsi jawaban tidak boleh lebih dari 5");
+  //   } else {
+  //     const emptyOptions = options.filter((option) => 
+  //       !option.optionDescription.trim() && !option.optionPhoto
+  //     );
+  //     if (emptyOptions.length > 0) {
+  //       validationErrors.push("Semua opsi jawaban harus diisi");
+  //     }
   
-      const pointsOutOfRange = options.filter(option => 
-        option.points < 1 || option.points > 5
-      );
-      if (pointsOutOfRange.length > 0) {
-        validationErrors.push("Points harus berada dalam rentang 1–5");
-      }
+  //     const pointsOutOfRange = options.filter(option => 
+  //       option.points < 1 || option.points > 5
+  //     );
+  //     if (pointsOutOfRange.length > 0) {
+  //       validationErrors.push("Points harus berada dalam rentang 1–5");
+  //     }
   
-      const uniquePoints = new Set(options.map(option => option.points));
-      if (uniquePoints.size !== options.length) {
-        validationErrors.push("Tidak boleh ada opsi dengan points yang sama");
-      }
-    }
-    const correctOptionsCount = options.filter(option => option.isCorrect).length;
+  //     const uniquePoints = new Set(options.map(option => option.points));
+  //     if (uniquePoints.size !== options.length) {
+  //       validationErrors.push("Tidak boleh ada opsi dengan points yang sama");
+  //     }
+  //   }
+  //   const correctOptionsCount = options.filter(option => option.isCorrect).length;
 
-    return {
-      isValid: validationErrors.length === 0,
-      errors: validationErrors
-    };
-  };
+  //   return {
+  //     isValid: validationErrors.length === 0,
+  //     errors: validationErrors
+  //   };
+  // };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -389,6 +394,38 @@ const MembuatSoal = () => {
         isWeighted: true,
         options: formattedOptions
       };
+
+      if (formattedOptions.length < 2) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Oops...',
+          text: 'Jumlah opsi minimal adalah 2.',
+          confirmButtonText: 'Tutup',
+          customClass: {
+            container: 'sm:max-w-xs max-w-sm',
+            title: 'text-lg sm:text-xl',
+            text: 'text-sm sm:text-base',
+            confirmButton: 'px-4 py-2 text-sm sm:text-base',
+          }
+        });
+        return; 
+      }
+
+      if (!number || !question || !options.every(option => option.optionDescription && option.points) || !discussion) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Oops...',
+          text: 'Semua kolom wajib diisi!',
+          confirmButtonText: 'Tutup',
+          customClass: {
+            container: 'sm:max-w-xs max-w-sm',
+            title: 'text-lg sm:text-xl',
+            text: 'text-sm sm:text-base',
+            confirmButton: 'px-4 py-2 text-sm sm:text-base',
+          }
+        });
+        return;
+      }
 
       let response;
       let result;
@@ -470,37 +507,44 @@ const MembuatSoal = () => {
   };
 
   return (
-    <div className="container mx-auto p-0" style={{ maxWidth: '1440px' }}>
-      <header className="bg-[#0B61AA] text-white p-4 sm:p-6 font-poppins" style={{ maxWidth: '1440px', height: '108px' }}>
-        <div className="container mx-auto flex justify-start items-center">
-          <Link href="/">
-            <img src="/img/Vector.png" alt="Vector" className="h-[50px]" style={{ maxWidth: '179px' }} />
+    <div className="container mx-auto p-0" style={{ maxWidth: '1978px' }}>
+      <header className="bg-[#0B61AA] text-white p-4 sm:p-6 font-poppins w-full"
+        style={{ height: 'auto' }}>
+        <div className="flex items-center max-w-[1978px] w-full px-2 sm:px-4 mx-auto">
+          <Link href="/author/buatSoal" className="flex items-center space-x-2 sm:space-x-4">
+            <IoMdArrowRoundBack className="text-white text-2xl sm:text-3xl lg:text-4xl" />
+            <img src="/images/etamtest.png" alt="Etamtest" className="h-[40px] sm:h-[50px]" />
           </Link>
         </div>
       </header>
   
-      <nav className="bg-[#FFFF] text-black p-4 sm:p-6">
-        <ul className="flex space-x-6 sm:space-x-20">
-          <li>
-            <button
-              className={`w-[120px] sm:w-[220px] h-[48px] rounded-[20px] shadow-md font-bold font-poppins ${activeTab === 'buatTes' ? 'bg-[#78AED6]' : ''}`}
-              onClick={() => setActiveTab('buatTes')}
+      <div className="w-full p-2">
+        <nav className="bg-[#FFFFFF] text-black p-4">
+          <ul className="grid grid-cols-2 gap-2 sm:flex sm:justify-around sm:gap-10">
+            <li>
+              <button
+                className={`w-[100px] sm:w-[140px] md:w-[180px] px-2 sm:px-4 md:px-8 py-1 sm:py-2 md:py-4 rounded-full shadow-xl font-bold font-poppins text-xs sm:text-sm md:text-base ${
+                  activeTab === 'buattes' ? 'bg-[#78AED6]' : ''
+                }`}
+                onClick={() => setActiveTab('buatTes')}
               >
-              Buat Soal
-            </button>
-          </li> 
-          <li>
-            <button
-              className={`w-[120px] sm:w-[220px] h-[48px] rounded-[20px] shadow-md font-bold font-poppins ${activeTab === 'publikasi' ? 'bg-[#78AED6]' : ''}`}
-              onClick={() => setActiveTab('publikasi')}
+                Buat Soal
+              </button>
+            </li> 
+            <li>
+              <button
+                className={`w-[100px] sm:w-[140px] md:w-[180px] px-2 sm:px-4 md:px-8 py-1 sm:py-2 md:py-4 rounded-full shadow-xl font-bold font-poppins text-xs sm:text-sm md:text-base ${
+                  activeTab === 'publikasi' ? 'bg-[#78AED6]' : ''
+                }`}
+                onClick={() => setActiveTab('publikasi')}
               >
-              Publikasi
-            </button>
-          </li>
-        </ul>
-      </nav>
+                Publikasi
+              </button>
+            </li>
+          </ul>
+        </nav>
   
-      <div className="container mx-auto lg: p-2 p-4 w-full" style={{ maxWidth: '1309px' }}>
+      <div className="container mx-auto lg: p-2 p-4 w-full" style={{ maxWidth: '100%', height: 'auto' }}>
         <header className='bg-[#0B61AA] font-bold font-poppins text-white p-4'>
           <div className="flex items-center justify-between">
             <span>{pageName}</span>
@@ -519,10 +563,10 @@ const MembuatSoal = () => {
               />
             </div>
             <div className='m'>
-              <div className='border border-black bg-[#D9D9D9] p-2 rounded mb-4' style={{ maxWidth: '1309px', height: '250px' }}>
+              <div className='border border-black bg-[#D9D9D9] p-2 rounded mb-4' style={{ maxWidth: '1978px', height: '250px' }}>
                 <div className='p-4 flex justify-between items-center mb-0.5 w-full'>
-                  <div className='flex items-center'>
-                    <label className="block mb-2">Soal Pilihan Ganda</label>
+                  <div className="flex items-center w-full sm:w-auto mb-2 sm:mb-0">
+                    <label className="block text-sm sm:text-sm md:text-base font-medium">Soal Pilihan Ganda</label>
                   </div>
                 </div>
                 <ReactQuill 
@@ -543,11 +587,10 @@ const MembuatSoal = () => {
                     'bullet',
                     'bold',
                     'italic',
-                    'underline',
-                    'image',
+                    'underline'
                   ]}
                   className='bg-white shadow-md rounded-md border border-gray-500'
-                  style={{ maxWidth: '1220px', height: '150px', overflow: 'hidden' }}
+                  style={{ maxWidth: '1978px', height: '150px', overflow: 'hidden' }}
                   placeholder='Buat Soal di sini...'
                   required 
                 />
@@ -581,40 +624,42 @@ const MembuatSoal = () => {
             </div>
   
             <div>
-              <h2 className="text-lg font-semi-bold mb-2">Jawaban</h2>
+              <h2 className="block text-sm sm:text-sm md:text-base font-medium mb-2">Jawaban</h2>
               {options.map((option, index) => (
-                  <div key={index} className="flex items-center space-x-2 mb-2">
-                    <div className="w-full">
+                  <div key={index} className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 mb-6">
+                    <div className="w-full mb-4 sm:mb-0">
                       {renderOptionContent(option, index)}
                     </div>
-                    <div className="flex items-center justify-between px-2 space-x-50 border border-black rounded-[10px]">
-                    <label className="font-medium-bold mr-4">Bobot</label>
+                    <div className="w-full sm:w-auto flex flex-col sm:flex-row items-center justify-between space-x-2 sm:space-x-4 border border-black rounded-[10px] p-2">
+                    <label className="font-medium text-sm">Bobot</label>
                       <input
                           type="number"
-                          step="0.01"
-                          min="0"
-                          value={option.points}
-                          onChange={(e) => handleOptionChange(index, e.target.value, 'points')}
-                          className="border p-2 w-[100px]"
+                          name="points"
+                          min="1"
+                          max="5"
+                          value={option.points || ''}
+                          onChange={(e) => handleOptionChange(index, 'points', e.target.value)}
+                          className="border p-1 w-full"
+                          style={{ height: '30px' }} 
                           required
                       />
                       <button
                         type="button"
                         onClick={() => handleDeleteJawaban(index, option.id)}
-                        className="ml-4"
+                        className="ml-2"
                       >
                         <AiOutlineCloseSquare className="w-6 h-6" />
                     </button>
                   </div>
                 </div>
               ))}
-              <button type="button" onClick={addOption} className="bg-[#7bb3b4] hover:bg-[#8CC7C8] text-black font-bold py-2 px-4 rounded-[15px] border border-black">
+              <button type="button" onClick={addOption} className="bg-[#7bb3b4] hover:bg-[#8CC7C8] border border-black px-1 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base font-poppins rounded-[10px] text-black font-bold">
                 + Tambah
               </button>
             </div>
   
             <div className="mb-4">
-              <label className="block mb-2">Pembahasan</label>
+              <label className="block text-sm sm:text-sm md:text-base font-medium mb-2">Pembahasan</label>
               <ReactQuill 
                 value={discussion} 
                 onChange={setDiscussion} 
@@ -638,31 +683,27 @@ const MembuatSoal = () => {
                 placeholder='Tulis kunci jawaban di sini...' />
             </div>
           </form>
-          <div className='mt-4 flex justify-end space-x-4 -mr-2'>
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={handleDelete}
-                className="bg-[#E58A7B] border border-black px-4 py-2 hover:text-white font-poppins rounded-[15px]"
+          <div className="mt-4 flex flex-wrap justify-end items-center gap-2 sm:gap-4">
+            <button
+              onClick={handleDelete}
+              className="bg-[#E58A7B] border border-black px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base hover:text-white font-poppins rounded-[10px]"
+            >
+              Hapus
+            </button>
+            <button
+                type="button"
+                onClick={handleSubmit}
+                className="bg-[#E8F4FF] border border-black px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base hover:text-white font-poppins rounded-[10px]"
               >
-                Hapus
+                Simpan
               </button>
-              </div>
-              <div className="flex justify-end space-x-2">
-                <button
-                  onClick={handleSubmit} 
-                  className="bg-[#E8F4FF] border border-black px-4 py-2 hover:text-white font-poppins rounded-[15px]"
-                >
-                  Simpan
-                </button>
-              </div>
-              <div className="flex justify-end space-x-2">
-                <button
-                  onClick={handleBack}
-                  className="bg-[#A6D0F7] border border-black px-4 py-2 hover:text-white font-poppins rounded-[15px]"
-                >
-                  Kembali
-                </button>
-              </div>
+              <button
+                onClick={handleBack}
+                className="bg-[#A6D0F7] border border-black px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base hover:text-white font-poppins rounded-[10px]"
+              >
+                Kembali
+              </button>
+            </div>
           </div>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 import { initializeApp } from 'firebase/app';
-import { updateQuestionNumberService,  updatePageNameForQuestion, createMultipleChoiceService, updateMultipleChoiceService, getQuestionNumbersServices, updateQuestionNumberServices, getMultipleChoiceByIdService, deleteMultipleChoiceService,  fetchMultipleChoiceByNumberAndTestId, updateMultipleChoicePageNameService, getPagesByTestIdService } from '../services/multiplechoiceSevice.js'; 
+import { updateQuestionNumberService,  updatePageNameForQuestion, createMultipleChoiceService, updateMultipleChoiceService, getQuestionNumbersServices, updateQuestionNumberServices, getMultipleChoiceByIdService, deleteMultipleChoiceService,  fetchMultipleChoiceByNumberAndTestId, updateMultipleChoicePageNameService, getPagesByTestIdService, deletePageService } from '../services/multiplechoiceSevice.js'; 
 import { Buffer } from 'buffer';
 import * as multiplechoiceService from '../services/multiplechoiceSevice.js';
 import { uploadFileToStorage } from '../../firebase/firebaseBucket.js';
@@ -330,4 +330,39 @@ const getQuestionNumbers = async (req, res) => {
   export {
     getQuestionNumbers,
     updateQuestionNumber,
+  };
+
+export const deletePageController = async (req, res) => {
+    try {
+        const { testId, pageName } = req.body;
+
+        // Validasi input
+        if (!testId || !pageName) {
+            return res.status(400).json({
+                success: false,
+                message: "testId dan pageName wajib diisi.",
+            });
+        }
+
+        // Panggil service untuk menghapus halaman
+        const result = await deletePageService(testId, pageName);
+
+        if (result.success) {
+            return res.status(200).json({
+                success: true,
+                message: "Halaman berhasil dihapus.",
+            });
+        } else {
+            return res.status(500).json({
+                success: false,
+                message: "Terjadi kesalahan saat menghapus halaman.",
+            });
+        }
+    } catch (error) {
+        console.error('Error in deletePageController:', error);
+        return res.status(500).json({
+            success: false,
+            message: "Terjadi kesalahan pada server.",
+        });
+    }
   };

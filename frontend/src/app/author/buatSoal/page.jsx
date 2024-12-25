@@ -3,7 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import axios from 'axios'
+import { IoMdArrowRoundBack } from "react-icons/io";
+import { AiOutlineMore } from 'react-icons/ai';
+// import dotenv from 'dotenv';
+// dotenv.config();
+// const URL = process.env.NEXT_PUBLIC_API_URL;
 
 const KotakNomor = () => {
   const router = useRouter();
@@ -17,6 +21,7 @@ const KotakNomor = () => {
   const [renameValue, setRenameValue] = useState('');
   const [activeTab, setActiveTab] = useState('');
   const [usedPageNames, setUsedPageNames] = useState(new Set());
+  const [pagesWithContent, setPagesWithContent] = useState(new Set());
 
   const [pageNameOptions] = useState([
     'Tes Wawasan Kebangsaan',
@@ -25,20 +30,26 @@ const KotakNomor = () => {
   ]);
 
   useEffect(() => {
+    if (testId) {
+      fetchPagesFromDB(testId);
+    }
+  }, [testId]);
+  
+  useEffect(() => {
     const savedPages = localStorage.getItem(`pages-${testId}`);
     if (savedPages) {
       setPages(JSON.parse(savedPages));
     } else {
-      const initialPages = [{
-        pageNumber: 1,
-        questions: [1],
+      const initialPages = [{ 
+        pageNumber: 1, 
+        questions: [1], 
         pageName: category === 'CPNS' ? 'Tes Wawasan Kebangsaan' : 'Beri Nama Tes',
-        isCPNSPage: category === 'CPNS'
+        isCPNSPage: category === 'CPNS' 
       }];
       setPages(initialPages);
       localStorage.setItem(`pages-${testId}`, JSON.stringify(initialPages));
     }
-  }, [testId]);
+  }, [testId, category]);
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -76,6 +87,13 @@ const KotakNomor = () => {
     }
   }, []);
 
+  const getMaxQuestionNumberInPage = (page) => {
+    if (Array.isArray(page.questions)) {
+      return Math.max(...page.questions);
+    }
+    return 0;
+  };
+
   const getAllUsedNumbers = (pages) => {
     const usedNumbers = new Set();
     pages.forEach(page => {
@@ -96,14 +114,6 @@ const KotakNomor = () => {
     return nextNumber;
   };
 
-  const reorderAllPages = (pages) => {
-    let nextNumber = 1;
-    return pages.map(page => ({
-      ...page,
-      questions: page.questions.map(() => nextNumber++)
-    }));
-  };
-
   const updateQuestionNumbersInDB = async (testId, maxQuestionNumber) => {
     try {
       const response = await fetch(`http://localhost:2000/api/multiplechoice/getQuestionNumbers?testId=${testId}`);
@@ -112,13 +122,12 @@ const KotakNomor = () => {
       }
       const data = await response.json();
       const questionNumbers = data.questionNumbers;
-  
       const numbersToUpdate = questionNumbers.filter(num => num > maxQuestionNumber);
-  
+
       if (numbersToUpdate.length === 0) {
         return;
       }
-  
+
       for (const number of numbersToUpdate) {
         const updateResponse = await fetch(`http://localhost:2000/api/multiplechoice/update-questionNumber?testId=${testId}`, {
           method: 'PUT',
@@ -140,87 +149,124 @@ const KotakNomor = () => {
     }
   };
 
-  const getMaxQuestionNumberInPage = (page) => {
-    if (Array.isArray(page.questions)) {
-      return Math.max(...page.questions);
-    }
-    return 0;
+  const reorderAllPages = (pages) => {
+    let nextNumber = 1;
+    return pages.map(page => ({
+      ...page,
+      questions: page.questions.map(() => nextNumber++)
+    }));
   };
+
+  const deletePage = async (pageIndex) => {
+    if (confirm("Apakah Anda yakin ingin menghapus tes ini?")) {
+      try {
+        const pageToDelete = pages[pageIndex];
+        
+        const response = await fetch(`http://localhost:2000/api/multiplechoice/delete-page`, {
+          method: 'DELETE',
+          headers: {
+              'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+              testId: testId,
+              pageName: pageToDelete.pageName
+          })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to delete page');
+        }
+
+        setPages(prevPages => {
+            const updatedPages = prevPages.filter((_, index) => index !== pageIndex);
+            localStorage.setItem(`pages-${testId}`, JSON.stringify(updatedPages));
+            return updatedPages;
+        });
+
+      } catch (error) {
+        console.error('Error deleting page:', error);
+        alert('Terjadi kesalahan saat menghapus halaman.');
+      }
+    }
+  };
+
+  const checkPageContent = async (pageIndex) => {
+    const page = pages[pageIndex];
+    if (!page || !page.questions) return false;
+
+    try {
+      for (const questionNumber of page.questions) {
+        const multiplechoiceId = await fetchMultipleChoiceId(testId, questionNumber);
+        if (multiplechoiceId) {
+          return true; 
+        }
+      }
+      return false; 
+    } catch (error) {
+      console.error('Error checking page content:', error);
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    const updatePagesWithContent = async () => {
+      const newPagesWithContent = new Set();
+      
+      for (let i = 0; i < pages.length; i++) {
+        const hasContent = await checkPageContent(i);
+        if (hasContent) {
+          newPagesWithContent.add(i);
+        }
+      }
+      
+      setPagesWithContent(newPagesWithContent);
+    };
+
+    updatePagesWithContent();
+  }, [pages, testId]);
 
   const addQuestion = async (pageIndex) => {
     try {
-      const maxQuestionNumber = getMaxQuestionNumberInPage(pages[pageIndex]);
-      const multiplechoiceId = await fetchMultipleChoiceId(testId, maxQuestionNumber);
-
-      if (!multiplechoiceId) {
-        alert(`Silakan isi nomor soal ${maxQuestionNumber} terlebih dahulu.`);
-        return;
-      }
-      const hasNextPages = pageIndex < pages.length - 1;
-      
-      if (hasNextPages) {
-        const numbersToUpdate = pages.slice(pageIndex + 1).reduce((acc, page) => {
-          return [...acc, ...(page.questions || [])];
-        }, []);
-        numbersToUpdate.sort((a, b) => b - a);
-
-        for (const number of numbersToUpdate) {
-          await updateQuestionNumberInDB(testId, number, number + 1);
-        }
-      }
+      const currentPage = pages[pageIndex];
+      const newQuestionNumber = currentPage.questions.length > 0 
+        ? Math.max(...currentPage.questions) + 1 
+        : 1;
 
       setPages(prevPages => {
         const updatedPages = [...prevPages];
-        const currentPage = { ...updatedPages[pageIndex] };
-        currentPage.questions = [...(currentPage.questions || []), maxQuestionNumber + 1];
-        currentPage.questions.sort((a, b) => a - b);
-        updatedPages[pageIndex] = currentPage;
-        if (hasNextPages) {
-          for (let i = pageIndex + 1; i < updatedPages.length; i++) {
-            const nextPage = { ...updatedPages[i] };
-            nextPage.questions = (nextPage.questions || []).map(num => num + 1);
-            updatedPages[i] = nextPage;
-          }
-        }
-  
-        const finalPages = reorderAllPages(updatedPages);
-        localStorage.setItem(`pages-${testId}`, JSON.stringify(finalPages));
-        return finalPages;
+        updatedPages[pageIndex] = {
+          ...currentPage,
+          questions: [...currentPage.questions, newQuestionNumber].sort((a, b) => a - b)
+        };
+        
+        localStorage.setItem(`pages-${testId}`, JSON.stringify(updatedPages));
+        return updatedPages;
       });
+
+      await fetch(`http://localhost:2000/api/multiplechoice/create-question`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          testId,
+          questionNumber: newQuestionNumber,
+          pageName: currentPage.pageName
+        }),
+      });
+
     } catch (error) {
       console.error('Error adding question:', error);
-    }
-  };
-
-  const updateQuestionNumberInDB = async (testId, oldNumber, newNumber) => {
-    try {
-      await axios.put(`http://localhost:2000/api/multiplechoice/${testId}/questions/${oldNumber}`, {
-        newQuestionNumber: newNumber
-      });
-    } catch (error) {
-      console.error('Error updating question number:', error);
-      throw error;
     }
   };
 
   const addPage = async () => {
     try {
       const nextNumber = getNextAvailableNumber(pages);
-      const multiplechoiceId = await fetchMultipleChoiceId(testId, nextNumber - 1);
-  
-      if (!multiplechoiceId && nextNumber > 1) {
-        alert(`Silakan isi nomor soal ${nextNumber - 1} terlebih dahulu.`);
-        return;
-      }
-  
-      console.log("Current category:", category); 
-  
+      
       setPages(prevPages => {
-        if (category === 'CPNS') {
-          const usedPageNames = new Set(prevPages.map(page => page.pageName));
-          const availablePageNames = pageNameOptions.filter(name => !usedPageNames.has(name));
-        
-        console.log("Available page names:", availablePageNames); 
+        const usedPageNames = new Set(prevPages.map(page => page.pageName));
+        const availablePageNames = pageNameOptions.filter(name => !usedPageNames.has(name));
         
         if (availablePageNames.length === 0) {
           alert('Semua jenis tes sudah digunakan!');
@@ -231,31 +277,32 @@ const KotakNomor = () => {
           pageNumber: prevPages.length + 1,
           questions: [nextNumber],
           pageName: availablePageNames[0],
-          isCPNSPage: true
+          isCPNSPage: category === "CPNS"
         };
-  
-        console.log("New page created:", newPage); 
   
         const updatedPages = [...prevPages, newPage];
-        localStorage.setItem(`pages-${testId}`, JSON.stringify(updatedPages));
-        return updatedPages;
-      } else {
-        const newPage = {
-          pageNumber: prevPages.length + 1,
-          questions: [nextNumber],
-          pageName: 'Beri Nama Tes',
-          isCPNSPage: false
-        };
         
-        const updatedPages = [...prevPages, newPage];
         localStorage.setItem(`pages-${testId}`, JSON.stringify(updatedPages));
+
+        fetch(`http://localhost:2000/api/multiplechoice/addPage`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            testId: testId,
+            page: newPage
+          }),
+        }).catch(error => {
+          console.error("Error persisting new page:", error);
+        });
+        
         return updatedPages;
-      }
-    });
-  } catch (error) {
-    console.error('Error adding page:', error);
-  }
-};
+      });
+    } catch (error) {
+      console.error('Error adding page:', error);
+    }
+  };
 
   const toggleDropdown = (pageIndex) => {
     setPages(prevPages => 
@@ -266,7 +313,14 @@ const KotakNomor = () => {
     );
   };
 
-  const handleRename = (pageIndex) => {
+  const handleRename = async (pageIndex) => {
+    const hasContent = await checkPageContent(pageIndex);
+    
+    if (hasContent) {
+      alert('Halaman ini sudah memiliki soal. Nama halaman tidak dapat diubah.');
+      return;
+    }
+
     if (category === 'CPNS') {
       setIsRenaming(pageIndex);
       setRenameValue(pages[pageIndex].pageName);
@@ -282,7 +336,7 @@ const KotakNomor = () => {
         console.error("Invalid page or pageIndex");
         return;
       }
-  
+
       const currentPage = pages[pageIndex];
       const currentPageName = currentPage?.pageName;
   
@@ -304,7 +358,6 @@ const KotakNomor = () => {
         body: JSON.stringify({
           testId: testId,
           pageIndex: pageIndex,
-          // pageName: renameValue,
           currentPageName: currentPageName, 
           newPageName: renameValue, 
         }),
@@ -314,8 +367,7 @@ const KotakNomor = () => {
         console.error("No questions found for the specified page number.");
         return;
       }
-      console.log("currentPage:", currentPage);
-      console.log("currentPage.questions:", currentPage?.questions);
+
       const questionUpdates = currentPage.questions.map((questionNumber) => {
         console.log("Updating questionNumber:", questionNumber);
         return fetch(`http://localhost:2000/api/multiplechoice/update-question`, {
@@ -348,41 +400,6 @@ const KotakNomor = () => {
     }
   };
 
-  const deletePage = (pageIndex) => {
-    if (confirm("Apakah Anda yakin ingin menghapus tes ini?")) {
-      setPages((prevPages) => {
-        const pageToDelete = prevPages[pageIndex];
-        const updatedPages = prevPages.filter((_, index) => index !== pageIndex);
-
-        setUsedPageNames(prev => {
-          const updated = new Set(prev);
-          updated.delete(pageToDelete.pageName);
-          return updated;
-        });
-        
-        const finalPages = updatedPages.reduce((acc, page, idx) => {
-          if (idx === 0) return [page];   
-          const prevPageLastNumber = Math.max(...acc[idx - 1].questions);
-          const numQuestions = page.questions.length;
-          const newQuestions = Array.from(
-            { length: numQuestions },
-            (_, i) => prevPageLastNumber + i + 1
-          );
-          
-          acc.push({
-            ...page,
-            questions: newQuestions
-          });
-          
-          return acc;
-        }, []);
-
-        localStorage.setItem(`pages-${testId}`, JSON.stringify(finalPages));
-        return finalPages;
-      });
-    }
-  };
-
   const fetchPagesFromDB = async (testId) => {
     try {
       const response = await fetch(`http://localhost:2000/api/multiplechoice/getPages?testId=${testId}`);
@@ -390,25 +407,24 @@ const KotakNomor = () => {
   
       if (response.ok) {
         const savedCategory = localStorage.getItem(`category-${testId}`);
+        const localPages = JSON.parse(localStorage.getItem(`pages-${testId}`) || '[]');
         
         if (data.pages && Array.isArray(data.pages)) {
-          const processedPages = data.pages.map((page, index) => {
-            // For first page in CPNS category, always set to 'Tes Wawasan Kebangsaan'
-            const pageName = savedCategory === 'CPNS' && index === 0 ? 
-              'Tes Wawasan Kebangsaan' : 
-              (page.pageName || 'Beri Nama Tes');
-              
+          const mergedPages = localPages.map((localPage, index) => {
+            const dbPage = data.pages.find(p => p.pageNumber === localPage.pageNumber);
             return {
-              ...page,
+              ...localPage,
+              ...dbPage,
               isCPNSPage: savedCategory === 'CPNS',
-              pageName: pageName
+              pageName: savedCategory === 'CPNS' && index === 0 ? 
+                'Tes Wawasan Kebangsaan' : 
+                (dbPage?.pageName || localPage.pageName || 'Beri Nama Tes')
             };
           });
           
-          setPages(processedPages);
-          localStorage.setItem(`pages-${testId}`, JSON.stringify(processedPages));
-          
-          // Save initial page name to database
+          setPages(mergedPages);
+          localStorage.setItem(`pages-${testId}`, JSON.stringify(mergedPages));
+
           if (savedCategory === 'CPNS') {
             fetch(`http://localhost:2000/api/multiplechoice/update-pageName`, {
               method: 'PUT',
@@ -425,28 +441,36 @@ const KotakNomor = () => {
             });
           }
         } else {
-          const initialPages = [{
-            pageNumber: 1,
-            questions: [1],
-            pageName: savedCategory === 'CPNS' ? 'Tes Wawasan Kebangsaan' : 'Beri Nama Tes',
-            isCPNSPage: savedCategory === 'CPNS'
-          }];
-          setPages(initialPages);
-          localStorage.setItem(`pages-${testId}`, JSON.stringify(initialPages));
+          if (localPages.length > 0) {
+            setPages(localPages);
+          } else {
+            const initialPages = [{
+              pageNumber: 1,
+              questions: [1],
+              pageName: savedCategory === 'CPNS' ? 'Tes Wawasan Kebangsaan' : 'Beri Nama Tes',
+              isCPNSPage: savedCategory === 'CPNS'
+            }];
+            setPages(initialPages);
+            localStorage.setItem(`pages-${testId}`, JSON.stringify(initialPages));
+          }
         }
       }
     } catch (error) {
       console.error("Failed to fetch pages from DB:", error);
-      // Set default page with correct initial name
-      const savedCategory = localStorage.getItem(`category-${testId}`);
-      const initialPages = [{
-        pageNumber: 1,
-        questions: [1],
-        pageName: savedCategory === 'CPNS' ? 'Tes Wawasan Kebangsaan' : 'Beri Nama Tes',
-        isCPNSPage: savedCategory === 'CPNS'
-      }];
-      setPages(initialPages);
-      localStorage.setItem(`pages-${testId}`, JSON.stringify(initialPages));
+      const localPages = JSON.parse(localStorage.getItem(`pages-${testId}`) || '[]');
+      if (localPages.length > 0) {
+        setPages(localPages);
+      } else {
+        const savedCategory = localStorage.getItem(`category-${testId}`);
+        const initialPages = [{
+          pageNumber: 1,
+          questions: [1],
+          pageName: savedCategory === 'CPNS' ? 'Tes Wawasan Kebangsaan' : 'Beri Nama Tes',
+          isCPNSPage: savedCategory === 'CPNS'
+        }];
+        setPages(initialPages);
+        localStorage.setItem(`pages-${testId}`, JSON.stringify(initialPages));
+      }
     }
   };
 
@@ -469,7 +493,7 @@ const KotakNomor = () => {
       console.error('Error fetching multiplechoiceId:', error);
       return null; 
     }
-  }; 
+  };  
 
   const handleQuestionSelect = async (questionNumber, pageIndex) => {
     if (!testId) {
@@ -491,7 +515,6 @@ const KotakNomor = () => {
     console.log("Selected baseUrl:", baseUrl);
 
     if (multiplechoiceId !== "null") {
-      console.log("multiplechoiceId not found. You can create a new one.");
       router.push(`${baseUrl}?testId=${testId}&category=${category}&multiplechoiceId=${multiplechoiceId}&nomor=${questionNumber}&pageName=${encodeURIComponent(pageName)}`);
     }
   
@@ -510,9 +533,7 @@ const KotakNomor = () => {
   };
 
   const renderPageNameInput = (pageIndex, page) => {
-    console.log("Category:", category);
-    console.log("Page:", page);
-    console.log("Is CPNS check:", category === 'CPNS' || page.isCPNSPage);
+    const hasContent = pagesWithContent.has(pageIndex);
 
     if (category === 'CPNS') {
       const usedPageNames = new Set(
@@ -530,6 +551,11 @@ const KotakNomor = () => {
           <select
             value={page.pageName}
             onChange={(e) => {
+              if (hasContent) {
+                alert('Halaman ini sudah memiliki soal. Nama halaman tidak dapat diubah.');
+                return;
+              }
+              
               const newPageName = e.target.value;
               setPages(prevPages => {
                 const updatedPages = prevPages.map((p, idx) => {
@@ -541,13 +567,6 @@ const KotakNomor = () => {
                 localStorage.setItem(`pages-${testId}`, JSON.stringify(updatedPages));
                 return updatedPages;
               });
-
-              // setUsedPageNames(prev => {
-              //   const updated = new Set(prev);
-              //   updated.delete(oldPageName); 
-              //   updated.add(newPageName);    
-              //   return updated;
-              // });
 
               fetch(`http://localhost:2000/api/multiplechoice/update-pageName`, {
                 method: 'PUT',
@@ -563,7 +582,10 @@ const KotakNomor = () => {
                 console.error("Error updating pageName:", error);
               });
             }}
-            className="text-black bg-white border rounded-md p-2"
+            className={`text-black bg-white border rounded-md p-2 ${
+              hasContent ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
+            disabled={hasContent}
           >
             {availableOptions.map((option) => (
               <option key={option} value={option}>
@@ -581,47 +603,70 @@ const KotakNomor = () => {
               type="text"
               value={renameValue}
               onChange={(e) => setRenameValue(e.target.value)}
-              className="text-black p-1 border border-gray-300 rounded-md"
+              className={`text-black p-1 border border-gray-300 rounded-md ${
+                hasContent ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+              disabled={hasContent}
             />
             <button
               onClick={() => saveRename(pageIndex)}
-              className="ml-2 bg-white text-black px-2 py-1 rounded-md"
+              className={`ml-2 bg-white text-black px-2 py-1 rounded-md ${
+                hasContent ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+              disabled={hasContent}
             >
               Save
             </button>
           </div>
         );
       } else {
-        return <h2 className="text-lg">{page.pageName}</h2>;
+        return (
+          <div className="flex items-center">
+            <h2 className="text-lg">{page.pageName}</h2>
+            {!hasContent && (
+              <button
+                onClick={() => handleRename(pageIndex)}
+                className="ml-2 text-sm text-gray-400 hover:text-gray-300"
+              >
+                ✏️
+              </button>
+            )}
+          </div>
+        );
       }
     }
-  };  
+  };
 
   return (
-    <div className="w-full p-4">
-      <header className="bg-[#0B61AA] text-white p-4 sm:p-6 font-poppins" style={{ maxWidth: '1443px', height: '108px' }}>
-        <div className="container mx-auto flex justify-start items-center p-4">
-          <Link href="/">
-            <img src="/img/Vector.png" alt="Vector" className="h-6 ml-4" style={{ maxWidth: '279px', height: '50px' }} />
+    <div className="container mx-auto p-0" style={{ maxWidth: '1978px' }}>
+      <header className="bg-[#0B61AA] text-white p-4 sm:p-6 font-poppins w-full"
+        style={{ height: 'auto' }}>
+        <div className="flex items-center max-w-[1978px] w-full px-2 sm:px-4 mx-auto">
+          <Link href="/author/buattes" className="flex items-center space-x-2 sm:space-x-4">
+            <IoMdArrowRoundBack className="text-white text-2xl sm:text-3xl lg:text-4xl" />
+            <img src="/images/etamtest.png" alt="Etamtest" className="h-[40px] sm:h-[50px]" />
           </Link>
         </div>
       </header>
 
-      <div className="w-full p-0">
-        <nav className="bg-[#FFFF] text-black p-4 sm:p-6">
-          <ul className="flex space-x-6 sm:space-x-20">
+      <div className="w-full p-2">
+        <nav className="bg-[#FFFF] text-black p-4">
+          <ul className="grid grid-cols-2 gap-2 sm:flex sm:justify-around sm:gap-10">
             <li>
               <button
-                className={`w-[120px] sm:w-[220px] h-[48px] rounded-[20px] shadow-md font-bold font-poppins ${activeTab === 'buatTes' ? 'bg-[#78AED6]' : ''}`}
-                onClick={() => setActiveTab('buatTes')}
+                className={`w-[100px] sm:w-[140px] md:w-[180px] px-2 sm:px-4 md:px-8 py-1 sm:py-2 md:py-4 rounded-full shadow-xl font-bold font-poppins text-xs sm:text-sm md:text-base ${
+                  activeTab === 'buattes' ? 'bg-[#78AED6]' : ''
+                }`}
+                onClick={() => setActiveTab('buattes')}
               >
                 Buat Soal
               </button>
             </li>
             <li>
               <button
-                className={`w-[120px] sm:w-[220px] h-[48px] rounded-[20px] shadow-md font-bold font-poppins ${activeTab === 'publikasi' ? 'bg-[#78AED6]' : ''}`}
-                onClick={() => setActiveTab('publikasi')}
+                className={`w-[100px] sm:w-[140px] md:w-[180px] px-2 sm:px-4 md:px-8 py-1 sm:py-2 md:py-4 rounded-full shadow-xl font-bold font-poppins text-xs sm:text-sm md:text-base ${
+                  activeTab === 'publikasi' ? 'bg-[#78AED6]' : ''
+                }`}
               >
                 Publikasi
               </button>
@@ -631,15 +676,15 @@ const KotakNomor = () => {
 
         {Array.isArray(pages) && pages.map((page, pageIndex) => (
           <div key={page.pageNumber} className="my-4">
-            <div className="flex justify-between items-center bg-[#0B61AA] text-black p-2" style={{ maxWidth: '1376px', height: '61px' }}>
+            <div className="flex justify-between items-center bg-[#0B61AA] text-white p-2" style={{ maxWidth: '100%', height: '61px' }}>
               {renderPageNameInput(pageIndex, page)}
   
               <div className="relative">
                 <button 
-                  className="text-white font-bold text-2xl mr-2"
+                  className="text-white font-bold text-xl sm:text-2xl mr-2"
                   onClick={() => toggleDropdown(pageIndex)}
                 >
-                  :
+                  <AiOutlineMore />
                 </button>
   
                 {page.isDropdownOpen && (
@@ -653,7 +698,7 @@ const KotakNomor = () => {
                     {category === 'CPNS' ? (
                       <button
                         onClick={() => deletePage(pageIndex)}
-                        className="block px-4 py-2 text-deepBlue text-sm text-gray-700 hover:bg-deepBlue hover:text-white rounded-md"
+                        className="block px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm text-deepBlue text-gray-700 hover:bg-deepBlue hover:text-white rounded-md"
                       >
                         Delete page
                       </button>
@@ -661,13 +706,16 @@ const KotakNomor = () => {
                       <>
                       <button
                         onClick={() => handleRename(pageIndex)}
-                        className="block px-4 py-2 text-deepBlue text-sm text-gray-700 hover:bg-deepBlue hover:text-white rounded-md"
+                        className={`block px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm text-deepBlue text-gray-700 hover:bg-deepBlue hover:text-white rounded-md ${
+                          pagesWithContent.has(pageIndex) ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                        disabled={pagesWithContent.has(pageIndex)}
                       >
                         Rename
                       </button>
                       <button
                         onClick={() => deletePage(pageIndex)}
-                        className="block px-4 py-2 text-deepBlue text-sm text-gray-700 hover:bg-deepBlue hover:text-white rounded-md"
+                        className="block px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm text-deepBlue text-gray-700 hover:bg-deepBlue hover:text-white rounded-md"
                       >
                         Delete page
                       </button>
@@ -678,25 +726,24 @@ const KotakNomor = () => {
               </div>
             </div>
 
-          <div className="mt-4"></div>
-          <div className="flex flex-row flex-wrap p-4 gap-3 justify-start border" style={{ maxWidth: '100%', padding: '0 2%' }}>
+          <div className="mt-0"></div>
+          <div className="flex flex-wrap p-4 gap-3 justify-start border border-black" style={{ maxWidth: '100%', padding: '0 3%' }}>
             {Array.isArray(page.questions) && page.questions.map((question, questionIndex) => (
               <div
                 key={`${pageIndex}-${question}`}
-                className="flex flex-col items-center border border-gray-300 p-2 bg-white rounded-lg shadow-md cursor-pointer"
-                style={{ width: '80px', height: '80px' }}
+                className="flex flex-col items-center border border-gray-300 p-2 mb-5 mt-4 bg-white rounded-lg shadow-md cursor-pointer w-[50px] sm:w-[80px] md:w-[80px] h-[50px] sm:h-[80px] md:h-[80px] transition-all"
                 onClick={() => handleQuestionSelect(question, pageIndex)} 
               >
-                <span className="bg-white border rounded-full w-8 h-8 flex items-center justify-center mb-2 rounded-[15px]">
+                <span className="bg-white border rounded-full w-8 h-8 flex items-center justify-center mb-2 rounded-[15px] text-xs sm:text-sm md:text-base p-1">
                   {question}
                 </span>
               </div>
             ))}
 
-            <div className="flex items-center">
+            <div className="flex items-center mt-1 sm:mt-2">
               <button
                 onClick={() => addQuestion(pageIndex)}
-                className="bg-[#A6D0F7] text-black px-4 py-2 rounded-[15px] shadow-lg"
+                className="bg-[#A6D0F7] text-black px-3 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base rounded-[10px] shadow-lg font-bold"
               >
                 + Soal
               </button>
@@ -708,7 +755,7 @@ const KotakNomor = () => {
       <div className="flex justify-between mt-4">
         <button
           onClick={addPage}
-          className="bg-[#0B61AA] border border-black flex items-center space-x-2 px-4 py-2 hover:text-white font-poppins rounded-[15px] shadow-lg"
+          className="bg-[#0B61AA] hover:bg-[#5A96C3] border border-black px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base font-poppins rounded-[10px] text-white font-bold"
         >
           + Tambah Page
         </button>
@@ -716,7 +763,7 @@ const KotakNomor = () => {
         <div className="flex justify-end space-x-2 mr-4">
           <button
             onClick={handleSave} 
-            className="bg-[#E8F4FF] border border-black flex items-center space-x-2 px-4 py-2 hover:text-black font-poppins rounded-[15px] shadow-lg"
+            className="bg-[#E8F4FF] hover:bg-[#C1DBF5] border border-black px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base font-poppins rounded-[10px] text-black font-bold"
           >
             Simpan
           </button>
@@ -728,4 +775,3 @@ const KotakNomor = () => {
 };
 
 export default KotakNomor;
-
