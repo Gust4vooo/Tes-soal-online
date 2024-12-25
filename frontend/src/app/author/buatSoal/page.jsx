@@ -33,7 +33,7 @@ const KotakNomor = () => {
     if (savedPages) {
       setPages(JSON.parse(savedPages));
     } else {
-      const initialPages = [{ pageNumber: 1, questions: [1], pageName: 'Beri Nama Tes' }];
+      const initialPages = [{ pageNumber: 1, questions: [1], pageName: 'Beri Nama Tes' }];  
       setPages(initialPages);
       localStorage.setItem(`pages-${testId}`, JSON.stringify(initialPages));
     }
@@ -508,51 +508,56 @@ const KotakNomor = () => {
 
   return (
     <div className="container mx-auto p-0" style={{ maxWidth: '1978px' }}>
-      <header className="bg-[#0B61AA] text-white p-6 font-poppins w-full" style={{ height: '108px' }}>
-        <div className="flex justify-start items-center max-w-[1978px] w-full px-4 mx-auto">
-          <Link href="/author/buattes">
-            <IoMdArrowRoundBack className="text-white text-3xl sm:text-3xl lg:text-4xl ml-2" />
-          </Link>
-          <Link href="/">
-            <img src="/images/etamtest.png" alt="Etamtest" className="h-[50px] ml-4" />
+      <header 
+        className="bg-[#0B61AA] text-white p-4 sm:p-6 font-poppins w-full"
+        style={{ height: 'auto' }}
+      >
+        <div className="flex items-center max-w-[1978px] w-full px-2 sm:px-4 mx-auto">
+          <Link href="/author/buattes" className="flex items-center space-x-2 sm:space-x-4">
+            <IoMdArrowRoundBack className="text-white text-2xl sm:text-3xl lg:text-4xl" />
+            <img src="/images/etamtest.png" alt="Etamtest" className="h-[40px] sm:h-[50px]" />
           </Link>
         </div>
       </header>
-
-      <div className="w-full p-4">
-      <nav className="bg-[#FFFFFF] text-black p-4">
-        <ul className="grid grid-cols-2 flex justify-start sm:flex sm:justify-around gap-4 sm:gap-10">
-          <li>
-            <button
-              className={`w-[140px] sm:w-[180px] px-4 sm:px-8 py-2 sm:py-4 rounded-full shadow-xl font-bold font-poppins ${activeTab === 'buattes' ? 'bg-[#78AED6]' : ''}`}
-              onClick={() => setActiveTab('buattes')}
-            >
-              Buat Soal
-            </button>
-          </li>
-          <li>
-            <button
-              className={`w-[140px] sm:w-[180px] px-4 sm:px-8 py-2 sm:py-4 rounded-full shadow-xl font-bold font-poppins ${activeTab === 'publikasi' ? 'bg-[#78AED6]' : ''}`}
-            >
-              Publikasi
-            </button>
-          </li>
-        </ul>
-      </nav>
+      
+      <div className="w-full p-2">
+        <nav className="bg-[#FFFFFF] text-black p-4">
+          <ul className="grid grid-cols-2 gap-2 sm:flex sm:justify-around sm:gap-10">
+            <li>
+              <button
+                className={`w-[100px] sm:w-[140px] md:w-[180px] px-2 sm:px-4 md:px-8 py-1 sm:py-2 md:py-4 rounded-full shadow-xl font-bold font-poppins text-xs sm:text-sm md:text-base ${
+                  activeTab === 'buattes' ? 'bg-[#78AED6]' : ''
+                }`}
+                onClick={() => setActiveTab('buattes')}
+              >
+                Buat Soal
+              </button>
+            </li>
+            <li>
+              <button
+                className={`w-[100px] sm:w-[140px] md:w-[180px] px-2 sm:px-4 md:px-8 py-1 sm:py-2 md:py-4 rounded-full shadow-xl font-bold font-poppins text-xs sm:text-sm md:text-base ${
+                  activeTab === 'publikasi' ? 'bg-[#78AED6]' : ''
+                }`}
+              >
+                Publikasi
+              </button>
+            </li>
+          </ul>
+        </nav>
 
         {Array.isArray(pages) && pages.map((page, pageIndex) => (
           <div key={page.pageNumber} className="my-4">
-            <div className="flex justify-between items-center bg-[#0B61AA] text-black p-2" style={{ maxWidth: '1978px', height: '61px' }}>
+            <div className="flex justify-between items-center bg-[#0B61AA] text-white p-2" style={{ maxWidth: '100%', height: '61px' }}>
               {renderPageNameInput(pageIndex, page)}
-  
+
               <div className="relative">
-              <button 
-                className="text-white font-bold text-2xl mr-2"
-                onClick={() => toggleDropdown(pageIndex)}
-              >
-                <AiOutlineMore />
-              </button>
-  
+                <button 
+                  className="text-white font-bold text-xl sm:text-2xl mr-2"
+                  onClick={() => toggleDropdown(pageIndex)}
+                >
+                  <AiOutlineMore />
+                </button>
+
                 {page.isDropdownOpen && (
                   <div
                     className="absolute right-0 mt-2 w-36 bg-white rounded-lg shadow-lg z-10 p-1
@@ -564,70 +569,69 @@ const KotakNomor = () => {
                     {category === 'CPNS' ? (
                       <button
                         onClick={() => deletePage(pageIndex)}
-                        className="block px-4 py-2 text-deepBlue text-sm text-gray-700 hover:bg-deepBlue hover:text-white rounded-md"
+                        className="block px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm text-deepBlue text-gray-700 hover:bg-deepBlue hover:text-white rounded-md"
                       >
                         Delete page
                       </button>
                     ) : (
                       <>
-                      <button
-                        onClick={() => handleRename(pageIndex)}
-                        className="block px-4 py-2 text-deepBlue text-sm text-gray-700 hover:bg-deepBlue hover:text-white rounded-md"
-                      >
-                        Rename
-                      </button>
-                      <button
-                        onClick={() => deletePage(pageIndex)}
-                        className="block px-4 py-2 text-deepBlue text-sm text-gray-700 hover:bg-deepBlue hover:text-white rounded-md"
-                      >
-                        Delete page
-                      </button>
-                    </>
+                        <button
+                          onClick={() => handleRename(pageIndex)}
+                          className="block px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm text-deepBlue text-gray-700 hover:bg-deepBlue hover:text-white rounded-md"
+                        >
+                          Rename
+                        </button>
+                        <button
+                          onClick={() => deletePage(pageIndex)}
+                          className="block px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm text-deepBlue text-gray-700 hover:bg-deepBlue hover:text-white rounded-md"
+                        >
+                          Delete page
+                        </button>
+                      </>
                     )}
                   </div>
                 )}
               </div>
             </div>
 
-          <div className="mt-4"></div>
-          <div className="flex flex-row flex-wrap p-4 gap-3 justify-start border" style={{ maxWidth: '100%', padding: '0 2%' }}>
-            {Array.isArray(page.questions) && page.questions.map((question, questionIndex) => (
-              <div
-                key={`${pageIndex}-${question}`}
-                className="flex flex-col items-center border border-gray-300 p-2 bg-white rounded-lg shadow-md cursor-pointer"
-                style={{ width: '80px', height: '80px' }}
-                onClick={() => handleQuestionSelect(question, pageIndex)} 
-              >
-                <span className="bg-white border rounded-full w-8 h-8 flex items-center justify-center mb-2 rounded-[15px]">
-                  {question}
-                </span>
-              </div>
-            ))}
+            <div className="mt-0 "></div>
+              <div className="flex flex-wrap p-4 gap-3 justify-start border border-black" style={{ maxWidth: '100%', padding: '0 3%' }}>
+                {Array.isArray(page.questions) && page.questions.map((question, questionIndex) => (
+                  <div
+                    key={`${pageIndex}-${question}`}
+                    className="flex flex-col items-center border border-gray-300 p-2 mb-5 mt-4 bg-white rounded-lg shadow-md cursor-pointer w-[50px] sm:w-[80px] md:w-[80px] h-[50px] sm:h-[80px] md:h-[80px] transition-all"
+                    onClick={() => handleQuestionSelect(question, pageIndex)}
+                  >
+                    <span className="bg-white border rounded-full w-8 h-8 flex items-center justify-center mb-2 rounded-[15px] text-xs sm:text-sm md:text-base p-1">
+                      {question}
+                    </span>
+                  </div>
+                ))}
 
-            <div className="flex items-center">
-              <button
-                onClick={() => addQuestion(pageIndex)}
-                className="bg-[#A6D0F7] text-black px-4 py-2 rounded-[15px] shadow-lg"
-              >
-                + Soal
-              </button>
+                <div className="flex items-center mt-1 sm:mt-2">
+                  <button
+                    onClick={() => addQuestion(pageIndex)}
+                    className="bg-[#A6D0F7] text-black px-3 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base rounded-[10px] shadow-lg font-bold"
+                  >
+                    + Soal
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      ))}
+          ))}
 
       <div className="flex justify-between mt-4">
         <button
           onClick={addPage}
-          className="bg-[#0B61AA] border border-black flex items-center space-x-2 px-4 py-2 hover:text-white font-poppins rounded-[15px] shadow-lg"
+          className="bg-[#0B61AA] hover:bg-[#5A96C3] border border-black px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base font-poppins rounded-[10px] text-white font-bold"
         >
           + Tambah Page
         </button>
         
         <div className="flex justify-end space-x-2 mr-4">
           <button
-            onClick={handleSave} 
-            className="bg-[#E8F4FF] border border-black flex items-center space-x-2 px-4 py-2 hover:text-black font-poppins rounded-[15px] shadow-lg"
+            onClick={handleSave}
+            className="bg-[#E8F4FF] hover:bg-[#C1DBF5] border border-black px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base font-poppins rounded-[10px] text-black font-bold"
           >
             Simpan
           </button>

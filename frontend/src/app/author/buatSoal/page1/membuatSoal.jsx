@@ -7,6 +7,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { storage } from "../../../firebase/config";
 import { IoMdArrowRoundBack } from "react-icons/io";
+import { AiOutlineCloseSquare } from 'react-icons/ai';
+import { BsImage } from 'react-icons/bs';
 import { v4 } from 'uuid';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import dynamic from 'next/dynamic';
@@ -133,6 +135,56 @@ const MembuatSoal = () => {
       setWeight(value); 
     }
   }
+
+   const renderOptionContent = (option, index) => {
+      if (option.optionPhoto) {
+        return (
+          <div className="relative">
+            <img 
+              src={option.optionPhoto} 
+              alt={`Option ${index + 1}`} 
+              className="max-w-full h-auto"
+            />
+            <button
+              type="button"
+              onClick={() => handleOptionChange(index, '', 'text')}
+              className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded"
+            >
+              <AiOutlineCloseSquare className="w-4 h-4" />
+            </button>
+          </div>
+        );
+      }
+  
+      return (
+        <div className="relative w-full">
+          <textarea
+            value={option.optionDescription}
+            onChange={(e) => handleOptionChange(index, 'optionDescription', e.target.value)}
+            className="w-full p-2 border rounded min-h-[100px] sm:min-h-[120px] md:min-h-[140px]"
+            placeholder="Tulis opsi jawaban atau masukkan gambar..."
+          />
+          
+          {/* Tombol untuk upload gambar */}
+          <button
+            type="button"
+            onClick={() => document.getElementById(`optionInput-${index}`).click()}
+            className="absolute bottom-2 right-2 bg-gray-100 p-2 rounded-md sm:p-3 md:p-4"
+          >
+            <BsImage className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" />
+          </button>
+  
+          {/* Input file untuk memilih gambar */}
+          <input
+            id={`optionInput-${index}`}
+            type="file"
+            hidden
+            accept="image/*"
+            onChange={(e) => handleOptionChange(index, e.target.files[0], 'image')}
+          />
+        </div>
+      );
+    };
 
   const loadPagesFromLocalStorage = () => {
     if (testId && typeof window !== 'undefined') {
@@ -363,44 +415,49 @@ const addOption = () => {
 
   return (
     <div className="container mx-auto p-0" style={{ maxWidth: '1978px' }}>
-     <header className="bg-[#0B61AA] text-white p-6 font-poppins w-full" style={{ height: '108px' }}>
-        <div className="flex justify-start items-center max-w-[1978px] w-full px-4 mx-auto">
-          <Link href="/author/buatSoal">
-            <IoMdArrowRoundBack className="text-white text-3xl sm:text-3xl lg:text-4xl ml-2" />
-          </Link>
-          <Link href="/">
-            <img src="/images/etamtest.png" alt="Etamtest" className="h-[50px] ml-4" />
+      <header 
+        className="bg-[#0B61AA] text-white p-4 sm:p-6 font-poppins w-full"
+        style={{ height: 'auto' }}
+      >
+        <div className="flex items-center max-w-[1978px] w-full px-2 sm:px-4 mx-auto">
+          <Link href="/author/buatSoal" className="flex items-center space-x-2 sm:space-x-4">
+            <IoMdArrowRoundBack className="text-white text-2xl sm:text-3xl lg:text-4xl" />
+            <img src="/images/etamtest.png" alt="Etamtest" className="h-[40px] sm:h-[50px]" />
           </Link>
         </div>
       </header>
 
-      <div className="w-full p-4">
-      <nav className="bg-[#FFFFFF] text-black p-4">
-        <ul className="grid grid-cols-2 flex justify-start sm:flex sm:justify-around gap-4 sm:gap-10">
-          <li>
-            <button
-              className={`w-[140px] sm:w-[180px] px-4 sm:px-8 py-2 sm:py-4 rounded-full shadow-xl font-bold font-poppins ${activeTab === 'buattes' ? 'bg-[#78AED6]' : ''}`}
-              onClick={() => setActiveTab('buattes')}
-            >
-              Buat Soal
-            </button>
-          </li>
-          <li>
-            <button
-              className={`w-[140px] sm:w-[180px] px-4 sm:px-8 py-2 sm:py-4 rounded-full shadow-xl font-bold font-poppins ${activeTab === 'publikasi' ? 'bg-[#78AED6]' : ''}`}
-            >
-              Publikasi
-            </button>
-          </li>
-        </ul>
-      </nav>
-  
-      <div className="container mx-auto lg: p-2 p-4 w-full" style={{ maxWidth: '1978px' }}>
-        <header className='bg-[#0B61AA] font-bold font-poppins text-white p-4'>
-          <div className="flex items-center justify-between">
-            <span>{pageName}</span>
-          </div>
-        </header>
+      <div className="w-full p-2">
+        <nav className="bg-[#FFFFFF] text-black p-4">
+          <ul className="grid grid-cols-2 gap-2 sm:flex sm:justify-around sm:gap-10">
+            <li>
+              <button
+                className={`w-[100px] sm:w-[140px] md:w-[180px] px-2 sm:px-4 md:px-8 py-1 sm:py-2 md:py-4 rounded-full shadow-xl font-bold font-poppins text-xs sm:text-sm md:text-base ${
+                  activeTab === 'buattes' ? 'bg-[#78AED6]' : ''
+                }`}
+                onClick={() => setActiveTab('buattes')}
+              >
+                Buat Soal
+              </button>
+            </li>
+            <li>
+              <button
+                className={`w-[100px] sm:w-[140px] md:w-[180px] px-2 sm:px-4 md:px-8 py-1 sm:py-2 md:py-4 rounded-full shadow-xl font-bold font-poppins text-xs sm:text-sm md:text-base ${
+                  activeTab === 'publikasi' ? 'bg-[#78AED6]' : ''
+                }`}
+              >
+                Publikasi
+              </button>
+            </li>
+          </ul>
+        </nav>
+    
+        <div className="container mx-auto lg:p-1 p-4 w-full" style={{ maxWidth: '1978px' }}>
+          <header className='bg-[#0B61AA] font-bold font-poppins text-white p-4'>
+            <div className="flex items-center justify-between">
+              <span>{pageName}</span>
+            </div>
+          </header>
   
         <div className="bg-[#FFFFFF] border border-black p-4 rounded-lg shadow-md w-full mb-6 " >
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -414,13 +471,17 @@ const addOption = () => {
               />
             </div>
             <div className='m'>
-              <div className='border border-black bg-[#D9D9D9] p-2 rounded mb-4' style={{ maxWidth: '1978px', height: '250px' }}>
-                <div className='p-4 flex justify-between items-center mb-0.5 w-full'>
-                  <div className='flex items-center'>
-                    <label className="block mb-2">Soal Pilihan Ganda</label>
+              <div className='border border-black bg-[#D9D9D9] p-2 rounded mb-4' style={{ maxWidth: '100%', height: 'auto' }}>
+                <div className="p-4 flex flex-wrap sm:flex-nowrap justify-between items-center mb-2">
+                  <div className="flex items-center w-full sm:w-auto mb-2 sm:mb-0">
+                    <label className="block text-sm sm:text-sm md:text-base font-medium">
+                      Soal Pilihan Ganda
+                    </label>
                   </div>
-                  <div className="flex items-center">
-                    <label className="font-medium-bold mr-2">Bobot</label>
+                  <div className="flex items-center w-full sm:w-auto">
+                    <label className="font-medium-bold mr-2 text-sm sm:text-sm md:text-base">
+                      Bobot
+                    </label>
                     <input
                       type="number"
                       min="0"
@@ -433,7 +494,7 @@ const addOption = () => {
                           setWeight(value);
                         }
                       }}
-                      className="border p-2 w-full"
+                      className="border p-1 text-xs sm:p-1 sm:text-sm md:text-base w-full sm:w-auto rounded-md"
                       required
                     />
                   </div>
@@ -500,60 +561,55 @@ const addOption = () => {
             </div>
   
             <div>
-            <h2 className="text-lg font-semi-bold mb-2">Jawaban</h2>
-            {options.map((option, index) => (
-              <div key={index} className="flex items-center space-x-2 mb-2">
-                <input
-                  type="text"
-                  value={option.optionDescription}
-                  onChange={(e) => handleOptionChange(index, 'optionDescription', e.target.value)}
-                  placeholder="Tulis jawaban untuk opsi"
-                  className={`p-2 w-full ${!isValid && option.optionDescription.trim() === '' ? 'border border-red-700' : ''}`}
-                  theme='snow'
-                  required
-                />
-                <div className="flex items-center space-x-4">
-                  {/* Tombol Benar */}
-                  <button
-                    type="button"
-                    className="flex items-center justify-between text-black font-bold px-2 py-1 text-xs sm:text-sm md:text-base rounded-md border border-black hover:bg-gray-200 hover:text-blue-500 space-x-2"
-                  >
-                    <input
-                      type="radio"
-                      id={`jawaban-${index}`}
-                      name="jawabanBenar"
-                      value={index}
-                      checked={option.isCorrect}
-                      onChange={() => handleCorrectOptionChange(index)}
-                      className={`w-4 h-4 ${
-                        !isValid && !options.some((opt) => opt.isCorrect) ? 'border border-red-700' : ''
-                      }`}
-                    />
-                    <span>Benar</span>
-                  </button>
-
-                  {/* Tombol Hapus */}
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteJawaban(index, option.id)}
-                    className="ml-2 px-2 py-1 text-xs sm:text-sm md:text-base rounded-md border border-black hover:bg-red-200 hover:text-red-500"
-                  >
-                    <img
-                      src="/img/Hapus.png"
-                      alt="Delete"
-                      className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8"
-                    />
-                  </button>
-                </div>
+              <h2 className="block text-sm sm:text-sm md:text-base font-medium mb-2">Jawaban</h2>
+                {options.map((option, index) => (
+                  <div key={index} className="flex items-center space-x-2 mb-2">
+                      {/* Opsi Jawaban */}
+                    <div className="w-full mb-4 sm:mb-0">
+                      {renderOptionContent(option, index)}
+                    </div>
+                    <div className="flex items-center space-x-4">
+                      {/* Tombol Benar */}
+                      <button
+                        type="button"
+                        className="flex items-center justify-between text-black font-bold px-1 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base rounded-[10px] border border-black hover:bg-gray-200 hover:text-blue-500 space-x-2"
+                      >
+                        <input
+                          type="radio"
+                          id={`jawaban-${index}`}
+                          name="jawabanBenar"
+                          value={index}
+                          checked={option.isCorrect}
+                          onChange={() => handleCorrectOptionChange(index)}
+                          className={`w-4 h-4 ${
+                            !isValid && !options.some((opt) => opt.isCorrect) ? 'border border-red-700' : ''
+                          }`}
+                        />
+                        <span>Benar</span>
+                      </button>
+                        {/* Tombol Hapus */}
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteJawaban(index, option.id)}
+                        className="ml-4"
+                      >
+                        {/* Ganti gambar dengan ikon React */}
+                        <AiOutlineCloseSquare className="w-6 h-6" />
+                      </button>
+                    </div>
                   </div>
-              ))}
-              <button type="button" onClick={addOption} className="bg-[#7bb3b4] hover:bg-[#8CC7C8] text-black font-bold py-2 px-4 rounded-[15px] border border-black">
+                ))}
+              <button 
+                type="button" 
+                onClick={addOption} 
+                className="bg-[#7bb3b4] hover:bg-[#8CC7C8] border border-black px-1 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base font-poppins rounded-[10px] text-black font-bold"
+              >
                 + Tambah
               </button>
             </div>
   
             <div className="mb-4">
-              <label className="block mb-2">Pembahasan</label>
+              <label className="block text-sm sm:text-sm md:text-base font-medium mb-2">Pembahasan</label>
               <ReactQuill 
                 value={discussion} 
                 onChange={setDiscussion} 
