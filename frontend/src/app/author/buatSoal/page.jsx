@@ -17,6 +17,7 @@ const KotakNomor = () => {
   const [renameValue, setRenameValue] = useState('');
   const [activeTab, setActiveTab] = useState('');
   const [usedPageNames, setUsedPageNames] = useState(new Set());
+  const [pagesWithContent, setPagesWithContent] = useState(new Set());
 
   const [pageNameOptions] = useState([
     'Tes Wawasan Kebangsaan',
@@ -266,7 +267,50 @@ const KotakNomor = () => {
     );
   };
 
-  const handleRename = (pageIndex) => {
+  const checkPageContent = async (pageIndex) => {
+    const page = pages[pageIndex];
+    if (!page || !page.questions) return false;
+
+    try {
+      // Check if any question in the page has content
+      for (const questionNumber of page.questions) {
+        const multiplechoiceId = await fetchMultipleChoiceId(testId, questionNumber);
+        if (multiplechoiceId) {
+          return true; // Page has at least one question with content
+        }
+      }
+      return false; // No questions have content
+    } catch (error) {
+      console.error('Error checking page content:', error);
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    const updatePagesWithContent = async () => {
+      const newPagesWithContent = new Set();
+      
+      for (let i = 0; i < pages.length; i++) {
+        const hasContent = await checkPageContent(i);
+        if (hasContent) {
+          newPagesWithContent.add(i);
+        }
+      }
+      
+      setPagesWithContent(newPagesWithContent);
+    };
+
+    updatePagesWithContent();
+  }, [pages, testId]);
+
+  const handleRename = async (pageIndex) => {
+    const hasContent = await checkPageContent(pageIndex);
+
+    if (hasContent) {
+      alert('Halaman ini sudah memiliki soal. Nama halaman tidak dapat diubah.');
+      return;
+    }
+
     if (category === 'CPNS') {
       setIsRenaming(pageIndex);
       setRenameValue(pages[pageIndex].pageName);
@@ -528,6 +572,8 @@ const KotakNomor = () => {
     console.log("Page:", page);
     console.log("Is CPNS check:", category === 'CPNS' || page.isCPNSPage);
 
+    const hasContent = pagesWithContent.has(pageIndex);
+
     if (category === 'CPNS') {
       const usedPageNames = new Set(
         pages
@@ -544,6 +590,11 @@ const KotakNomor = () => {
           <select
             value={page.pageName}
             onChange={(e) => {
+              if (hasContent) {
+                alert('Halaman ini sudah memiliki soal. Nama halaman tidak dapat diubah.');
+                return;
+              }
+              
               const newPageName = e.target.value;
               setPages(prevPages => {
                 const updatedPages = prevPages.map((p, idx) => {
@@ -577,7 +628,10 @@ const KotakNomor = () => {
                 console.error("Error updating pageName:", error);
               });
             }}
-            className="text-black bg-white border rounded-md p-2"
+            className={`text-black bg-white border rounded-md p-2 ${
+              hasContent ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
+            disabled={hasContent}
           >
             {availableOptions.map((option) => (
               <option key={option} value={option}>
@@ -595,21 +649,82 @@ const KotakNomor = () => {
               type="text"
               value={renameValue}
               onChange={(e) => setRenameValue(e.target.value)}
-              className="text-black p-1 border border-gray-300 rounded-md"
+              className={`text-black p-1 border border-gray-300 rounded-md ${
+                hasContent ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+              disabled={hasContent}
             />
             <button
               onClick={() => saveRename(pageIndex)}
-              className="ml-2 bg-white text-black px-2 py-1 rounded-md"
+              className={`ml-2 bg-white text-black px-2 py-1 rounded-md ${
+                hasContent ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+              disabled={hasContent}
             >
               Save
             </button>
           </div>
         );
       } else {
-        return <h2 className="text-lg">{page.pageName}</h2>;
+        return (
+          <div className="flex items-center">
+            <h2 className="text-lg">{page.pageName}</h2>
+            {!hasContent && (
+              <button
+                onClick={() => handleRename(pageIndex)}
+                className="ml-2 text-sm text-gray-400 hover:text-gray-300"
+              >
+                ✏️
+              </button>
+            )}
+          </div>
+        );
       }
     }
   };  
+
+  const renderDropdownMenu = (pageIndex) => {
+    const hasContent = pagesWithContent.has(pageIndex);
+
+    return (
+      <div
+        className="absolute right-0 mt-2 w-36 bg-white rounded-lg shadow-lg z-10 p-1
+        before:content-[''] before:absolute before:-top-4 before:right-5 before:border-8
+        before:border-transparent before:border-b-white"
+        onMouseEnter={() => setDropdownOpen(true)}
+        onMouseLeave={() => setDropdownOpen(false)}
+      >
+        {category === 'CPNS' ? (
+          <button
+            onClick={() => deletePage(pageIndex)}
+            className="block px-4 py-2 text-deepBlue text-sm text-gray-700 hover:bg-deepBlue hover:text-white rounded-md"
+          >
+            Delete page
+          </button>
+        ) : (
+          <>
+            <button
+              onClick={() => handleRename(pageIndex)}
+              className={`block px-4 py-2 text-deepBlue text-sm text-gray-700 ${
+                hasContent 
+                  ? 'opacity-50 cursor-not-allowed' 
+                  : 'hover:bg-deepBlue hover:text-white'
+              } rounded-md`}
+              disabled={hasContent}
+            >
+              Rename
+            </button>
+            <button
+              onClick={() => deletePage(pageIndex)}
+              className="block px-4 py-2 text-deepBlue text-sm text-gray-700 hover:bg-deepBlue hover:text-white rounded-md"
+            >
+              Delete page
+            </button>
+          </>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="w-full p-4">
@@ -673,19 +788,22 @@ const KotakNomor = () => {
                       </button>
                     ) : (
                       <>
-                      <button
-                        onClick={() => handleRename(pageIndex)}
-                        className="block px-4 py-2 text-deepBlue text-sm text-gray-700 hover:bg-deepBlue hover:text-white rounded-md"
-                      >
-                        Rename
-                      </button>
-                      <button
-                        onClick={() => deletePage(pageIndex)}
-                        className="block px-4 py-2 text-deepBlue text-sm text-gray-700 hover:bg-deepBlue hover:text-white rounded-md"
-                      >
-                        Delete page
-                      </button>
-                    </>
+                        <button
+                          onClick={() => handleRename(pageIndex)}
+                          className={`block px-4 py-2 text-deepBlue text-sm text-gray-700 hover:bg-deepBlue hover:text-white rounded-md w-full text-left ${
+                            pagesWithContent.has(pageIndex) ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
+                          disabled={pagesWithContent.has(pageIndex)}
+                        >
+                          Rename
+                        </button>
+                        <button
+                          onClick={() => deletePage(pageIndex)}
+                          className="block px-4 py-2 text-deepBlue text-sm text-gray-700 hover:bg-deepBlue hover:text-white rounded-md"
+                        >
+                          Delete page
+                        </button>
+                      </>
                     )}
                   </div>
                 )}
