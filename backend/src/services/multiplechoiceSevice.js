@@ -404,3 +404,22 @@ const getQuestionNumbersServices = async (testId, category) => {
         throw error;
     }
 };
+
+export const updateNumberServices = async (testId, oldNumber, newNumber) => {
+    console.log('Updating question number in database:');
+    console.log(`testId: ${testId}, oldNumber: ${oldNumber}, newNumber: ${newNumber}`);
+  
+    await prisma.multiplechoice.update({
+      where: {
+        testId_number: {
+          testId: testId,
+          number: oldNumber
+        }
+      },
+      data: {
+        number: newNumber
+      }
+    });
+  
+    console.log('Question number updated successfully');
+};
