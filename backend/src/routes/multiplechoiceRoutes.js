@@ -1,6 +1,6 @@
 import express from 'express';
-import { updateQuestionNumberDel, updateQuestionNumberPage, updateQuestionPageName, createMultipleChoice, updateMultipleChoice, getMultipleChoiceById, deleteMultipleChoice,  updateQuestionNumber, getQuestionNumbers, getMultipleChoiceByNumberAndTestId, updateMultipleChoicePageNameController, getPagesByTestIdController } from '../controllers/multiplechoiceController.js';
-import { getMultipleChoicesByTestId, getNextNumberForMultiplechoice } from '../controllers/multiplechoiceController.js';
+import { updateQuestionNumberDel, updateQuestionNumberPage, updateQuestionPageName, createMultipleChoice, updateMultipleChoice, getMultipleChoiceById, deleteMultipleChoice,  updateQuestionNumber, getQuestionNumbers, getMultipleChoiceByNumberAndTestId, updateMultipleChoicePageNameController, getPagesByTestId } from '../controllers/multiplechoiceController.js';
+import { getMultipleChoicesByTestId, getNextNumberForMultiplechoice, getPages, updateQuestionNumbers} from '../controllers/multiplechoiceController.js';
 import multer from 'multer';
 
 const router = express.Router();
@@ -9,6 +9,8 @@ const upload = multer({ storage: multer.memoryStorage() });
 // Baru
 router.get('/:testId', getMultipleChoicesByTestId);
 router.get('/next-number/:testId/:multiplechoiceId', getNextNumberForMultiplechoice);
+router.get('/pages/:testId', getPages);
+router.put('/update-number', updateQuestionNumbers);
 
 
 
@@ -31,7 +33,7 @@ router.get('/question/:id', getMultipleChoiceById); //perlu
 router.delete('/question/:multiplechoiceId', deleteMultipleChoice); //perlu
 router.get('/:testId/:number', getMultipleChoiceByNumberAndTestId); //perlu
 router.put('/update-pageName', updateMultipleChoicePageNameController); //perlu
-router.get('/get-pages/:testId', getPagesByTestIdController); //perlu
+router.get('/getPages/:testId', getPagesByTestId); //perlu
 router.get('/getQuestionNumbers', getQuestionNumbers); //perlu
 router.put('/update-questionNumber', updateQuestionNumber); //perlu
 

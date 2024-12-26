@@ -61,6 +61,72 @@ export const getNextNumberForMultiplechoiceService = async (testId, multiplechoi
   }
 };
 
+export const getPagesService = async (testId) => {
+  try {
+    // Get all questions for this test, ordered by number
+    const questions = await prisma.multiplechoice.findMany({
+      where: {
+        testId: testId
+      },
+      orderBy: {
+        number: 'asc'
+      }
+    });
+
+    // Group questions by pageName
+    const questionsByPage = questions.reduce((acc, question) => {
+      if (!acc[question.pageName]) {
+        acc[question.pageName] = [];
+      }
+      acc[question.pageName].push(question.number);
+      return acc;
+    }, {});
+
+    // Convert to array format expected by frontend
+    const pages = Object.entries(questionsByPage).map(([pageName, questions], index) => ({
+      pageNumber: index + 1,
+      questions: questions,
+      pageName: pageName,
+      isCPNSPage: pageName === 'Tes Wawasan Kebangsaan'
+    }));
+
+    return pages;
+  } catch (error) {
+    console.error('Error in getPagesService:', error);
+    throw new Error('Failed to fetch pages');
+  }
+};
+
+export const updateNumbers = async (testId, numbers) => {
+  try {
+    // Urutkan numbers dari yang terbesar ke terkecil
+    // Ini penting untuk menghindari konflik update
+    const sortedNumbers = [...numbers].sort((a, b) => b - a);
+    
+    const updatedNumbers = [];
+    
+    // Update dari nomor terbesar ke terkecil
+    for (const number of sortedNumbers) {
+      const updated = await prisma.multiplechoice.updateMany({
+        where: {
+          testId: testId,
+          number: number
+        },
+        data: {
+          number: number + 1
+        }
+      });
+      updatedNumbers.push(updated);
+    }
+    
+    // Kembalikan hasil dalam urutan sesuai input asli
+    return numbers.map((_, index) => updatedNumbers[sortedNumbers.indexOf(numbers[index])]);
+    
+  } catch (error) {
+    console.error("Error updating numbers:", error);
+    throw error;
+  }
+};
 
 
 // Batas Baru ^^^

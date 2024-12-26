@@ -34,60 +34,84 @@ const MembuatSoal = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      const message = "Perubahan yang anda lakukan mungkin tidak akan tersimpan, konfirmasi tindakan dengan menekan button \"Kembali\" yang ada di halaman";
+      e.preventDefault();
+      e.returnValue = message;
+      return message;
+    };
+
+    // Add event listener for beforeunload
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    // Add event listener for popstate (browser back/forward buttons)
+    window.addEventListener('popstate', (e) => {
+      e.preventDefault();
+      if (confirm("Perubahan yang anda lakukan mungkin tidak akan tersimpan, konfirmasi tindakan dengan menekan button \"Kembali\" yang ada di halaman")) {
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+      } else {
+        // Stay on the current page by pushing it back into history
+        window.history.pushState(null, '', window.location.href);
+      }
+    });
+
+    // Cleanup function
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+
+    // Ambil parameter dari URL
     const testIdFromUrl = params.get("testId");
     const multiplechoiceIdFromUrl = params.get("multiplechoiceId");
     const pageNameFromUrl = params.get("pageName");
-    // const numberFromUrl = params.get("nomor");
+    const numberFromUrl = params.get("nomor");
 
-    // console.log("Fetched testId:", testIdFromUrl); 
-    // console.log("Fetched multiplechoiceId:", multiplechoiceIdFromUrl); 
-    // console.log("Raw pageName from URL:", pageNameFromUrl);
+    console.log("Full URL params:", window.location.search);
+    console.log("Number from URL parameter:", numberFromUrl);
+    console.log("All URL parameters:", Object.fromEntries(params));
 
+    // Simpan di state atau localStorage
     if (pageNameFromUrl) {
       const decodedPageName = decodeURIComponent(pageNameFromUrl);
-      console.log("Decoded pageName:", decodedPageName);
       setPageName(decodedPageName);
     }
     if (testIdFromUrl) {
       setTestId(testIdFromUrl);
     }
     if (multiplechoiceIdFromUrl) {
-      setMultiplechoiceId(multiplechoiceIdFromUrl); 
+      setMultiplechoiceId(multiplechoiceIdFromUrl);
     }
-    // if (numberFromUrl) setNumber(numberFromUrl);
+    if (numberFromUrl) {
+      setNumber(numberFromUrl);
+      localStorage.setItem("urlNumber", numberFromUrl); // Simpan ke localStorage
+    }
   }, []);
 
   useEffect(() => {
-    if (!testId) return; // Jika testId kosong, tidak perlu lanjutkan
+    if (!testId) return;
   
     const fetchNextNumber = async () => {
-      if (!multiplechoiceId) {
-        // Jika multiplechoiceId kosong, lakukan pengolahan default
-        console.log('multiplechoiceId is null, setting number to default value');
-        setNumber(1); // Mengatur default number menjadi 1
+      // Check if we have a number from URL first
+      const urlNumber = localStorage.getItem('urlNumber');
+      if (urlNumber) {
+        setNumber(urlNumber);
+        localStorage.removeItem('urlNumber'); // Clean up
         return;
       }
   
-      // Jika multiplechoiceId ada, lanjutkan fetch
-      const url = `http://localhost:2000/api/multiplechoice/next-number/${testId}/${multiplechoiceId}`;
-      console.log('Fetching data from URL:', url); // Debug URL
-  
-      setLoading(true);
-      try {
-        const response = await fetch(url);
-        const data = await response.json();
-  
-        if (data.success) {
-          setNumber(data.number);
-        } else {
-          console.error('Failed to fetch next number:', data.message);
-        }
-      } catch (error) {
-        console.error('Error fetching next number:', error);
-      } finally {
-        setLoading(false);
+      if (!multiplechoiceId) {
+        console.log('multiplechoiceId is null, setting number to default value');
+        setNumber(1);
+        return;
       }
+  
+      // Continue with your existing fetch logic...
+      const url = `http://localhost:2000/api/multiplechoice/next-number/${testId}/${multiplechoiceId}`;
+      // ... rest of your fetch code
     };
   
     fetchNextNumber();
@@ -108,6 +132,7 @@ const MembuatSoal = () => {
         // setPageName(data.pageName);
         setWeight(data.weight);
         setNumber(data.number);
+        console.log('Number from question data:', data.number);
         setQuestion(data.question);
         setOptions(data.option);
         setDiscussion(data.discussion);
@@ -309,7 +334,7 @@ const MembuatSoal = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+    
     try {
       // Handle image upload if exists
       let uploadedImageUrl = questionPhoto;
@@ -318,7 +343,7 @@ const MembuatSoal = () => {
         const snapshot = await uploadBytes(imageRef, questionPhoto);
         uploadedImageUrl = await getDownloadURL(snapshot.ref); // Mendapatkan URL download gambar
       }
-  
+    
       // Prepare common data structure
       const questionData = {
         pageName,
@@ -333,10 +358,10 @@ const MembuatSoal = () => {
           isCorrect: option.isCorrect,
         })),
       };
-  
+    
       let response;
       let result;
-
+  
       if (multiplechoiceId !== "null") {
         // UPDATE existing question
         response = await fetch(`http://localhost:2000/api/multiplechoice/update-question/${multiplechoiceId}`, {
@@ -346,7 +371,7 @@ const MembuatSoal = () => {
           },
           body: JSON.stringify(questionData),
         });
-  
+    
         if (response.ok) {
           result = await response.json();
           console.log('Update successful:', result);
@@ -359,6 +384,17 @@ const MembuatSoal = () => {
               : page
           );
           localStorage.setItem(`pages_${testId}`, JSON.stringify(updatedPages));
+          
+          // Mengambil number yang diupdate
+          const updatedNumber = result.data.number; // Gantilah ini sesuai dengan struktur respons API
+          const pageIndex = existingPages.findIndex(page => page.id === multiplechoiceId);
+  
+          // Update number di localStorage berdasarkan pageIndex
+          const updatedPage = existingPages[pageIndex];
+          updatedPage.number = updatedNumber;
+          existingPages[pageIndex] = updatedPage;
+  
+          localStorage.setItem(`pages_${testId}`, JSON.stringify(existingPages));
         }
       } else {
         // CREATE new question
@@ -372,13 +408,13 @@ const MembuatSoal = () => {
             questions: [questionData],
           }),
         });
-  
+    
         if (response.ok) {
           result = await response.json();
           console.log('Response dari API:', result);
           const newMultiplechoiceId = result.data[0].id;
           console.log('MultiplechoiceId:', newMultiplechoiceId);
-  
+    
           // Update localStorage
           localStorage.setItem('pageName', pageName);
           const existingPages = JSON.parse(localStorage.getItem(`pages_${testId}`)) || [];
@@ -387,21 +423,35 @@ const MembuatSoal = () => {
             ...questionData,
           };
           existingPages.push(newQuestion);
+          
+          // Menyimpan halaman baru dengan number yang didapat
+          const newNumber = result.data[0].number;  // Ambil number dari respons API
+          newQuestion.number = newNumber;
+  
+          localStorage.setItem(`pages_${testId}`, JSON.stringify(existingPages));
+  
+          // Update localStorage dengan number untuk halaman baru
+          const pageIndex = existingPages.findIndex(page => page.id === newMultiplechoiceId);
+          const updatedPage = existingPages[pageIndex];
+          updatedPage.number = newNumber;
+          existingPages[pageIndex] = updatedPage;
+  
           localStorage.setItem(`pages_${testId}`, JSON.stringify(existingPages));
         }
       }
-  
+    
       if (response.ok) {
         const encodedPageName = encodeURIComponent(pageName);
         router.push(`/author/buatSoal?testId=${testId}&pageName=${encodedPageName}`);
       } else {
         console.error('Failed to process request:', response.statusText);
       }
-  
+    
     } catch (error) {
       console.error('Error:', error);
     }
   };
+  
 
   return (
     <div className="container mx-auto p-0" style={{ maxWidth: '1440px' }}>

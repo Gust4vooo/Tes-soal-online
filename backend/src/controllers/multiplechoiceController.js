@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import { initializeApp } from 'firebase/app';
 import { updateQuestionNumberService, updatePageNameForQuestion, createMultipleChoiceService, updateMultipleChoiceService, getQuestionNumbersServices, updateQuestionNumberServices, getMultipleChoiceByIdService, deleteMultipleChoiceService,  fetchMultipleChoiceByNumberAndTestId, updateMultipleChoicePageNameService, getPagesByTestIdService } from '../services/multiplechoiceSevice.js';
-import { fetchMultipleChoicesByTestId, getNextNumberForMultiplechoiceService } from '../services/multiplechoiceSevice.js';
+import { fetchMultipleChoicesByTestId, getNextNumberForMultiplechoiceService, getPagesService, updateNumbers} from '../services/multiplechoiceSevice.js';
 import { Buffer } from 'buffer';
 import * as multiplechoiceService from '../services/multiplechoiceSevice.js';
 import { uploadFileToStorage } from '../../firebase/firebaseBucket.js';
@@ -52,6 +52,44 @@ export const getNextNumberForMultiplechoice = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+export const getPages = async (req, res) => {
+  try {
+    const { testId } = req.params;
+    const pages = await getPagesService(testId);
+    
+    res.json({
+      success: true,
+      pages
+    });
+  } catch (error) {
+    console.error('Error in getPages controller:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch pages'
+    });
+  }
+};
+
+export const updateQuestionNumbers = async (req, res) => {
+  try {
+    const { testId, numbers } = req.body;
+
+    // Panggil service untuk update nomor
+    const updatedNumbers = await updateNumbers(testId, numbers);
+
+    return res.json({
+      message: "Numbers updated successfully",
+      updatedNumbers
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: "Failed to update numbers",
+      message: error.message
+    });
+  }
+};
+
 
 
 // Batas Baru ^^^^
@@ -312,9 +350,10 @@ const updateMultipleChoicePageNameController = async (req, res) => {
 
 export {updateMultipleChoicePageNameController};
 
-const getPagesByTestIdController = async (req, res) => {
+const getPagesByTestId = async (req, res) => {
     try {
-      const { testId } = req.query; 
+      const { testId } = req.params; 
+      console.log('Received request to fetch pages for testId:', testId);
   
       if (!testId) {
         return res.status(400).json({ message: 'Test ID is required' });
@@ -333,7 +372,7 @@ const getPagesByTestIdController = async (req, res) => {
     }
 };
   
-export { getPagesByTestIdController };
+export { getPagesByTestId };
 
 const getQuestionNumbers = async (req, res) => {
     try {
