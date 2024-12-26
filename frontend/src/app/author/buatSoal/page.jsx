@@ -142,7 +142,9 @@ const KotakNomor = () => {
   const addQuestion = async (pageIndex) => {
     try {
       const maxQuestionNumber = getMaxQuestionNumberInPage(pages[pageIndex]);
+      console.log("Max question number in page:", maxQuestionNumber);
       const multiplechoiceId = await fetchMultipleChoiceId(testId, maxQuestionNumber);
+      console.log("multiplechoiceId add question:", multiplechoiceId);
 
       if (!multiplechoiceId) {
         alert(`Silakan isi nomor soal ${maxQuestionNumber} terlebih dahulu.`);
@@ -157,7 +159,16 @@ const KotakNomor = () => {
         numbersToUpdate.sort((a, b) => b - a);
 
         for (const number of numbersToUpdate) {
-          await updateQuestionNumberInDB(testId, number, number + 1);
+          try {
+            const questionId = await fetchMultipleChoiceId(testId, number);
+            console.log("questionId add question:", questionId);
+            if (questionId) {
+              await updateQuestionNumberInDB(testId, number, number + 1);
+            }
+          } catch (err) {
+            console.warn(`Gagal update nomor soal ${number}:`, err);
+            continue;
+          }
         }
       }
 

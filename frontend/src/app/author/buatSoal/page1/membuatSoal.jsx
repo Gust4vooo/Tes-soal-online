@@ -205,17 +205,16 @@ const MembuatSoal = () => {
       try {
         const localStorageKey = `pages-${testId}`;
         
-        if (multiplechoiceId != null) {
+        if (multiplechoiceId && multiplechoiceId !== "null") {
           const response = await fetch(`http://localhost:2000/api/multiplechoice/question/${multiplechoiceId}`, {
             method: 'DELETE',
           });
-    
-          if (!response.ok) {
-            router.push(`/author/buatSoal?testId=${testId}`);
-          }
-          
-        }
   
+          if (!response.ok) {
+            throw new Error('Gagal menghapus soal dari database');
+          }
+        }
+
         const savedPages = localStorage.getItem(localStorageKey);
         console.log('Data sebelum dihapus:', savedPages);
   
@@ -223,7 +222,7 @@ const MembuatSoal = () => {
           let pages = JSON.parse(savedPages);
           let deletedNumber = null;
           let deletedPageIndex = -1;
-          
+
           pages.forEach((page, pageIndex) => {
             const questionIndex = page.questions.indexOf(parseInt(number));
             if (questionIndex !== -1) {
@@ -233,54 +232,27 @@ const MembuatSoal = () => {
             }
           });
   
+          console.log('Nomor yang dihapus:', deletedNumber); 
+          console.log('Data setelah splice:', pages); 
+
           if (deletedNumber !== null) {
             const allNumbers = pages.reduce((acc, page) => [...acc, ...page.questions], []);
-        
-            // Cek apakah ada soal dengan nomor yang lebih besar
-            const hasLaterQuestions = allNumbers.some(num => num > deletedNumber);
-            
-            if (hasLaterQuestions) {
-              const updatePromises = [];
-              pages.forEach(page => {
-                page.questions.forEach(originalNum => {
-                  if (originalNum > deletedNumber) {
-                    const newNum = originalNum - 1;
-                    updatePromises.push(
-                      fetch(`http://localhost:2000/api/multiplechoice/question/update-number`, {
-                        method: 'PUT',
-                        headers: {
-                          'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                          testId: testId,
-                          oldNumber: originalNum,
-                          newNumber: newNum
-                        })
-                      })
-                    );
-                  }
-                });
-              });
-    
-              // Tunggu semua update selesai
-              await Promise.all(updatePromises);
+            console.log('Semua nomor setelah flatten:', allNumbers); 
 
-              pages = pages.map(page => ({
-                ...page,
-                questions: page.questions.map(num => 
-                  num > deletedNumber ? num - 1 : num
-                ).sort((a, b) => a - b)
-              }));
-            }
-    
-            // Hapus halaman yang kosong
+            pages = pages.map(page => ({
+              ...page,
+              questions: page.questions.map(num => 
+                num > deletedNumber ? num - 1 : num
+              ).sort((a, b) => a - b)
+            }));
+  
+            console.log('Data setelah reorder:', pages); 
             pages = pages.filter(page => page.questions.length > 0);
-            
-            // Simpan perubahan ke localStorage
-            localStorage.setItem(localStorageKey, JSON.stringify(pages));
+            localStorage.setItem(localStorageKey, JSON.stringify(pages));   
+            console.log('Data final yang disimpan:', pages); 
           }
         }
-  
+
         router.push(`/author/buatSoal?testId=${testId}`);
         
       } catch (error) {
