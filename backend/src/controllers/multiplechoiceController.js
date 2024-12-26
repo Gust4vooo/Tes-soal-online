@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import { initializeApp } from 'firebase/app';
 import { updateQuestionNumberService, updatePageNameForQuestion, createMultipleChoiceService, updateMultipleChoiceService, getQuestionNumbersServices, updateQuestionNumberServices, getMultipleChoiceByIdService, deleteMultipleChoiceService,  fetchMultipleChoiceByNumberAndTestId, updateMultipleChoicePageNameService, getPagesByTestIdService } from '../services/multiplechoiceSevice.js';
+import { fetchMultipleChoicesByTestId, getNextNumberForMultiplechoiceService } from '../services/multiplechoiceSevice.js';
 import { Buffer } from 'buffer';
 import * as multiplechoiceService from '../services/multiplechoiceSevice.js';
 import { uploadFileToStorage } from '../../firebase/firebaseBucket.js';
@@ -18,20 +19,47 @@ const firebaseConfig = {
 
 initializeApp(firebaseConfig);
 
-// const extractBase64Images = (content) => {
-//     const base64Regex = /data:image\/[^;]+;base64,([^"]+)/g;
-//     const matches = content.match(base64Regex) || [];
-//     return matches;
-//   };
-  
-//   // Fungsi untuk mengganti URL gambar dalam konten
-//   const replaceImageUrlInContent = (content, oldUrl, newUrl) => {
-//     return content.replace(oldUrl, newUrl);
-// };
+
+export const getMultipleChoicesByTestId = async (req, res) => {
+  const { testId } = req.params;
+
+  try {
+      // Memanggil service untuk mengambil data
+      const multipleChoices = await fetchMultipleChoicesByTestId(testId);
+      res.status(200).json({
+          success: true,
+          data: multipleChoices
+      });
+  } catch (error) {
+      console.error('Error fetching multiple choices:', error);
+      res.status(500).json({
+          success: false,
+          message: 'Failed to fetch multiple choices',
+          error: error.message
+      });
+  }
+};
+
+export const getNextNumberForMultiplechoice = async (req, res) => {
+  const { testId, multiplechoiceId } = req.params;
+  console.log('Controller:', testId, multiplechoiceId);
+
+  try {
+    const nextNumber = await getNextNumberForMultiplechoiceService(testId, multiplechoiceId);
+    res.status(200).json({ success: true, number: nextNumber });
+  } catch (error) {
+    console.error('Error fetching next number:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+// Batas Baru ^^^^
 
 const createMultipleChoice = async (req, res) => {
     try {
         const { testId, questions } = req.body;
+        console.log('Controller:', testId, questions);
 
         if (!testId || !questions) {
             return res.status(400).send({

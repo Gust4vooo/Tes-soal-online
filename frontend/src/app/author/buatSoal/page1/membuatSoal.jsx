@@ -31,16 +31,18 @@ const MembuatSoal = () => {
   const [activeTab, setActiveTab] = useState('');
   const [labelCount, setLabelCount] = useState(0); 
 
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const testIdFromUrl = params.get("testId");
     const multiplechoiceIdFromUrl = params.get("multiplechoiceId");
     const pageNameFromUrl = params.get("pageName");
-    const numberFromUrl = params.get("nomor");
+    // const numberFromUrl = params.get("nomor");
 
-    console.log("Fetched testId:", testIdFromUrl); 
-    console.log("Fetched multiplechoiceId:", multiplechoiceIdFromUrl); 
-    console.log("Raw pageName from URL:", pageNameFromUrl);
+    // console.log("Fetched testId:", testIdFromUrl); 
+    // console.log("Fetched multiplechoiceId:", multiplechoiceIdFromUrl); 
+    // console.log("Raw pageName from URL:", pageNameFromUrl);
 
     if (pageNameFromUrl) {
       const decodedPageName = decodeURIComponent(pageNameFromUrl);
@@ -53,8 +55,44 @@ const MembuatSoal = () => {
     if (multiplechoiceIdFromUrl) {
       setMultiplechoiceId(multiplechoiceIdFromUrl); 
     }
-    if (numberFromUrl) setNumber(numberFromUrl);
+    // if (numberFromUrl) setNumber(numberFromUrl);
   }, []);
+
+  useEffect(() => {
+    if (!testId) return; // Jika testId kosong, tidak perlu lanjutkan
+  
+    const fetchNextNumber = async () => {
+      if (!multiplechoiceId) {
+        // Jika multiplechoiceId kosong, lakukan pengolahan default
+        console.log('multiplechoiceId is null, setting number to default value');
+        setNumber(1); // Mengatur default number menjadi 1
+        return;
+      }
+  
+      // Jika multiplechoiceId ada, lanjutkan fetch
+      const url = `http://localhost:2000/api/multiplechoice/next-number/${testId}/${multiplechoiceId}`;
+      console.log('Fetching data from URL:', url); // Debug URL
+  
+      setLoading(true);
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+  
+        if (data.success) {
+          setNumber(data.number);
+        } else {
+          console.error('Failed to fetch next number:', data.message);
+        }
+      } catch (error) {
+        console.error('Error fetching next number:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+  
+    fetchNextNumber();
+  }, [testId, multiplechoiceId]);
+  
 
   useEffect(() => {
     if (!multiplechoiceId) return;

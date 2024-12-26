@@ -2,6 +2,69 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+export const fetchMultipleChoicesByTestId = async (testId) => {
+  try {
+      const multipleChoices = await prisma.multiplechoice.findMany({
+          where: { testId },
+          select: {
+              id: true,
+              number: true,
+              pageName: true
+          },
+          orderBy: {
+              number: 'asc' 
+          }
+      });
+
+      return multipleChoices;
+  } catch (error) {
+      throw new Error(`Error fetching multiple choices: ${error.message}`);
+  }
+};
+
+export const getNextNumberForMultiplechoiceService = async (testId, multiplechoiceId) => {
+  console.log('Fetching next number for multiplechoiceId:', multiplechoiceId);
+  const multiplechoice = await prisma.multiplechoice.findUnique({
+    where: {
+      id: multiplechoiceId,
+    },
+  });
+
+  if (!multiplechoice) {
+    const test = await prisma.test.findUnique({
+      where: {
+        id: testId,
+      },
+      include: {
+        multiplechoice: true, 
+      },
+    });
+
+    if (!test || test.multiplechoice.length === 0) {
+      console.log(`Tidak ada multiplechoice ditemukan untuk testId: ${testId}`);
+      return 1;
+    }
+
+    const maxNumber = await prisma.multiplechoice.aggregate({
+      where: {
+        testId: testId,
+      },
+      _max: {
+        number: true,
+      },
+    });
+
+    const nextNumber = maxNumber._max.number ? maxNumber._max.number + 1 : 1;
+    return nextNumber;
+  } else {
+    return multiplechoice.number; 
+  }
+};
+
+
+
+// Batas Baru ^^^
+
 const createMultipleChoiceService = async (testId, questions) => {
     console.log("testId:", testId);
     console.log("questions:", questions);
@@ -30,7 +93,7 @@ const createMultipleChoiceService = async (testId, questions) => {
                     option: {
                         create: question.options.map((option) => ({
                             optionDescription: option.optionDescription,
-                            ptionPhoto: option.optionPhoto || null,
+                            optionPhoto: option.optionPhoto || null,
                             isCorrect: question.isWeighted ? null : option.isCorrect, 
                             points: question.isWeighted ? option.points : null, 
                         })),
@@ -85,7 +148,7 @@ const updateMultipleChoiceService = async (multiplechoiceId, updatedData) => {
             options.map(async (option) => {
                 const optionData = {
                     optionDescription: option.optionDescription,
-                    ptionPhoto: option.optionPhoto || null,
+                    optionPhoto: option.optionPhoto || null,
                     isCorrect: isWeighted ? null : option.isCorrect,
                     points: isWeighted ? option.points : null,
                 };

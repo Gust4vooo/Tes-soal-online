@@ -148,7 +148,7 @@ model Option {
   updatedAt        DateTime     @updatedAt
   points            Int?
   isCorrect        Boolean?
-  multiplechoice    Multiplechoice @relation(fields: [multiplechoiceId], references: [id])
+  multiplechoice    Multiplechoice @relation(fields: [multiplechoiceId], references: [id], onDelete: Cascade)
   detail_result     Detail_result[]
 }
 

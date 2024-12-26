@@ -1,9 +1,16 @@
 import express from 'express';
 import { updateQuestionNumberDel, updateQuestionNumberPage, updateQuestionPageName, createMultipleChoice, updateMultipleChoice, getMultipleChoiceById, deleteMultipleChoice,  updateQuestionNumber, getQuestionNumbers, getMultipleChoiceByNumberAndTestId, updateMultipleChoicePageNameController, getPagesByTestIdController } from '../controllers/multiplechoiceController.js';
+import { getMultipleChoicesByTestId, getNextNumberForMultiplechoice } from '../controllers/multiplechoiceController.js';
 import multer from 'multer';
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
+
+// Baru
+router.get('/:testId', getMultipleChoicesByTestId);
+router.get('/next-number/:testId/:multiplechoiceId', getNextNumberForMultiplechoice);
+
+
 
 router.post('/add-questions', upload.array('questionPhoto'), (req, res) => {
     console.log('Request body:', req.body); 
