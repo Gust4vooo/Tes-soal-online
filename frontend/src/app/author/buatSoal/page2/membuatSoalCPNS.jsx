@@ -49,11 +49,6 @@ const MembuatSoal = () => {
     const pageNameFromUrl = params.get("pageName");
     const numberFromUrl = params.get("nomor");
 
-    console.log("Fetched testId:", testIdFromUrl); 
-    console.log("Fetched category:", categoryFromUrl);
-    console.log("Fetched multiplechoiceId:", multiplechoiceIdFromUrl); 
-    console.log("Raw pageName from URL:", pageNameFromUrl);
-
     if (pageNameFromUrl) {
       const decodedPageName = decodeURIComponent(pageNameFromUrl);
       console.log("Decoded pageName:", decodedPageName);
@@ -63,10 +58,12 @@ const MembuatSoal = () => {
       setTestId(testIdFromUrl);
     }
     if (categoryFromUrl) {
-      setCategory(categoryFromUrl);
+      setCategory(categoryFromUrl);      
     }
     if (multiplechoiceIdFromUrl) {
       setMultiplechoiceId(multiplechoiceIdFromUrl); 
+      console.log('multiplechoiceId type:', typeof multiplechoiceIdFromUrl);
+      console.log('multiplechoiceId value:', multiplechoiceIdFromUrl);
     }
     if (numberFromUrl) setNumber(numberFromUrl);
   }, []);
@@ -91,7 +88,6 @@ const MembuatSoal = () => {
         setDiscussion(data.discussion);
         if (data.questionPhoto && data.questionPhoto !== "") {
           setQuestionPhoto(data.questionPhoto);
-          console.log("Loaded question photo URL:", data.questionPhoto);
         } else {
           setQuestionPhoto(null);
         }
@@ -222,7 +218,7 @@ const MembuatSoal = () => {
       try {
         const localStorageKey = `pages-${testId}`;
         
-        if (multiplechoiceId) {
+        if (multiplechoiceId && multiplechoiceId !== "null") {
           const response = await fetch(`http://localhost:2000/api/multiplechoice/question/${multiplechoiceId}`, {
             method: 'DELETE',
           });
@@ -302,7 +298,7 @@ const MembuatSoal = () => {
   
   const handleBack = () => {
     if (testId) {
-      router.push(`/author/buatSoal?testId=${testId}&category=${kategoriTes}`);
+      router.push(`/author/buatSoal?testId=${testId}&category=${category}`);
     } else {
       console.error('Test ID tidak ditemukan dalam respons:', result);
     }

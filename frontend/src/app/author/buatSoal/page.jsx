@@ -157,7 +157,16 @@ const KotakNomor = () => {
         numbersToUpdate.sort((a, b) => b - a);
 
         for (const number of numbersToUpdate) {
-          await updateQuestionNumberInDB(testId, number, number + 1);
+          try {
+            const questionId = await fetchMultipleChoiceId(testId, number);
+            console.log("questionId add question:", questionId);
+            if (questionId) {
+              await updateQuestionNumberInDB(testId, number, number + 1);
+            }
+          } catch (err) {
+            console.warn(`Gagal update nomor soal ${number}:`, err);
+            continue;
+          }
         }
       }
 
@@ -247,7 +256,7 @@ const KotakNomor = () => {
   } catch (error) {
     console.error('Error adding page:', error);
   }
-};
+  };
 
   const toggleDropdown = (pageIndex) => {
     setPages(prevPages => 

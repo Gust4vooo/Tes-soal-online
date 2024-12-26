@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 import { initializeApp } from 'firebase/app';
-import { updateQuestionNumberService,  updatePageNameForQuestion, createMultipleChoiceService, updateMultipleChoiceService, getQuestionNumbersServices, updateQuestionNumberServices, getMultipleChoiceByIdService, deleteMultipleChoiceService,  fetchMultipleChoiceByNumberAndTestId, updateMultipleChoicePageNameService, getPagesByTestIdService, deletePageService, updateNumberServices } from '../services/multiplechoiceSevice.js'; 
+import { updateQuestionNumberService,  updatePageNameForQuestion, createMultipleChoiceService, updateMultipleChoiceService, getQuestionNumbersServices, updateQuestionNumberServices, getMultipleChoiceByIdService, deleteQuestionAndReorderNumbers,  fetchMultipleChoiceByNumberAndTestId, updateMultipleChoicePageNameService, getPagesByTestIdService, deletePageService, updateNumberServices } from '../services/multiplechoiceSevice.js'; 
 import { Buffer } from 'buffer';
 import * as multiplechoiceService from '../services/multiplechoiceSevice.js';
 import { uploadFileToStorage } from '../../firebase/firebaseBucket.js';
@@ -111,9 +111,9 @@ const updateMultipleChoice = async (req, res) => {
         const updatedData = req.body; 
 
         if (!multiplechoiceId || !updatedData) {
-            return res.status(400).send({
-                message: 'multiplechoiceId and updatedData are required',
-            });
+          return res.status(400).send({
+              message: 'multiplechoiceId and updatedData are required',
+          });
         }
 
         const updatedMultipleChoice = await updateMultipleChoiceService(multiplechoiceId, updatedData);
@@ -146,47 +146,17 @@ const getMultipleChoiceById = async (req, res) => {
 
 export { getMultipleChoiceById };
 
-const deleteMultipleChoice = async (req, res) => {
-    try {
-        const { multiplechoiceId } = req.params;
-
-        if (!multiplechoiceId) {
-            return res.status(400).json({
-                success: false,
-                message: 'multiplechoiceId is required'
-            });
-        }
-
-        const result = await deleteMultipleChoiceService(multiplechoiceId);
-
-        res.status(200).json({
-            success: true,
-            message: 'Multiple choice question deleted successfully',
-            data: {
-                deletedQuestionNumber: result.deletedQuestionNumber,
-                remainingQuestionsCount: result.remainingQuestions.length,
-                updatedQuestions: result.remainingQuestions
-            }
-        });
-    } catch (error) {
-        console.error('Controller Error:', error);
-
-        if (error.message === 'Multiple choice question not found') {
-            return res.status(404).json({
-                success: false,
-                message: 'Multiple choice question not found',
-            });
-        }
-
-        res.status(500).json({
-            success: false,
-            message: 'Failed to delete multiple choice question',
-            error: error.message
-        });
-    }
+export const deleteMultiplechoice = async (req, res) => {
+  try {
+    const { multiplechoiceId } = req.params;
+    console.log('Received request to delete multiplechoice with ID:', multiplechoiceId);
+    await deleteQuestionAndReorderNumbers(multiplechoiceId);
+    res.status(200).json({ message: 'Soal berhasil dihapus' });
+  } catch (error) {
+    console.error('Error in deleteMultiplechoice:', error);
+    res.status(500).json({ message: 'Gagal menghapus soal' });
+  }
 };
-
-export { deleteMultipleChoice };
 
 export const updateQuestionNumberPage = async (req, res) => {
     try {
