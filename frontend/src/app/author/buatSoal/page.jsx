@@ -77,15 +77,7 @@ const KotakNomor = () => {
     }
   }, []);
 
-  const getAllUsedNumbers = (pages) => {
-    const usedNumbers = new Set();
-    pages.forEach(page => {
-      if (Array.isArray(page.questions)) {
-        page.questions.forEach(num => usedNumbers.add(num));
-      }
-    });
-    return Array.from(usedNumbers).sort((a, b) => a - b);
-  };
+  const getAllUsedNumbers = (pages) => pages.flatMap(page => page.questions);
 
   const getNextAvailableNumber = (pages) => {
     const usedNumbers = getAllUsedNumbers(pages);
@@ -113,13 +105,12 @@ const KotakNomor = () => {
       }
       const data = await response.json();
       const questionNumbers = data.questionNumbers;
-  
       const numbersToUpdate = questionNumbers.filter(num => num > maxQuestionNumber);
-  
+
       if (numbersToUpdate.length === 0) {
         return;
       }
-  
+
       for (const number of numbersToUpdate) {
         const updateResponse = await fetch(`http://localhost:2000/api/multiplechoice/update-questionNumber?testId=${testId}`, {
           method: 'PUT',
@@ -392,40 +383,127 @@ const KotakNomor = () => {
     }
   };
 
-  const deletePage = (pageIndex) => {
-    if (confirm("Apakah Anda yakin ingin menghapus tes ini?")) {
-      setPages((prevPages) => {
-        const pageToDelete = prevPages[pageIndex];
-        const updatedPages = prevPages.filter((_, index) => index !== pageIndex);
-
-        setUsedPageNames(prev => {
-          const updated = new Set(prev);
-          updated.delete(pageToDelete.pageName);
-          return updated;
-        });
-        
-        const finalPages = updatedPages.reduce((acc, page, idx) => {
-          if (idx === 0) return [page];   
-          const prevPageLastNumber = Math.max(...acc[idx - 1].questions);
-          const numQuestions = page.questions.length;
-          const newQuestions = Array.from(
-            { length: numQuestions },
-            (_, i) => prevPageLastNumber + i + 1
-          );
-          
-          acc.push({
-            ...page,
-            questions: newQuestions
-          });
-          
-          return acc;
-        }, []);
-
-        localStorage.setItem(`pages-${testId}`, JSON.stringify(finalPages));
-        return finalPages;
+  const deleteMultipleChoice = async (multiplechoiceId) => {
+    try {
+      const response = await fetch(`http://localhost:2000/api/multiplechoice/question/${multiplechoiceId}`, {
+        method: 'DELETE',
       });
+
+      if (!response.ok) {
+        throw new Error(`Failed to delete question with ID: ${multiplechoiceId}`);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting question:', error);
+      return false;
     }
   };
+
+  const deletePageService = async (testId, pageName) => {
+    try {
+      return await prisma.$transaction(async (tx) => {
+        const questionsToDelete = await tx.multiplechoice.findMany({
+          where: {
+            testId: testId,
+            pageName: pageName
+          }
+        });
+
+        await tx.option.deleteMany({
+          where: {
+            multiplechoiceId: {
+              in: questionsToDelete.map(q => q.id)
+            }
+          }
+        });
+
+        await tx.multiplechoice.deleteMany({
+          where: {
+            testId: testId,
+            pageName: pageName
+          }
+        });
+
+        return { success: true };
+    });
+    } catch (error) {
+        console.error('Error in deletePageService:', error);
+        throw error;
+    }
+  };
+
+  const deletePage = async (pageIndex) => {
+    if (confirm("Apakah Anda yakin ingin menghapus tes ini?")) {
+      try {
+        const pageToDelete = pages[pageIndex];
+        
+        // 1. Hapus halaman dan datanya
+        const deleteResponse = await fetch(`http://localhost:2000/api/multiplechoice/delete-page`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            testId: testId,
+            pageName: pageToDelete.pageName
+          })
+        });
+  
+        if (!deleteResponse.ok) {
+          throw new Error('Failed to delete page');
+        }
+  
+        // 2. Dapatkan nomor soal yang perlu diperbarui
+        const remainingPages = pages.slice(pageIndex + 1);
+        const questionsToUpdate = remainingPages.flatMap(page => page.questions);
+  
+        // 3. Perbarui nomor soal di backend
+        for (const question of questionsToUpdate) {
+          try {
+            const newNumber = question - pageToDelete.questions.length;
+            
+            await fetch(`http://localhost:2000/api/multiplechoice/update-number`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                testId: testId,
+                oldNumber: question,
+                newNumber: newNumber
+              })
+            });
+          } catch (error) {
+            console.error(`Error updating question number ${question}:`, error);
+          }
+        }
+  
+        // 4. Perbarui state frontend
+        setPages(prevPages => {
+          const updatedPages = prevPages
+            .filter((_, index) => index !== pageIndex)
+            .map((page, index) => {
+              if (index >= pageIndex) {
+                return {
+                  ...page,
+                  questions: page.questions.map(num => num - pageToDelete.questions.length)
+                };
+              }
+              return page;
+            });
+          
+          localStorage.setItem(`pages-${testId}`, JSON.stringify(updatedPages));
+          return updatedPages;
+        });
+  
+      } catch (error) {
+        console.error('Error deleting page:', error);
+        alert('Terjadi kesalahan saat menghapus halaman.');
+      }
+    }
+  };
+  
 
   const fetchPagesFromDB = async (testId) => {
     try {

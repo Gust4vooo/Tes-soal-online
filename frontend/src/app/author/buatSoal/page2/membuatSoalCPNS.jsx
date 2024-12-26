@@ -313,9 +313,9 @@ const MembuatSoal = () => {
     if (!question.trim()) {
       validationErrors.push("Soal wajib diisi");
     }
-    if (!points || points <= 0) {
-      validationErrors.push("Bobot harus diisi dengan nilai lebih dari 0");
-    }
+    // if (!points || points <= 0) {
+    //   validationErrors.push("Bobot harus diisi dengan nilai lebih dari 0");
+    // }
     if (options.length < 2) {
       validationErrors.push("Minimal harus ada 2 opsi jawaban");
     } else if (options.length > 5) {
@@ -327,14 +327,14 @@ const MembuatSoal = () => {
       if (emptyOptions.length > 0) {
         validationErrors.push("Semua opsi jawaban harus diisi");
       }
-  
+
       const pointsOutOfRange = options.filter(option => 
         option.points < 1 || option.points > 5
       );
       if (pointsOutOfRange.length > 0) {
         validationErrors.push("Points harus berada dalam rentang 1–5");
       }
-  
+
       const uniquePoints = new Set(options.map(option => option.points));
       if (uniquePoints.size !== options.length) {
         validationErrors.push("Tidak boleh ada opsi dengan points yang sama");

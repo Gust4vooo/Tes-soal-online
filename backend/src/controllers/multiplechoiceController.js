@@ -367,30 +367,29 @@ export const deletePageController = async (req, res) => {
     }
   };
 
-export const updateNumberController = async (req, res) => {
+  export const updateNumberController = async (req, res) => {
     try {
-        const { testId, oldNumber, newNumber } = req.body;
-
-        // Validasi input
-        if (!testId || oldNumber === undefined || newNumber === undefined) {
-            return res.status(400).json({
-                success: false,
-                message: "testId, oldNumber, dan newNumber wajib diisi.",
-            });
-        }
-
-        // Panggil service untuk memperbarui nomor soal
-        await updateNumberServices(testId, oldNumber, newNumber);
-
-        return res.status(200).json({
-            success: true,
-            message: "Nomor soal berhasil diperbarui.",
+      const { testId, oldNumber, newNumber } = req.body;
+  
+      if (!testId || oldNumber === undefined || newNumber === undefined) {
+        return res.status(400).json({
+          success: false,
+          message: "testId, oldNumber, dan newNumber wajib diisi.",
         });
+      }
+  
+      await updateQuestionNumberService(testId, oldNumber, newNumber);
+  
+      return res.status(200).json({
+        success: true,
+        message: "Nomor soal berhasil diperbarui.",
+      });
     } catch (error) {
-        console.error('Error in updateNumberController:', error);
-        return res.status(500).json({
-            success: false,
-            message: "Terjadi kesalahan pada server.",
-        });
+      console.error('Error in updateQuestionNumberController:', error);
+      return res.status(500).json({
+        success: false,
+        message: "Terjadi kesalahan pada server.",
+      });
     }
-};
+  };
+  
