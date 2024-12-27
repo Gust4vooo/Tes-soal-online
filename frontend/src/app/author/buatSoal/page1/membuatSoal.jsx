@@ -312,45 +312,79 @@ const addOption = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    const valid = validateForm();
-    setIsValid(valid);
-
-    if (!valid) {
-      // Ganti alert dengan SweetAlert
-      Swal.fire({
-        icon: 'error',
-        title: 'Oops...',
-        text: 'Semua opsi harus diisi dan satu opsi harus ditandai sebagai benar.',
-      });
-      return;
-    }
   
     try {
       let uploadedImageUrl = questionPhoto;
-      if (questionPhoto instanceof File) {
+      if (questionPhoto) {
         const imageRef = ref(storage, `question/${questionPhoto.name + v4()}`);
         const snapshot = await uploadBytes(imageRef, questionPhoto);
         uploadedImageUrl = await getDownloadURL(snapshot.ref); 
       }
-
+  
+      const formattedOptions = options.map(option => ({
+        optionDescription: option.optionDescription,
+        points: parseFloat(option.points) || 0,
+        isCorrect: null,
+      }));
+      
       const questionData = {
         pageName,
         question: question,
         number: parseInt(number),
-        questionPhoto: uploadedImageUrl,
-        weight: parseFloat(weight),
+        questionPhoto: uploadedImageUrl || null,
+        weight: null,
         discussion: discussion,
-        options: options.map(option => ({
-          ...option,
-          optionDescription: option.optionDescription,
-          isCorrect: option.isCorrect,
-        })),
+        isWeighted: true,
+        options: formattedOptions
       };
+
+          // SweetAlert jika form tidak valid
+      if (!valid) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Oops...',
+          text: 'Semua opsi harus diisi dan satu opsi harus ditandai sebagai benar.',
+        });
+        return;
+      }
+  
+      // Validasi: Pastikan jumlah opsi antara 2 dan 5
+      if (formattedOptions.length < 2) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Oops...',
+          text: 'Jumlah opsi minimal adalah 2.',
+          confirmButtonText: 'Tutup',
+          customClass: {
+            container: 'sm:max-w-xs max-w-sm',
+            title: 'text-lg sm:text-xl',
+            text: 'text-sm sm:text-base',
+            confirmButton: 'px-4 py-2 text-sm sm:text-base',
+          }
+        });
+        return; // Jangan lanjutkan submit jika opsi kurang dari 2
+      }
+  
+      // Validasi: Pastikan semua kolom wajib diisi
+      if (!number || !question || !options.every(option => option.optionDescription && option.points) || !discussion) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Oops...',
+          text: 'Semua kolom wajib diisi!',
+          confirmButtonText: 'Tutup',
+          customClass: {
+            container: 'sm:max-w-xs max-w-sm',
+            title: 'text-lg sm:text-xl',
+            text: 'text-sm sm:text-base',
+            confirmButton: 'px-4 py-2 text-sm sm:text-base',
+          }
+        });
+        return; // Jangan lanjutkan submit jika ada yang kosong
+      }
   
       let response;
       let result;
-
+  
       if (multiplechoiceId !== "null") {
         response = await fetch(`http://localhost:2000/api/multiplechoice/update-question/${multiplechoiceId}`, {
           method: 'PUT',
@@ -363,7 +397,7 @@ const addOption = () => {
         if (response.ok) {
           result = await response.json();
           console.log('Update successful:', result);
-
+  
           const existingPages = JSON.parse(localStorage.getItem(`pages_${testId}`)) || [];
           const updatedPages = existingPages.map(page => 
             page.id === multiplechoiceId 
@@ -389,7 +423,7 @@ const addOption = () => {
           console.log('Response dari API:', result);
           const newMultiplechoiceId = result.data[0].id;
           console.log('MultiplechoiceId:', newMultiplechoiceId);
-
+  
           localStorage.setItem('pageName', pageName);
           const existingPages = JSON.parse(localStorage.getItem(`pages_${testId}`)) || [];
           const newQuestion = { 
@@ -400,6 +434,9 @@ const addOption = () => {
           localStorage.setItem(`pages_${testId}`, JSON.stringify(existingPages));
         }
       }
+  
+      // Jika validasi sukses, lanjutkan ke proses submit atau logic lain
+      console.log("Form submitted successfully!");
   
       if (response.ok) {
         const encodedPageName = encodeURIComponent(pageName);
