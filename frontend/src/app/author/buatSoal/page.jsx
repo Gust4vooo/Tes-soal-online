@@ -552,7 +552,7 @@ const KotakNomor = () => {
 
               <div className="relative">
                 <button 
-                  className="text-white font-bold text-xl sm:text-2xl mr-2"
+                  className="text-white font-bold text-lg lg:text-4xl md:text-4xl lg:text-4xl mr-1"
                   onClick={() => toggleDropdown(pageIndex)}
                 >
                   <AiOutlineMore />
@@ -595,7 +595,7 @@ const KotakNomor = () => {
             </div>
 
             <div className="mt-0 "></div>
-              <div className="flex flex-wrap p-4 gap-3 justify-start border border-black" style={{ maxWidth: '100%', padding: '0 3%' }}>
+              <div className="flex flex-wrap p-4 gap-3 justify-start border border-gray-300" style={{ maxWidth: '100%', padding: '0 3%' }}>
                 {Array.isArray(page.questions) && page.questions.map((question, questionIndex) => (
                   <div
                     key={`${pageIndex}-${question}`}
@@ -611,7 +611,7 @@ const KotakNomor = () => {
                 <div className="flex items-center mt-1 sm:mt-2">
                   <button
                     onClick={() => addQuestion(pageIndex)}
-                    className="bg-[#A6D0F7] text-black px-3 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base rounded-[10px] shadow-lg font-bold"
+                    className="bg-[#78AED6] hover:bg-[#C1DBF5] border border-black text-black px-3 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base rounded-[10px] shadow-lg font-bold"
                   >
                     + Soal
                   </button>
@@ -631,7 +631,7 @@ const KotakNomor = () => {
         <div className="flex justify-end space-x-2 mr-4">
           <button
             onClick={handleSave}
-            className="bg-[#E8F4FF] hover:bg-[#C1DBF5] border border-black px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base font-poppins rounded-[10px] text-black font-bold"
+            className="bg-[#78AED6] hover:bg-[#E8F4FF] border border-black px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base font-poppins rounded-[10px] text-black font-bold"
           >
             Simpan
           </button>
