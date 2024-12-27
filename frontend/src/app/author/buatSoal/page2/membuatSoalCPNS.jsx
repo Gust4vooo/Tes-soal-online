@@ -28,6 +28,7 @@ const MembuatSoal = () => {
   const [number, setNumber] = useState('');
   const [questionPhoto, setQuestionPhoto] = useState(null);
   const [weight, setWeight] = useState();
+  const [kategori, setKategori] = useState("");
   const [discussion, setDiscussion] = useState('');
   const [options, setOptions] = useState([{ 
     optionDescription: '', 
@@ -128,6 +129,21 @@ const MembuatSoal = () => {
         }
       });
     };
+
+    
+
+     // Fungsi untuk menangani perubahan kategori
+  const handleKategoriChange = (event) => {
+    const selectedKategori = event.target.value;
+    setKategori(selectedKategori);
+
+    // Jika kategori adalah TKP, munculkan 5 opsi
+    if (selectedKategori === "TKP") {
+      setOptions(["Opsi 1", "Opsi 2", "Opsi 3", "Opsi 4", "Opsi 5"]);
+    } else {
+      setOptions([]); // Kosongkan opsi jika kategori lain dipilih
+    }
+  };
 
     const handleOptionChange = (index, field, value) => {
       // Memperbarui nilai opsi tanpa validasi bobot
@@ -323,22 +339,24 @@ const handleSubmit = async (e) => {
       options: formattedOptions
     };
 
-    // Validasi: Pastikan jumlah opsi antara 2 dan 5
-    if (formattedOptions.length < 2) {
+     // Validasi: Pastikan jumlah opsi antara 2 dan 5
+     if (formattedOptions.length < 2) {
       Swal.fire({
         icon: 'error',
         title: 'Oops...',
         text: 'Jumlah opsi minimal adalah 2.',
         confirmButtonText: 'Tutup',
+        heightAuto: false, // Pastikan tinggi popup tidak berubah otomatis
         customClass: {
-          container: 'sm:max-w-xs max-w-sm',
-          title: 'text-lg sm:text-xl',
-          text: 'text-sm sm:text-base',
-          confirmButton: 'px-4 py-2 text-sm sm:text-base',
-        }
+          popup: 'w-full max-w-2xl sm:max-w-3xl lg:max-w-4xl xl:max-w-screen-lg mx-auto p-8', // Full width dan max width responsif
+          title: 'text-lg sm:text-xl lg:text-2xl font-semibold text-center', // Teks judul responsif dan center
+          text: 'text-base sm:text-lg lg:text-xl text-center', // Teks konten responsif dan center
+          confirmButton: 'px-4 py-2 text-sm sm:text-base lg:text-lg bg-blue-500 text-white rounded-lg', // Tombol responsif
+        },
+        backdrop: true, // Efek overlay (default true)
       });
       return; // Jangan lanjutkan submit jika opsi kurang dari 2
-    }
+    }     
 
     // Validasi: Pastikan semua kolom wajib diisi
     if (!number || !question || !options.every(option => option.optionDescription && option.points) || !discussion) {
