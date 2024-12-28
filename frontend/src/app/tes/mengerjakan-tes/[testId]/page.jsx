@@ -667,7 +667,30 @@ useEffect(() => {
 
     // Panggil `submitFinalAnswers` ketika tombol "Submit" diklik
     const handleSubmit = async () => {
-        // Check if there are any questions marked as doubtful
+        // Cek soal yang belum dijawab
+        const unansweredQuestions = questions
+            .filter((question) => !answers[question.id]) // Cek apakah soal tidak ada di jawaban
+            .map((question) => question.questionNumber); // Ambil nomor soal yang belum dijawab
+    
+        if (unansweredQuestions.length > 0) {
+            // Jika ada soal yang belum dijawab, tampilkan alert
+            await Swal.fire({
+                title: 'Soal Belum Lengkap!',
+                text: `Anda masih memiliki ${unansweredQuestions.length} soal yang belum dijawab (Nomor: ${unansweredQuestions.join(', ')}). Harap isi semua soal sebelum mengirim.`,
+                icon: 'warning',
+                confirmButtonText: 'OK',
+            });
+    
+            // Arahkan ke soal pertama yang belum dijawab
+            const firstUnansweredIndex = questions.findIndex(
+                (question) => unansweredQuestions.includes(question.questionNumber)
+            );
+    
+            setCurrentOption(firstUnansweredIndex + 1); // Arahkan ke soal tersebut
+            return; // Hentikan proses submit
+        }
+    
+        // Cek apakah ada soal ragu-ragu
         const doubtfulQuestions = doubtQuestions.map(index => index + 0);
     
         let confirmMessage = 'Apakah Anda yakin ingin mengirim jawaban?';
@@ -715,7 +738,6 @@ useEffect(() => {
             }
         }
     };
-    
     
 
     useEffect(() => {
@@ -837,15 +859,18 @@ useEffect(() => {
                             <div className="mb-6 sm:mb-4 bg-white p-4 sm:p-2 rounded-[15px] shadow">
                                 <p className="text-lg font-poppins mb-6 sm:mb-4">{currentQuestion.questionText}</p>
                                 {questions[currentOption - 1]?.questionPhoto && (
-                                <img 
-                                  src={questions[currentOption - 1]?.questionPhoto} 
-                                  alt={`Question ${questions[currentOption - 1]?.questionNumber}`}
-                                  className="h-64 w-64 aspect-square rounded-lg object-cover mx-auto my-3"
-                                />
-                            )}
+                                    <img 
+                                        src={questions[currentOption - 1]?.questionPhoto} 
+                                        alt={`Question ${questions[currentOption - 1]?.questionNumber}`}
+                                        className="h-64 w-64 aspect-square rounded-lg object-cover mx-auto my-3"
+                                    />
+                                )}
                             </div>
                             {currentQuestion.options.map((option) => (
-                                <div key={option.id} className="mb-4 sm:mb-2 bg-white p-4 sm:p-2 font-poppins rounded-lg shadow-lg">
+                                <div 
+                                    key={option.id} 
+                                    className="mb-4 sm:mb-2 bg-white p-4 sm:p-2 font-poppins rounded-lg shadow-lg flex items-center space-x-4"
+                                >
                                     <input
                                         type="radio"
                                         id={option.id}
@@ -855,6 +880,13 @@ useEffect(() => {
                                         onChange={() => handleOption(option.id, option.value, currentQuestion)}
                                         className="mr-2"
                                     />
+                                    {option.optionPhoto && (
+                                        <img 
+                                            src={option.optionPhoto} 
+                                            alt={`Option ${option.label}`} 
+                                            className="h-16 w-16 rounded-lg object-cover"
+                                        />
+                                    )}
                                     <label htmlFor={option.id} className="text-xs sm:text-sm md:text-base">{option.label}</label>
                                 </div>
                             ))}
@@ -868,7 +900,7 @@ useEffect(() => {
                                 <div className="flex flex-row justify-center items-center w-full space-x-2 sm:space-x-4">
                                     {/* Tombol Soal Sebelumnya */}
                                     <button
-                                        className="bg-transparent sm:bg-deepBlue hover:bg-powderBlue text-black sm:text-white px-1 py-1 rounded-[15px] w-full max-w-[200px] flex justify-center items-center flex-row whitespace-nowrap"
+                                        className="bg-transparent sm:bg-deepBlue text-black sm:text-white px-1 py-1 rounded-[15px] w-full max-w-[200px] flex justify-center items-center flex-row whitespace-nowrap"
                                         style={{ height: '40px' }}
                                         onClick={handleprevquestion}
                                         disabled={currentOption === 1}
@@ -880,14 +912,15 @@ useEffect(() => {
 
                                     {/* Tombol Ragu-Ragu */}
                                     <button
-                                        className={`px-4 py-4 rounded-[15px] w-full max-w-[400px] text-black 
+                                        className={`px-2 sm:px-4 py-2 sm:py-4 rounded-[15px] w-full max-w-[400px] text-black 
                                             ${markedReview[currentOption - 1] ? 'bg-yellow-500 hover:bg-yellow-400' : 
                                             answeredOptions[currentOption - 1] ? 'bg-[#F8B75B] hover:bg-yellow-400' : 
                                             'bg-[#F8B75B] hover:bg-yellow-400'}
-                                            text-xs sm:text-xs lg:text-lg flex justify-center items-center lg:bg-yellow-500 whitespace-nowrap`} // Add bg blue for desktop
-                                        style={{ height: '40px'}} // Prevent text wrapping
-                                        onClick={() => toggleDoubt(currentOption)}> {/* Panggil toggleDoubt */}
-                                        <span className="hidden sm:block font-poppins text-xs sm:text-sm w-full">Ragu-Ragu</span>
+                                            text-xs sm:text-sm lg:text-lg flex justify-center items-center lg:bg-yellow-500 whitespace-nowrap`}
+                                        style={{ height: 'auto' }}
+                                        onClick={() => toggleDoubt(currentOption)}
+                                    >
+                                        <span className="font-poppins w-full text-center">Ragu-Ragu</span>
                                     </button>
 
                                     {/* Tombol Submit / Soal Selanjutnya */}
@@ -903,12 +936,12 @@ useEffect(() => {
                                     
                                     ) : (
                                         <button
-                                            className="bg-transparent sm:bg-deepBlue hover:bg-powderBlue text-black sm:text-white px-1 py-1 rounded-[15px] w-full max-w-[200px] flex justify-center items-center flex-row whitespace-nowrap"
+                                            className="bg-transparent sm:bg-deepBlue  text-black sm:text-white px-1 py-1 rounded-[15px] w-full max-w-[200px] flex justify-center items-center flex-row whitespace-nowrap"
                                             style={{ height: '40px' }}
                                             onClick={handlenextquestion}
                                         >
                                             <span className="hidden sm:block font-poppins text-xs sm:text-sm">Soal Selanjutnya</span>
-                                            <CgArrowRightR className="sm:hidden text-xs" />
+                                            <CgArrowRightR className="block sm:hidden text-lg text-black" />
                                         </button>
 
                                     )}
