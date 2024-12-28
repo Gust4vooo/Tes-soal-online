@@ -15,7 +15,7 @@ const KotakNomor = () => {
   const [category, setCategory] = useState('');
   const [pages, setPages] = useState([]);
   const [multiplechoiceId, setMultiplechoiceId] = useState('');
-  const [isDropdownOpen, setDropdownOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [selectedNumber, setSelectedNumber] = useState(null);
   const [isRenaming, setIsRenaming] = useState(null);
   const [renameValue, setRenameValue] = useState('');
@@ -215,14 +215,18 @@ const KotakNomor = () => {
     }
   };
 
-  const toggleDropdown = (pageIndex) => {
-    setPages(prevPages => 
-      prevPages.map((page, index) => ({
-        ...page,
-        isDropdownOpen: index === pageIndex ? !page.isDropdownOpen : false
-      }))
-    );
-  };
+  // Toggle dropdown untuk halaman tertentu
+const toggleDropdown = (pageIndex) => {
+  const updatedPages = [...pages];
+  updatedPages[pageIndex].isDropdownOpen = !updatedPages[pageIndex].isDropdownOpen;
+  setPages(updatedPages);
+};
+
+const closeDropdown = (pageIndex) => {
+  const updatedPages = [...pages];
+  updatedPages[pageIndex].isDropdownOpen = false;
+  setPages(updatedPages);
+};
 
   const handleRename = (pageIndex) => {
     if (category === 'CPNS') {
@@ -561,29 +565,38 @@ const KotakNomor = () => {
                 {page.isDropdownOpen && (
                   <div
                     className="absolute right-0 mt-2 w-36 bg-white rounded-lg shadow-lg z-10 p-1
-                    before:content-[''] before:absolute before:-top-4 before:right-5 before:border-8
-                    before:border-transparent before:border-b-white"
+                      before:content-[''] before:absolute before:-top-4 before:right-5 before:border-8
+                      before:border-transparent before:border-b-white"
                     onMouseEnter={() => setDropdownOpen(true)}
                     onMouseLeave={() => setDropdownOpen(false)}
                   >
                     {category === 'CPNS' ? (
                       <button
-                        onClick={() => deletePage(pageIndex)}
-                        className="block px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm text-deepBlue text-gray-700 hover:bg-deepBlue hover:text-white rounded-md"
+                        onClick={() => {
+                          deletePage(pageIndex);
+                          closeDropdown(pageIndex); // Tutup dropdown setelah klik Delete
+                        }}
+                        className="block px-4 py-2 text-deepBlue text-sm text-gray-700 hover:bg-deepBlue hover:text-white rounded-md"
                       >
                         Delete page
                       </button>
                     ) : (
                       <>
                         <button
-                          onClick={() => handleRename(pageIndex)}
-                          className="block px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm text-deepBlue text-gray-700 hover:bg-deepBlue hover:text-white rounded-md"
+                          onClick={() => {
+                            handleRename(pageIndex);
+                            closeDropdown(pageIndex); // Tutup dropdown setelah klik Rename
+                          }}
+                          className="block px-4 py-2 text-deepBlue text-sm text-gray-700 hover:bg-deepBlue hover:text-white rounded-md"
                         >
                           Rename
                         </button>
                         <button
-                          onClick={() => deletePage(pageIndex)}
-                          className="block px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm text-deepBlue text-gray-700 hover:bg-deepBlue hover:text-white rounded-md"
+                          onClick={() => {
+                            deletePage(pageIndex);
+                            closeDropdown(pageIndex); // Tutup dropdown setelah klik Delete
+                          }}
+                          className="block px-4 py-2 text-deepBlue text-sm text-gray-700 hover:bg-deepBlue hover:text-white rounded-md"
                         >
                           Delete page
                         </button>
