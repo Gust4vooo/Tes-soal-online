@@ -9,7 +9,6 @@ import { v4 } from 'uuid';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { AiOutlineCloseSquare } from 'react-icons/ai';
 import { IoMdArrowRoundBack } from "react-icons/io";
-import { AiOutlineCloseSquare } from 'react-icons/ai';
 import { BsImage } from 'react-icons/bs';
 import Swal from 'sweetalert2'; 
 import dynamic from 'next/dynamic';
@@ -117,16 +116,6 @@ const MembuatSoal = () => {
     fetchData();
   }, [multiplechoiceId]);
   
-  const incrementPoints = () => {
-    const newPoints = Math.min(option.points + 1, 5); // Maksimal 5
-    handleOptionChange(index, 'points', newPoints);
-  };
-
-  const decrementPoints = () => {
-    const newPoints = Math.max(option.points - 1, 1); // Minimal 1
-    handleOptionChange(index, 'points', newPoints);
-  };
-
   const addOption = () => {
     setOptions((prevOptions) => {
       if (prevOptions.length === 1) {
@@ -151,33 +140,24 @@ const MembuatSoal = () => {
     });
   };
   
-  // Fungsi untuk menangani perubahan kategori
+     // Fungsi untuk menangani perubahan kategori
   const handleKategoriChange = (event) => {
     const selectedKategori = event.target.value;
     setKategori(selectedKategori);
 
+    // Jika kategori adalah TKP, munculkan 5 opsi
     if (selectedKategori === "TKP") {
-      setOptions([
-        { label: "Opsi 1", value: "" },
-        { label: "Opsi 2", value: "" },
-        { label: "Opsi 3", value: "" },
-        { label: "Opsi 4", value: "" },
-        { label: "Opsi 5", value: "" },
-      ]);
+      setOptions(["Opsi 1", "Opsi 2", "Opsi 3", "Opsi 4", "Opsi 5"]);
     } else {
-      setOptions([
-        { label: "Opsi 1", value: "" },
-        { label: "Opsi 2", value: "" },
-      ]);
+      setOptions([]); // Kosongkan opsi jika kategori lain dipilih
     }
   };
 
-  // Fungsi untuk menangani perubahan opsi
   const handleOptionChange = (index, field, value) => {
     const newOptions = options.map((option, i) =>
       i === index ? { ...option, [field]: value } : option
     );
-    setOptions(newOptions);
+    setOptions(newOptions); // Mengupdate state dengan opsi baru
   };
   
 
@@ -486,223 +466,201 @@ const handleSubmit = async (e) => {
         </div>
       </header>
       
-        <div className="w-full p-2">
-          <nav className="bg-[#FFFFFF] text-black p-4">
-            <ul className="grid grid-cols-2 gap-2 sm:flex sm:justify-around sm:gap-10">
-              <li>
-                <button
-                  className={`w-[100px] sm:w-[140px] md:w-[180px] px-2 sm:px-4 md:px-8 py-1 sm:py-2 md:py-4 rounded-full shadow-xl font-bold font-poppins text-xs sm:text-sm md:text-base ${
-                    activeTab === 'buattes' ? 'bg-[#78AED6]' : ''
-                  }`}
-                  onClick={() => setActiveTab('buattes')}
-                >
-                  Buat Soal
-                </button>
-              </li>
-              <li>
-                <button
-                  className={`w-[100px] sm:w-[140px] md:w-[180px] px-2 sm:px-4 md:px-8 py-1 sm:py-2 md:py-4 rounded-full shadow-xl font-bold font-poppins text-xs sm:text-sm md:text-base ${
-                    activeTab === 'publikasi' ? 'bg-[#78AED6]' : ''
-                  }`}
-                >
-                  Publikasi
-                </button>
-              </li>
-            </ul>
-          </nav>
-      
-          <div className="container mx-auto lg: p-2 p-4 w-full" style={{ maxWidth: '100%', height: 'auto' }}>
-            <header className='bg-[#0B61AA] font-bold font-poppins text-white p-4'>
-              <div className="flex items-center justify-between">
-                <span>{pageName}</span>
-              </div>
-            </header>
-      
-            <div className="bg-[#FFFFFF] border border-black p-4 rounded-lg shadow-md w-full mb-6 " >
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className='mb-4'>
-                  <label htmlFor="soal">No.      </label>
-                  <input
-                    type="number"
-                    value={number}
-                    onChange={(e) => setNumber(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className='m'>
-                  <div className='border border-black bg-[#D9D9D9] p-2 rounded mb-4' style={{ maxWidth: '1978px', height: '250px' }}>
-                    <div className='p-4 flex justify-between items-center mb-0.5 w-full'>
-                    <div className="flex items-center w-full sm:w-auto mb-2 sm:mb-0">
-                        <label className="block text-sm sm:text-sm md:text-base font-medium">
-                          Soal Pilihan Ganda
-                        </label>
-                      </div>
-                    </div>
-                    <ReactQuill 
-                      value={question} 
-                      onChange={setQuestion} 
-                      modules={{
-                        toolbar: [
-                          [{ 'header': '1'}, {'header': '2'}, { 'font': [] }],
-                          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                          ['bold', 'italic', 'underline'],
-                          ['clean']
-                        ],
-                      }}
-                      formats={[
-                        'header',
-                        'font',
-                        'list',
-                        'bullet',
-                        'bold',
-                        'italic',
-                        'underline',
-                        'image',
-                      ]}
-                      className='bg-white shadow-md rounded-md border border-gray-500'
-                      style={{ maxWidth: '1978px', height: '150px', overflow: 'hidden' }}
-                      placeholder='Buat Soal di sini...'
-                      required 
-                    />
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  {typeof questionPhoto === 'string' && questionPhoto ? (
-                    <div className="mb-2">
-                      <img 
-                        src={questionPhoto} 
-                        alt="Question" 
-                        className="max-w-md h-auto"
-                      />
-                      <button 
-                        type="button"
-                        onClick={() => setQuestionPhoto(null)}
-                        className="mt-2 bg-red-500 text-white px-2 py-1 rounded"
-                      >
-                        Hapus Gambar
-                      </button>
-                    </div>
-                  ) : (
-                    <input
-                      type="file"
-                      onChange={(event) => setQuestionPhoto(event.target.files[0])}
-                      className="border p-2 w-full"
-                      accept="image/*"
-                    />
-                  )}
-                </div>
-      
-                <div>
-                <h2 className="block text-sm sm:text-sm md:text-base font-medium mb-2">Jawaban</h2>
-                {options.map((option, index) => (
-                  <div
-                    key={index}
-                    className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 mb-6"
-                  >
-                    {/* Opsi Jawaban */}
-                    <div className="w-full mb-4 sm:mb-0">
-                      {renderOptionContent(option, index)}
-                    </div>
-
-                    {/* Bobot */}
-                    <div className="w-full sm:w-auto flex flex-col sm:flex-row items-center justify-between space-x-2 sm:space-x-4 border border-black rounded-[10px] p-2">
-                      <label className="font-medium text-sm">Bobot</label>
-                      <div className="flex items-center w-full sm:w-auto">
-                        {/* Tombol Panah Bawah (decrement) */}
-                        <button
-                          type="button"
-                          onClick={decrementPoints}
-                          className="border p-2 text-xs sm:p-2 sm:text-sm md:text-base rounded-l-md bg-gray-200 hover:bg-gray-300"
-                        >
-                          &darr;
-                        </button>
-
-                        {/* Input Points */}
-                        <input
-                          type="number"
-                          name="points"
-                          min="1"
-                          max="5"
-                          value={option.points || ''}
-                          onChange={(e) => handleOptionChange(index, 'points', e.target.value)}
-                          className="border p-1 text-center w-full"
-                          style={{ height: '30px' }}
-                          readOnly  // Input hanya bisa diubah dengan tombol naik/turun
-                        />
-
-                        {/* Tombol Panah Atas (increment) */}
-                        <button
-                          type="button"
-                          onClick={incrementPoints}
-                          className="border p-2 text-xs sm:p-2 sm:text-sm md:text-base rounded-r-md bg-gray-200 hover:bg-gray-300"
-                        >
-                          &uarr;
-                        </button>
-
-                        {/* Tombol Hapus */}
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteJawaban(index, option.id)}
-                          className="ml-2"
-                        >
-                          <AiOutlineCloseSquare className="w-6 h-6" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                </div>
-
-                <div className="mb-4">
-                  <label className="block text-sm sm:text-sm md:text-base font-medium mb-2">Pembahasan</label>
-                  <ReactQuill 
-                    value={discussion} 
-                    onChange={setDiscussion} 
-                    modules={{
-                      toolbar: [
-                        [{ 'header': '1'}, {'header': '2'}, { 'font': [] }],
-                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                        ['bold', 'italic', 'underline'],
-                        ['clean']
-                      ]
-                    }}
-                    formats={[
-                      'header',
-                      'font',
-                      'list',
-                      'bullet',
-                      'bold',
-                      'italic',
-                      'underline',
-                    ]}
-                    placeholder='Tulis kunci jawaban di sini...' />
-                </div>
-              </form>
-              <div className="mt-4 flex flex-wrap justify-end items-center gap-2 sm:gap-4">
-                  <button
-                    onClick={handleDelete}
-                    className="bg-[#E58A7B] border border-black px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base hover:text-white font-poppins rounded-[10px]"
-                  >
-                    Hapus
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSubmit}
-                    className="bg-[#E8F4FF] border border-black px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base hover:text-white font-poppins rounded-[10px]"
-                  >
-                    Simpan
-                  </button>
-                  <button
-                    onClick={handleBack}
-                    className="bg-[#A6D0F7] border border-black px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base hover:text-white font-poppins rounded-[10px]"
-                  >
-                    Kembali
-                  </button>
-                </div>
-            </div>
+      <div className="w-full p-2">
+        <nav className="bg-[#FFFFFF] text-black p-4">
+          <ul className="grid grid-cols-2 gap-2 sm:flex sm:justify-around sm:gap-10">
+            <li>
+              <button
+                className={`w-[100px] sm:w-[140px] md:w-[180px] px-2 sm:px-4 md:px-8 py-1 sm:py-2 md:py-4 rounded-full shadow-xl font-bold font-poppins text-xs sm:text-sm md:text-base ${
+                  activeTab === 'buattes' ? 'bg-[#78AED6]' : ''
+                }`}
+                onClick={() => setActiveTab('buattes')}
+              >
+                Buat Soal
+              </button>
+            </li>
+            <li>
+              <button
+                className={`w-[100px] sm:w-[140px] md:w-[180px] px-2 sm:px-4 md:px-8 py-1 sm:py-2 md:py-4 rounded-full shadow-xl font-bold font-poppins text-xs sm:text-sm md:text-base ${
+                  activeTab === 'publikasi' ? 'bg-[#78AED6]' : ''
+                }`}
+              >
+                Publikasi
+              </button>
+            </li>
+          </ul>
+        </nav>
+    
+      <div className="container mx-auto lg: p-2 p-4 w-full" style={{ maxWidth: '100%', height: 'auto' }}>
+        <header className='bg-[#0B61AA] font-bold font-poppins text-white p-4'>
+          <div className="flex items-center justify-between">
+            <span>{pageName}</span>
           </div>
+        </header>
+  
+        <div className="bg-[#FFFFFF] border border-black p-4 rounded-lg shadow-md w-full mb-6 " >
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className='mb-4'>
+              <label htmlFor="soal">No.      </label>
+              <input
+                type="number"
+                value={number}
+                onChange={(e) => setNumber(e.target.value)}
+                required
+              />
+            </div>
+            <div className='m'>
+              <div className='border border-black bg-[#D9D9D9] p-2 rounded mb-4' style={{ maxWidth: '1978px', height: '250px' }}>
+                <div className='p-4 flex justify-between items-center mb-0.5 w-full'>
+                <div className="flex items-center w-full sm:w-auto mb-2 sm:mb-0">
+                    <label className="block text-sm sm:text-sm md:text-base font-medium">
+                      Soal Pilihan Ganda
+                    </label>
+                  </div>
+                </div>
+                <ReactQuill 
+                  value={question} 
+                  onChange={setQuestion} 
+                  modules={{
+                    toolbar: [
+                      [{ 'header': '1'}, {'header': '2'}, { 'font': [] }],
+                      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                      ['bold', 'italic', 'underline'],
+                      ['clean']
+                    ],
+                  }}
+                  formats={[
+                    'header',
+                    'font',
+                    'list',
+                    'bullet',
+                    'bold',
+                    'italic',
+                    'underline',
+                    'image',
+                  ]}
+                  className='bg-white shadow-md rounded-md border border-gray-500'
+                  style={{ maxWidth: '1978px', height: '150px', overflow: 'hidden' }}
+                  placeholder='Buat Soal di sini...'
+                  required 
+                />
+              </div>
+            </div>
+
+            <div className="mb-4">
+              {typeof questionPhoto === 'string' && questionPhoto ? (
+                <div className="mb-2">
+                  <img 
+                    src={questionPhoto} 
+                    alt="Question" 
+                    className="max-w-md h-auto"
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => setQuestionPhoto(null)}
+                    className="mt-2 bg-red-500 text-white px-2 py-1 rounded"
+                  >
+                    Hapus Gambar
+                  </button>
+                </div>
+              ) : (
+                <input
+                  type="file"
+                  onChange={(event) => setQuestionPhoto(event.target.files[0])}
+                  className="border p-2 w-full"
+                  accept="image/*"
+                />
+              )}
+            </div>
+  
+            <div>
+            <h2 className="block text-sm sm:text-sm md:text-base font-medium mb-2">Jawaban</h2>
+            {options.map((option, index) => (
+              <div
+                key={index}
+                className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 mb-6"
+              >
+                {/* Opsi Jawaban */}
+                <div className="w-full mb-4 sm:mb-0">
+                  {renderOptionContent(option, index)}
+                </div>
+
+                {/* Bobot */}
+                <div className="w-full sm:w-auto flex flex-col sm:flex-row items-center justify-between space-x-2 sm:space-x-4 border border-black rounded-[10px] p-2">
+                  <label className="font-medium text-sm">Bobot</label>
+                  <div className="flex items-center w-full sm:w-auto">
+                    <input
+                      type="number"
+                      name="points"
+                      min="1"
+                      max="5"
+                      value={option.points || ''}
+                      onChange={(e) => handleOptionChange(index, 'points', e.target.value)}
+                      className="border p-1 w-full"
+                      style={{ height: '30px' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteJawaban(index, option.id)}
+                      className="ml-2"
+                    >
+                      <AiOutlineCloseSquare className="w-6 h-6" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm sm:text-sm md:text-base font-medium mb-2">Pembahasan</label>
+              <ReactQuill 
+                value={discussion} 
+                onChange={setDiscussion} 
+                modules={{
+                  toolbar: [
+                    [{ 'header': '1'}, {'header': '2'}, { 'font': [] }],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    ['bold', 'italic', 'underline'],
+                    ['clean']
+                  ]
+                }}
+                formats={[
+                  'header',
+                  'font',
+                  'list',
+                  'bullet',
+                  'bold',
+                  'italic',
+                  'underline',
+                ]}
+                placeholder='Tulis kunci jawaban di sini...' />
+            </div>
+          </form>
+          <div className="mt-4 flex flex-wrap justify-end items-center gap-2 sm:gap-4">
+              <button
+                onClick={handleDelete}
+                className="bg-[#E58A7B] border border-black px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base hover:text-white font-poppins rounded-[10px]"
+              >
+                Hapus
+              </button>
+              <button
+                type="button"
+                onClick={handleSubmit}
+                className="bg-[#E8F4FF] border border-black px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base hover:text-white font-poppins rounded-[10px]"
+              >
+                Simpan
+              </button>
+              <button
+                onClick={handleBack}
+                className="bg-[#A6D0F7] border border-black px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base hover:text-white font-poppins rounded-[10px]"
+              >
+                Kembali
+              </button>
+            </div>
         </div>
+      </div>
+    </div>
     </div>
   ); 
 };
