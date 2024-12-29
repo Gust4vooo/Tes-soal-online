@@ -36,10 +36,9 @@ const MembuatSoal = () => {
   const [discussion, setDiscussion] = useState('');
   const [options, setOptions] = useState([{ optionDescription: '', isCorrect: false }]);
   const [pages, setPages] = useState([{ questions: [] }]);
-  const [kategori, setKategori] = useState("");
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('buattes'); 
-  const [isValid, setIsValid] = useState(true); 
+  const [isValid, setIsValid] = useState(true);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -171,33 +170,6 @@ const MembuatSoal = () => {
     setOptions(newOptions);
   };
 
-    // Fungsi untuk menangani perubahan kategori
-    const handleKategoriChange = (event) => {
-      const selectedKategori = event.target.value;
-      setKategori(selectedKategori); // Update kategori
-    };
-
-  // Menggunakan useEffect untuk memperbarui options saat kategori berubah
-  useEffect(() => {
-    // Opsi wajib yang selalu ada
-    const baseOptions = [
-      { label: "Opsi 1", value: "", disabled: true }, // Menonaktifkan Opsi 1
-      { label: "Opsi 2", value: "", disabled: true }, // Menonaktifkan Opsi 2
-    ];
-
-    // Menambahkan opsi tambahan berdasarkan kategori
-    if (kategori === "TKP") {
-      setOptions([
-        ...baseOptions, // Menambahkan opsi wajib
-        { label: "Opsi 3", value: "" },
-        { label: "Opsi 4", value: "" },
-        { label: "Opsi 5", value: "" },
-      ]);
-    } else {
-      setOptions(baseOptions); // Menyederhanakan opsi jika kategori bukan TKP
-    }
-  }, [kategori]); // Hanya dijalankan ketika kategori berubah
-
   const handleCorrectOptionChange = (index) => {
     const newOptions = options.map((option, i) => ({
       ...option,
@@ -236,17 +208,16 @@ const MembuatSoal = () => {
       try {
         const localStorageKey = `pages-${testId}`;
         
-        if (multiplechoiceId != null) {
+        if (multiplechoiceId && multiplechoiceId !== "null") {
           const response = await fetch(`http://localhost:2000/api/multiplechoice/question/${multiplechoiceId}`, {
             method: 'DELETE',
           });
-    
-          if (!response.ok) {
-            router.push(`/author/buatSoal?testId=${testId}`);
-          }
-          
-        }
   
+          if (!response.ok) {
+            throw new Error('Gagal menghapus soal dari database');
+          }
+        }
+
         const savedPages = localStorage.getItem(localStorageKey);
         console.log('Data sebelum dihapus:', savedPages);
   
@@ -254,7 +225,7 @@ const MembuatSoal = () => {
           let pages = JSON.parse(savedPages);
           let deletedNumber = null;
           let deletedPageIndex = -1;
-          
+
           pages.forEach((page, pageIndex) => {
             const questionIndex = page.questions.indexOf(parseInt(number));
             if (questionIndex !== -1) {
@@ -264,8 +235,12 @@ const MembuatSoal = () => {
             }
           });
   
+          console.log('Nomor yang dihapus:', deletedNumber); 
+          console.log('Data setelah splice:', pages); 
+
           if (deletedNumber !== null) {
             const allNumbers = pages.reduce((acc, page) => [...acc, ...page.questions], []);
+            console.log('Semua nomor setelah flatten:', allNumbers); 
 
             pages = pages.map(page => ({
               ...page,
@@ -278,15 +253,9 @@ const MembuatSoal = () => {
             pages = pages.filter(page => page.questions.length > 0);
             localStorage.setItem(localStorageKey, JSON.stringify(pages));   
             console.log('Data final yang disimpan:', pages); 
-    
-            // Hapus halaman yang kosong
-            // pages = pages.filter(page => page.questions.length > 0);
-            
-            // // Simpan perubahan ke localStorage
-            // localStorage.setItem(localStorageKey, JSON.stringify(pages));
           }
         }
-  
+
         router.push(`/author/buatSoal?testId=${testId}`);
         
       } catch (error) {
@@ -296,31 +265,24 @@ const MembuatSoal = () => {
     }
   };
 
-  // Fungsi untuk menangani penghapusan jawaban
   const handleDeleteJawaban = async (index, optionId) => {
-    // Cek apakah index opsi adalah 1 atau 2, jika ya, tidak perlu melanjutkan penghapusan
-    if (index < 2) {
-      console.log("Opsi 1 dan 2 tidak dapat dihapus.");
-      return; // Tidak lakukan apapun jika opsi 1 atau 2
-    }
-
-    // Logika penghapusan untuk opsi 3 dan seterusnya
     const updatedOptions = options.filter((_, i) => i !== index);
     setOptions(updatedOptions);
 
     try {
       if (optionId) {
         const response = await fetch(`http://localhost:2000/api/multiplechoice/option/${optionId}`, {
-          method: 'DELETE',
+            method: 'DELETE',
         });
-
+        
         if (!response.ok) {
-          throw new Error('Gagal menghapus option dari server');
-        }
-        console.log('Opsi berhasil dihapus dari server');
+            console.error('Failed to delete option:', response.statusText);
+        } else {
+          console.log('Opsi berhasil dihapus dari server');
+        } 
       }
     } catch (error) {
-      console.error('Error saat menghapus opsi:', error);
+        console.error('Error deleting option:', error);
     }
   };
 
@@ -401,32 +363,6 @@ const MembuatSoal = () => {
         discussion: discussion,
         options: formattedOptions
       };
-
-       // SweetAlert jika form tidak valid
-       if (!valid) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Oops...',
-          text: 'Semua opsi harus diisi dan satu opsi harus ditandai sebagai benar.',
-        });
-        return;
-      }
-
-      if (!number || !question || !options.every(option => option.optionDescription && option.points) || !discussion) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Oops...',
-          text: 'Semua kolom wajib diisi!',
-          confirmButtonText: 'Tutup',
-          customClass: {
-            container: 'sm:max-w-xs max-w-sm',
-            title: 'text-lg sm:text-xl',
-            text: 'text-sm sm:text-base',
-            confirmButton: 'px-4 py-2 text-sm sm:text-base',
-          }
-        });
-        return; // Jangan lanjutkan submit jika ada yang kosong
-      }
   
       let response;
       let result;
@@ -591,102 +527,213 @@ const MembuatSoal = () => {
             </li>
           </ul>
         </nav>
-    
-        <div className="container mx-auto lg:p-1 p-4 w-full" style={{ maxWidth: '1978px' }}>
+  
+        <div className="container mx-auto lg: p-2 p-4 w-full" style={{ maxWidth: '1309px' }}>
           <header className='bg-[#0B61AA] font-bold font-poppins text-white p-4'>
             <div className="flex items-center justify-between">
               <span>{pageName}</span>
             </div>
           </header>
-  
-        <div className="bg-[#FFFFFF] border border-black p-4 rounded-lg shadow-md w-full mb-6 " >
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className='mb-4'>
-              <label htmlFor="soal">No.      </label>
-              <input
-                type="number"
-                value={number}
-                onChange={(e) => setNumber(e.target.value)}
-                required
-              />
-            </div>
-            <div className='m'>
-              <div className='border border-black bg-[#D9D9D9] p-2 rounded mb-4' style={{ maxWidth: '100%', height: 'auto' }}>
-                <div className="p-4 flex flex-wrap sm:flex-nowrap justify-between items-center mb-2">
-                  <div className="flex items-center w-full sm:w-auto mb-2 sm:mb-0">
-                    <label className="block text-sm sm:text-sm md:text-base font-medium">
-                      Soal Pilihan Ganda
-                    </label>
-                  </div>
-                    {/* Bobot */}
-                    <div className="flex items-center w-full sm:w-auto">
-                      <label className="font-medium-bold mr-2 text-sm sm:text-sm md:text-base">
-                        Bobot
+    
+          <div className="bg-[#FFFFFF] border border-black p-4 rounded-lg shadow-md w-full mb-6 " >
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className='mb-4'>
+                <label htmlFor="soal">No.      </label>
+                <input
+                  type="number"
+                  value={number}
+                  onChange={(e) => setNumber(e.target.value)}
+                  required
+                />
+              </div>
+              <div className='m'>
+                <div className='border border-black bg-[#D9D9D9] p-2 rounded mb-4' style={{ maxWidth: '100%', height: 'auto' }}>
+                  <div className="p-4 flex flex-wrap sm:flex-nowrap justify-between items-center mb-2">
+                    <div className="flex items-center w-full sm:w-auto mb-2 sm:mb-0">
+                      <label className="block text-sm sm:text-sm md:text-base font-medium">
+                        Soal Pilihan Ganda
                       </label>
-                      <input
-                        type="number"  // Menggunakan type="text" agar fleksibel dalam menangani desimal
-                        min="1"
-                        max='5'
-                        step="0.1"  // Langkah desimal menjadi 0.1 untuk satu angka setelah titik
-                        id="weight"
-                        value={weight}
-                        onChange={(e) => {
-                          const value = e.target.value;
-
-                          // Validasi hanya angka dan satu titik desimal, maksimal satu angka desimal
-                          if (/^\d*\.?\d{0,1}$/.test(value)) {
-                            setWeight(value);  // Mengupdate state jika input valid
-                          }
-                        }}
-                        onKeyDown={(e) => {
-                          // Cek jika tombol yang ditekan adalah titik
-                          if (e.key === '.') {
-                            // Cek jika input sebelumnya tidak kosong atau tidak ada angka sebelumnya
-                            if (!weight || isNaN(weight)) {
-                              e.preventDefault();  // Mencegah titik jika tidak ada angka sebelumnya
-                            }
-                          }
-
-                          // Blokir karakter selain angka dan titik desimal jika sudah ada angka sebelumnya
-                          if (
-                            e.key !== "Backspace" &&
-                            e.key !== "Tab" &&
-                            e.key !== "ArrowLeft" &&
-                            e.key !== "ArrowRight" &&
-                            (e.key < "0" || e.key > "9") &&  // Hanya angka
-                            e.key !== "."  // Hanya titik desimal yang diperbolehkan jika ada angka sebelumnya
-                          ) {
-                            e.preventDefault();
-                          }
-                        }}
-                        onBlur={(e) => {
-                          // Pastikan input diformat menjadi satu desimal saat kehilangan fokus
-                          const value = parseFloat(e.target.value);
-                          if (!isNaN(value)) {
-                            setWeight(value.toFixed(1));  // Memastikan satu angka desimal
-                          } else {
-                            setWeight("");  // Reset jika input tidak valid
-                          }
-                        }}
-                        className="border p-1 text-xs sm:p-1 sm:text-sm md:text-base w-full sm:w-auto rounded-md"
-                        required
-                      />
                     </div>
+                      <div className="flex items-center w-full sm:w-auto">
+                        <label className="font-medium-bold mr-2 text-sm sm:text-sm md:text-base">
+                          Bobot
+                        </label>
+                        <input
+                          type="text"  // Menggunakan type="text" agar fleksibel dalam menangani desimal
+                          min="0"
+                          step="0.1"  // Langkah desimal menjadi 0.1 untuk satu angka setelah titik
+                          id="weight"
+                          value={weight}
+                          onChange={(e) => {
+                            const value = e.target.value;
+
+                            // Validasi hanya angka dan satu titik desimal, maksimal satu angka desimal
+                            if (/^\d*\.?\d{0,1}$/.test(value)) {
+                              setWeight(value);  // Mengupdate state jika input valid
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            // Cek jika tombol yang ditekan adalah titik
+                            if (e.key === '.') {
+                              // Cek jika input sebelumnya tidak kosong atau tidak ada angka sebelumnya
+                              if (!weight || isNaN(weight)) {
+                                e.preventDefault();  // Mencegah titik jika tidak ada angka sebelumnya
+                              }
+                            }
+
+                            // Blokir karakter selain angka dan titik desimal jika sudah ada angka sebelumnya
+                            if (
+                              e.key !== "Backspace" &&
+                              e.key !== "Tab" &&
+                              e.key !== "ArrowLeft" &&
+                              e.key !== "ArrowRight" &&
+                              (e.key < "0" || e.key > "9") &&  // Hanya angka
+                              e.key !== "."  // Hanya titik desimal yang diperbolehkan jika ada angka sebelumnya
+                            ) {
+                              e.preventDefault();
+                            }
+                          }}
+                          onBlur={(e) => {
+                            // Pastikan input diformat menjadi satu desimal saat kehilangan fokus
+                            const value = parseFloat(e.target.value);
+                            if (!isNaN(value)) {
+                              setWeight(value.toFixed(1));  // Memastikan satu angka desimal
+                            } else {
+                              setWeight("");  // Reset jika input tidak valid
+                            }
+                          }}
+                          className="border p-1 text-xs sm:p-1 sm:text-sm md:text-base w-full sm:w-auto rounded-md"
+                          required
+                        />
+                      </div>
+                  </div>
+                  <ReactQuill 
+                    value={question} 
+                    onChange={setQuestion} 
+                    modules={{
+                      toolbar: [
+                        [{ 'header': '1'}, {'header': '2'}, { 'font': [] }],
+                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        ['bold', 'italic', 'underline'],
+                        ['image'],
+                        ['clean']
+                      ],
+                      // handlers: {
+                      //   image: () => document.getElementById('imageUpload').click() // Trigger input file upload
+                      // }
+                    }}
+                    formats={[
+                      'header',
+                      'font',
+                      'list',
+                      'bullet',
+                      'bold',
+                      'italic',
+                      'underline',
+                      'image',
+                    ]}
+                    // onImageUpload={uploadImage}
+                    className='bg-white shadow-md rounded-md border border-gray-500'
+                    style={{ maxWidth: '1978px', height: '150px', overflow: 'hidden' }}
+                    placeholder='Buat Soal di sini...'
+                    required 
+                  />
                 </div>
+              </div>
+
+              <div className="mb-4">
+                {typeof questionPhoto === 'string' && questionPhoto ? (
+                  // Show existing image from Firebase
+                  <div className="mb-2">
+                    <img 
+                      src={questionPhoto} 
+                      alt="Question" 
+                      className="max-w-md h-auto"
+                    />
+                    <button 
+                      type="button"
+                      onClick={() => setQuestionPhoto(null)}
+                      className="mt-2 bg-red-500 text-white px-2 py-1 rounded"
+                    >
+                      Hapus Gambar
+                    </button>
+                  </div>
+                ) : (
+                  <input
+                    type="file"
+                    onChange={(event) => setQuestionPhoto(event.target.files[0])}
+                    className="border p-2 w-full"
+                    accept="image/*"
+                  />
+                )}
+             </div>
+    
+             <div>
+                <h2 className="block text-sm sm:text-sm md:text-base font-medium mb-2">Jawaban</h2>
+                {options.map((option, index) => (
+                  <div key={index} className="flex items-center space-x-2 mb-2">
+                    {/* Opsi Jawaban */}
+                    <div className="w-full mb-4 sm:mb-0">
+                      {renderOptionContent(option, index)}
+                    </div>
+
+                    <div className="flex items-center space-x-4">
+                      {/* Tombol Benar */}
+                      <button
+                        type="button"
+                        className="flex items-center justify-between text-black font-bold px-1 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base rounded-[10px] border border-black hover:bg-gray-200 hover:text-blue-500 space-x-2"
+                      >
+                        <input
+                          type="radio"
+                          id={`jawaban-${index}`}
+                          name="jawabanBenar"
+                          value={index}
+                          checked={option.isCorrect}
+                          onChange={() => handleCorrectOptionChange(index)}
+                          className={`w-4 h-4 ${
+                            !isValid && !options.some((opt) => opt.isCorrect) ? 'border border-red-700' : ''
+                          }`}
+                        />
+                        <span>Benar</span>
+                      </button>
+
+                      {/* Tombol Hapus hanya untuk opsi 3 dan seterusnya */}
+                      {index >= 2 && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteJawaban(index, option.id)}
+                          className="ml-4"
+                        >
+                          {/* Ikon Hapus */}
+                          <AiOutlineCloseSquare className="w-6 h-6" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                {/* Tombol Tambah Opsi */}
+                <button
+                  type="button"
+                  onClick={addOption}
+                  className="bg-[#7bb3b4] hover:bg-[#8CC7C8] border border-black px-1 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base font-poppins rounded-[10px] text-black font-bold"
+                >
+                  + Tambah
+                </button>
+              </div>
+    
+              <div className="mb-4">
+                <label className="block text-sm sm:text-sm md:text-base font-medium mb-2">Pembahasan</label>
                 <ReactQuill 
-                  value={question} 
-                  onChange={setQuestion} 
+                  value={discussion} 
+                  onChange={setDiscussion} 
                   modules={{
                     toolbar: [
                       [{ 'header': '1'}, {'header': '2'}, { 'font': [] }],
                       [{ 'list': 'ordered'}, { 'list': 'bullet' }],
                       ['bold', 'italic', 'underline'],
-                      ['image'],
                       ['clean']
-                    ],
-                    // handlers: {
-                    //   image: () => document.getElementById('imageUpload').click() // Trigger input file upload
-                    // }
+                    ]
                   }}
                   formats={[
                     'header',
@@ -696,146 +743,40 @@ const MembuatSoal = () => {
                     'bold',
                     'italic',
                     'underline',
-                    'image',
                   ]}
                   // onImageUpload={uploadImage}
-                  className='bg-white shadow-md rounded-md border border-gray-500'
-                  style={{ maxWidth: '1978px', height: '150px', overflow: 'hidden' }}
-                  placeholder='Buat Soal di sini...'
-                  required 
-                />
+                  placeholder='Tulis kunci jawaban di sini...' />
               </div>
-            </div>
-
-            <div className="mb-4">
-            {typeof questionPhoto === 'string' && questionPhoto ? (
-              // Show existing image from Firebase
-              <div className="mb-2">
-                <img 
-                  src={questionPhoto} 
-                  alt="Question" 
-                  className="max-w-md h-auto"
-                />
-                <button 
-                  type="button"
-                  onClick={() => setQuestionPhoto(null)}
-                  className="mt-2 bg-red-500 text-white px-2 py-1 rounded"
+            </form>
+            <div className="mt-4 flex flex-wrap justify-end items-center gap-2 sm:gap-4">
+              <div className="flex justify-end space-x-2">
+                <button
+                  onClick={handleDelete}
+                  className="bg-[#E58A7B] border border-black px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base hover:text-white font-poppins rounded-[10px]"
                 >
-                  Hapus Gambar
+                  Hapus
+                </button>
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <button
+                    type="button"
+                    onClick={handleSubmit}
+                    className="bg-[#E8F4FF] border border-black px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base hover:text-white font-poppins rounded-[10px]"
+                  >
+                    Simpan
+                  </button>
+              </div>
+              <div className="flex justify-end space-x-2">
+                <button
+                  onClick={handleBack}
+                  className="bg-[#A6D0F7] border border-black px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base hover:text-white font-poppins rounded-[10px]"
+                >
+                  Kembali
                 </button>
               </div>
-            ) : (
-              <input
-                type="file"
-                onChange={(event) => setQuestionPhoto(event.target.files[0])}
-                className="border p-2 w-full"
-                accept="image/*"
-              />
-            )}
-            </div>
-  
-            <div>
-              <h2 className="block text-sm sm:text-sm md:text-base font-medium mb-2">Jawaban</h2>
-              {options.map((option, index) => (
-                <div key={index} className="flex items-center space-x-2 mb-2">
-                  {/* Opsi Jawaban */}
-                  <div className="w-full mb-4 sm:mb-0">
-                    {renderOptionContent(option, index)}
-                  </div>
-
-                  <div className="flex items-center space-x-4">
-                    {/* Tombol Benar */}
-                    <button
-                      type="button"
-                      className="flex items-center justify-between text-black font-bold px-1 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base rounded-[10px] border border-black hover:bg-gray-200 hover:text-blue-500 space-x-2"
-                    >
-                      <input
-                        type="radio"
-                        id={`jawaban-${index}`}
-                        name="jawabanBenar"
-                        value={index}
-                        checked={option.isCorrect}
-                        onChange={() => handleCorrectOptionChange(index)}
-                        className={`w-4 h-4 ${
-                          !isValid && !options.some((opt) => opt.isCorrect) ? 'border border-red-700' : ''
-                        }`}
-                      />
-                      <span>Benar</span>
-                    </button>
-
-                    {/* Tombol Hapus hanya untuk opsi 3 dan seterusnya */}
-                    {index >= 2 && (
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteJawaban(index, option.id)}
-                        className="ml-4"
-                      >
-                        {/* Ikon Hapus */}
-                        <AiOutlineCloseSquare className="w-6 h-6" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-
-              {/* Tombol Tambah Opsi */}
-              <button
-                type="button"
-                onClick={addOption}
-                className="bg-[#7bb3b4] hover:bg-[#8CC7C8] border border-black px-1 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base font-poppins rounded-[10px] text-black font-bold"
-              >
-                + Tambah
-              </button>
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm sm:text-sm md:text-base font-medium mb-2">Pembahasan</label>
-              <ReactQuill 
-                value={discussion} 
-                onChange={setDiscussion} 
-                modules={{
-                  toolbar: [
-                    [{ 'header': '1'}, {'header': '2'}, { 'font': [] }],
-                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                    ['bold', 'italic', 'underline'],
-                    ['clean']
-                  ]
-                }}
-                formats={[
-                  'header',
-                  'font',
-                  'list',
-                  'bullet',
-                  'bold',
-                  'italic',
-                  'underline',
-                ]}
-                // onImageUpload={uploadImage}
-                placeholder='Tulis kunci jawaban di sini...' />
-            </div>
-          </form>
-            <div className="mt-4 flex flex-wrap justify-end items-center gap-2 sm:gap-4">
-              <button
-                onClick={handleDelete}
-                className="bg-[#E58A7B] border border-black px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base hover:text-white font-poppins rounded-[10px]"
-              >
-                Hapus
-              </button>
-              <button
-                type="button"
-                onClick={handleSubmit}
-                className="bg-[#E8F4FF] border border-black px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base hover:text-white font-poppins rounded-[10px]"
-              >
-                Simpan
-              </button>
-              <button
-                onClick={handleBack}
-                className="bg-[#A6D0F7] border border-black px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base hover:text-white font-poppins rounded-[10px]"
-              >
-                Kembali
-              </button>
             </div>
           </div>
-        </div>
+        </div>  
       </div>
     </div>
   ); 
