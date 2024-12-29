@@ -11,8 +11,8 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { AiOutlineCloseSquare } from 'react-icons/ai';
 import { IoMdArrowRoundBack } from "react-icons/io";
 import { BsImage } from 'react-icons/bs';
-import Swal from 'sweetalert2'; 
 import dynamic from 'next/dynamic';
+import Swal from 'sweetalert2'; 
 const ReactQuill = dynamic(() => import('react-quill'), {ssr: false});
 // import dotenv from 'dotenv';
 
@@ -37,7 +37,7 @@ const MembuatSoal = () => {
       points: '', 
       isCorrect: false 
     })
-  );
+  );  
   const [isOptionWeighted, setIsOptionWeighted] = useState(false);
   const [pages, setPages] = useState([{ questions: [] }]);
   const [error, setError] = useState(null);
@@ -124,63 +124,34 @@ const MembuatSoal = () => {
     }
   };
 
-  // Fungsi untuk menangani perubahan kategori
-  const handleKategoriChange = (event) => {
-    const selectedKategori = event.target.value;
-    setKategori(selectedKategori);
-
-    // Jika kategori adalah TKP, munculkan 5 opsi
-    if (selectedKategori === "TKP") {
-      setOptions(["Opsi 1", "Opsi 2", "Opsi 3", "Opsi 4", "Opsi 5"]);
-    } else {
-      setOptions([]); // Kosongkan opsi jika kategori lain dipilih
-    }
-  };
-
   const handleOptionChange = async (index, content, type) => {
-    try {
-      const newOptions = [...options]; // Salin array opsi
-      const currentOption = { ...newOptions[index] }; // Salin objek opsi tertentu
-  
-      switch (type) {
-        case 'text':
-          currentOption.optionDescription = content || '';
-          currentOption.optionPhoto = null;
-          break;
-  
-        case 'image':
-          try {
-            const imageRef = ref(storage, `options/${content.name + v4()}`);
-            const snapshot = await uploadBytes(imageRef, content);
-            const imageUrl = await getDownloadURL(snapshot.ref);
-            currentOption.optionDescription = '';
-            currentOption.optionPhoto = imageUrl;
-          } catch (error) {
-            console.error('Error uploading image:', error);
-            return; // Keluar jika terjadi error saat upload
-          }
-          break;
-  
-        case 'points':
-          if (!isNaN(content) && content >= 0) {
-            currentOption.points = parseInt(content, 10);
-          } else {
-            console.warn('Invalid points value:', content);
-            currentOption.points = 0; // Default jika input invalid
-          }
-          break;
-  
-        default:
-          console.warn('Unknown type:', type);
-      }
-  
-      newOptions[index] = currentOption; // Update opsi pada indeks tertentu
-      setOptions(newOptions); // Update state
-    } catch (error) {
-      console.error('Error handling option change:', error);
+    const newOptions = [...options];
+    const currentOption = { ...newOptions[index] };
+    
+    switch (type) {
+      case 'text':
+        currentOption.optionDescription = content;
+        currentOption.optionPhoto = null;
+        break;
+      case 'image':
+        try {
+          const imageRef = ref(storage, `options/${content.name + v4()}`);
+          const snapshot = await uploadBytes(imageRef, content);
+          const imageUrl = await getDownloadURL(snapshot.ref);
+          currentOption.optionDescription = '';
+          currentOption.optionPhoto = imageUrl;
+        } catch (error) {
+          console.error('Error uploading image:', error);
+          return;
+        }
+        break;
+      case 'points':
+        currentOption.points = content;
+        break;
     }
+    newOptions[index] = currentOption;
+    setOptions(newOptions);
   };
-   
 
   const renderOptionContent = (option, index) => {
     if (option.optionPhoto) {
@@ -336,59 +307,51 @@ const MembuatSoal = () => {
     }
   };
 
-const validateForm = () => {
-  const validationErrors = [];
-  
-  // Validasi kolom soal
-  if (!question.trim()) {
-    validationErrors.push("Soal wajib diisi");
-  }
-  
-  // Validasi jumlah opsi
-  if (options.length < 2) {
-    validationErrors.push("Minimal harus ada 2 opsi jawaban");
-  } else if (options.length > 5) {
-    validationErrors.push("Jumlah opsi jawaban tidak boleh lebih dari 5");
-  } else {
-    // Validasi setiap opsi
-    options.forEach((option, index) => {
-      if (!option.optionDescription.trim() && !option.optionPhoto) {
-        validationErrors.push(`Opsi ${index + 1} harus memiliki deskripsi atau foto`);
-      }
-      if (!option.points || option.points < 1 || option.points > 5) {
-        validationErrors.push(`Bobot pada opsi ${index + 1} harus diisi dan berada dalam rentang 1–5`);
-      }
-    });
-
-    // Validasi uniknya bobot (points)
-    const uniquePoints = new Set(options.map(option => option.points));
-    if (uniquePoints.size !== options.length) {
-      validationErrors.push("Tidak boleh ada opsi dengan bobot (points) yang sama");
+  const validateForm = () => {
+    const validationErrors = [];
+    if (!question.trim()) {
+      validationErrors.push("Soal wajib diisi");
     }
-  }
+    // if (!points || points <= 0) {
+    //   validationErrors.push("Bobot harus diisi dengan nilai lebih dari 0");
+    // }
+    if (options.length < 2) {
+      validationErrors.push("Minimal harus ada 2 opsi jawaban");
+    } else if (options.length > 5) {
+      validationErrors.push("Jumlah opsi jawaban tidak boleh lebih dari 5");
+    } else {
+      const emptyOptions = options.filter((option) => 
+        !option.optionDescription.trim() && !option.optionPhoto
+      );
+      if (emptyOptions.length > 0) {
+        validationErrors.push("Semua opsi jawaban harus diisi");
+      }
 
-  // Validasi kolom pembahasan
-  if (!discussion.trim()) {
-    validationErrors.push("Pembahasan wajib diisi");
-  }
+      const pointsOutOfRange = options.filter(option => 
+        option.points < 1 || option.points > 5
+      );
+      if (pointsOutOfRange.length > 0) {
+        validationErrors.push("Points harus berada dalam rentang 1–5");
+      }
 
-  // Validasi angka soal
-  if (!number || isNaN(number) || number <= 0) {
-    validationErrors.push("Nomor soal harus diisi dengan angka valid");
-  }
+      const uniquePoints = new Set(options.map(option => option.points));
+      if (uniquePoints.size !== options.length) {
+        validationErrors.push("Tidak boleh ada opsi dengan points yang sama");
+      }
+    }
+    const correctOptionsCount = options.filter(option => option.isCorrect).length;
 
-  return {
-    isValid: validationErrors.length === 0,
-    errors: validationErrors,
+    return {
+      isValid: validationErrors.length === 0,
+      errors: validationErrors
+    };
   };
-};
-
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+
     const valid = validateForm();
-  
+
     if (!valid.isValid) {
       Swal.fire({
         icon: 'error',
@@ -400,22 +363,6 @@ const validateForm = () => {
       return;
     }
   
-    // Validasi: Cek jika ada bobot (points) yang sama
-    const duplicatePoints = options.some((option, index) => 
-      options.findIndex(o => o.points === option.points) !== index
-    );
-  
-    if (duplicatePoints) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Duplikasi Bobot',
-        text: 'Nilai bobot tidak boleh sama pada opsi yang berbeda!',
-        confirmButtonText: 'OK',
-        confirmButtonColor: '#FF0000',
-      });
-      return; // Hentikan proses jika ada duplikasi
-    }
-  
     try {
       let uploadedImageUrl = questionPhoto;
       if (questionPhoto) {
@@ -423,14 +370,14 @@ const validateForm = () => {
         const snapshot = await uploadBytes(imageRef, questionPhoto);
         uploadedImageUrl = await getDownloadURL(snapshot.ref); 
       }
-  
+
       const formattedOptions = options.map(option => ({
         optionDescription: option.optionDescription,
         optionPhoto: option.optionPhoto,
         points: parseFloat(option.points),
         isCorrect: null,
       }));
-  
+      
       const questionData = {
         pageName,
         question: question,
@@ -441,11 +388,10 @@ const validateForm = () => {
         isWeighted: true,
         options: formattedOptions
       };
-  
-      // Lanjutkan ke proses submit seperti biasa
+
       let response;
       let result;
-  
+
       if (multiplechoiceId !== "null") {
         response = await fetch(`http://localhost:2000/api/multiplechoice/update-question/${multiplechoiceId}`, {
           method: 'PUT',
@@ -458,7 +404,7 @@ const validateForm = () => {
         if (response.ok) {
           result = await response.json();
           console.log('Update successful:', result);
-  
+
           const existingPages = JSON.parse(localStorage.getItem(`pages_${testId}`)) || [];
           const updatedPages = existingPages.map(page => 
             page.id === multiplechoiceId 
@@ -484,7 +430,7 @@ const validateForm = () => {
           console.log('Response dari API:', result);
           const newMultiplechoiceId = result.data[0].id;
           console.log('MultiplechoiceId:', newMultiplechoiceId);
-  
+ 
           localStorage.setItem('pageName', pageName);
           const existingPages = JSON.parse(localStorage.getItem(`pages_${testId}`)) || [];
           const newQuestion = { 
@@ -521,7 +467,6 @@ const validateForm = () => {
       });
     }
   };
-  
 
   return (
     <div className="container mx-auto p-0" style={{ maxWidth: '1978px' }}>
@@ -561,14 +506,14 @@ const validateForm = () => {
             </li>
           </ul>
         </nav>
-
-        <div className="container mx-auto lg: p-2 p-4 w-full" style={{ maxWidth: '100%', height: 'auto' }}>
+  
+        <div className="container mx-auto lg: p-2 p-4 w-full" style={{ maxWidth: '1309px' }}>
           <header className='bg-[#0B61AA] font-bold font-poppins text-white p-4'>
             <div className="flex items-center justify-between">
               <span>{pageName}</span>
             </div>
           </header>
-  
+    
           <div className="bg-[#FFFFFF] border border-black p-4 rounded-lg shadow-md w-full mb-6 " >
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className='mb-4'>
@@ -684,7 +629,7 @@ const validateForm = () => {
                   </div>
                 ))}
               </div>
-
+    
               <div className="mb-4">
                 <label className="block text-sm sm:text-sm md:text-base font-medium mb-2">Pembahasan</label>
                 <ReactQuill 
@@ -710,26 +655,32 @@ const validateForm = () => {
                   placeholder='Tulis kunci jawaban di sini...' />
               </div>
             </form>
-            <div className="mt-4 flex flex-wrap justify-end items-center gap-2 sm:gap-4">
-              <button
-                onClick={handleDelete}
-                className="bg-[#E58A7B] border border-black px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base hover:text-white font-poppins rounded-[10px]"
-              >
-                Hapus
-              </button>
-              <button
-                type="button"
-                onClick={handleSubmit}
-                className="bg-[#E8F4FF] border border-black px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base hover:text-white font-poppins rounded-[10px]"
-              >
-                Simpan
-              </button>
-              <button
-                onClick={handleBack}
-                className="bg-[#A6D0F7] border border-black px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base hover:text-white font-poppins rounded-[10px]"
-              >
-                Kembali
-              </button>
+            <div className='mt-4 flex flex-wrap justify-end items-center gap-2 sm:gap-4">'>
+              <div className="flex justify-end space-x-2">
+                <button
+                  onClick={handleDelete}
+                  className="bg-[#E58A7B] border border-black px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base hover:text-white font-poppins rounded-[10px]"
+                >
+                  Hapus
+                </button>
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <button
+                    type="button"
+                    onClick={handleSubmit}
+                    className="bg-[#E8F4FF] border border-black px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base hover:text-white font-poppins rounded-[10px]"
+                  >
+                    Simpan
+                </button>
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <button
+                    onClick={handleBack}
+                    className="bg-[#A6D0F7] border border-black px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base hover:text-white font-poppins rounded-[10px]"
+                  >
+                    Kembali
+                  </button>
+                </div>
             </div>
           </div>
         </div>
