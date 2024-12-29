@@ -1,9 +1,8 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import 'react-quill/dist/quill.snow.css';
-import { useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { storage } from "../../../firebase/config";
 import { v4 } from 'uuid';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -22,6 +21,7 @@ const ReactQuill = dynamic(() => import('react-quill'), {
 
 const MembuatSoal = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [testId, setTestId] = useState('');
   const [category, setCategory] = useState('');
   const [multiplechoiceId, setMultiplechoiceId] = useState('');
@@ -38,20 +38,14 @@ const MembuatSoal = () => {
   const [isValid, setIsValid] = useState(true);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const testIdFromUrl = params.get("testId");
-    const categoryFromUrl = params.get("category");
-    const multiplechoiceIdFromUrl = params.get("multiplechoiceId");
-    const pageNameFromUrl = params.get("pageName");
-    const numberFromUrl = params.get("nomor");
-
-    console.log("Fetched testId:", testIdFromUrl); 
-    console.log("Fetched multiplechoiceId:", multiplechoiceIdFromUrl); 
-    console.log("Raw pageName from URL:", pageNameFromUrl);
+    const testIdFromUrl = searchParams.get("testId");
+    const categoryFromUrl = searchParams.get("category");
+    const multiplechoiceIdFromUrl = searchParams.get("multiplechoiceId");
+    const pageNameFromUrl = searchParams.get("pageName");
+    const numberFromUrl = searchParams.get("nomor");
 
     if (pageNameFromUrl) {
       const decodedPageName = decodeURIComponent(pageNameFromUrl);
-      console.log("Decoded pageName:", decodedPageName);
       setPageName(decodedPageName);
     }
     if (testIdFromUrl) {
@@ -73,7 +67,6 @@ const MembuatSoal = () => {
           throw new Error(`Error: ${response.status} - ${errorMessage}`);
         }
         const data = await response.json();
-        console.log('Response dari API:', data);
         // setPageName(data.pageName);
         setWeight(data.weight);
         setNumber(data.number);
@@ -82,7 +75,6 @@ const MembuatSoal = () => {
         setDiscussion(data.discussion);
         if (data.questionPhoto && data.questionPhoto !== "") {
           setQuestionPhoto(data.questionPhoto);
-          console.log("Loaded question photo URL:", data.questionPhoto);
         } else {
           setQuestionPhoto(null);
         }
@@ -95,7 +87,6 @@ const MembuatSoal = () => {
             isCorrect: opt.isCorrect || false,
             points: opt.points
           })));
-          console.log('Options sebelum mapping:', data.option);
         }
         
       } catch (error) {
@@ -131,13 +122,6 @@ const MembuatSoal = () => {
     }
   };
 
-  // const handleOptionChange = (index, field, value) => {
-  //   const newOptions = options.map((option, i) => 
-  //     i === index ? { ...option, [field]: value } : option
-  //   );
-  //   setOptions(newOptions);
-  // };
-
   const handleOptionChange = async (index, content, type) => {
     const newOptions = [...options];
     const currentOption = { ...newOptions[index] };
@@ -172,16 +156,8 @@ const MembuatSoal = () => {
       ...option,
       isCorrect: i === index, 
     }));
-    console.log('Options setelah perubahan isCorrect:', newOptions);
     setOptions(newOptions);
   };
-
-  const handleWeightChange = (e) => {
-    const value = e.target.value;
-    if (/^\d*\.?\d*$/.test(value)) {
-      setWeight(value); 
-    }
-  }
 
   const loadPagesFromLocalStorage = () => {
     if (testId && typeof window !== 'undefined') {
@@ -205,25 +181,23 @@ const MembuatSoal = () => {
       try {
         const localStorageKey = `pages-${testId}`;
         
-        if (multiplechoiceId != null) {
+        if (multiplechoiceId && multiplechoiceId !== "null") {
           const response = await fetch(`http://localhost:2000/api/multiplechoice/question/${multiplechoiceId}`, {
             method: 'DELETE',
           });
-    
-          if (!response.ok) {
-            router.push(`/author/buatSoal?testId=${testId}`);
-          }
-          
-        }
   
+          if (!response.ok) {
+            throw new Error('Gagal menghapus soal dari database');
+          }
+        }
+
         const savedPages = localStorage.getItem(localStorageKey);
-        console.log('Data sebelum dihapus:', savedPages);
   
         if (savedPages) {
           let pages = JSON.parse(savedPages);
           let deletedNumber = null;
           let deletedPageIndex = -1;
-          
+
           pages.forEach((page, pageIndex) => {
             const questionIndex = page.questions.indexOf(parseInt(number));
             if (questionIndex !== -1) {
@@ -232,7 +206,7 @@ const MembuatSoal = () => {
               page.questions.splice(questionIndex, 1);
             }
           });
-  
+
           if (deletedNumber !== null) {
             const allNumbers = pages.reduce((acc, page) => [...acc, ...page.questions], []);
 
@@ -242,20 +216,11 @@ const MembuatSoal = () => {
                 num > deletedNumber ? num - 1 : num
               ).sort((a, b) => a - b)
             }));
-  
-            console.log('Data setelah reorder:', pages); 
             pages = pages.filter(page => page.questions.length > 0);
             localStorage.setItem(localStorageKey, JSON.stringify(pages));   
-            console.log('Data final yang disimpan:', pages); 
-    
-            // Hapus halaman yang kosong
-            // pages = pages.filter(page => page.questions.length > 0);
-            
-            // // Simpan perubahan ke localStorage
-            // localStorage.setItem(localStorageKey, JSON.stringify(pages));
           }
         }
-  
+
         router.push(`/author/buatSoal?testId=${testId}`);
         
       } catch (error) {
@@ -287,9 +252,12 @@ const MembuatSoal = () => {
   };
 
   const handleBack = () => {
-    console.log("testId:", testId);
-    router.push(`/author/buatSoal?testId=${testId}`);
-  };
+    if (testId) {
+      router.push(`/author/buatSoal?testId=${testId}&category=${category}`);
+    } else {
+      console.error('Test ID tidak ditemukan dalam respons:', result);
+    }
+  };
 
   const validateForm = () => {
     const validationErrors = [];
@@ -326,7 +294,6 @@ const MembuatSoal = () => {
     e.preventDefault();
   
     const valid = validateForm();
-    // setIsValid(valid);
 
     if (!valid.isValid) {
       Swal.fire({
@@ -378,7 +345,6 @@ const MembuatSoal = () => {
   
         if (response.ok) {
           result = await response.json();
-          console.log('Update successful:', result);
 
           const existingPages = JSON.parse(localStorage.getItem(`pages_${testId}`)) || [];
           const updatedPages = existingPages.map(page => 
@@ -402,9 +368,7 @@ const MembuatSoal = () => {
   
         if (response.ok) {
           result = await response.json();
-          console.log('Response dari API:', result);
           const newMultiplechoiceId = result.data[0].id;
-          console.log('MultiplechoiceId:', newMultiplechoiceId);
 
           localStorage.setItem('pageName', pageName);
           const existingPages = JSON.parse(localStorage.getItem(`pages_${testId}`)) || [];
@@ -537,6 +501,7 @@ const MembuatSoal = () => {
                 type="number"
                 value={number}
                 onChange={(e) => setNumber(e.target.value)}
+                readOnly
                 required
               />
             </div>
