@@ -180,7 +180,17 @@ const MembuatSoal = () => {
     if (confirm("Apakah Anda yakin ingin menghapus soal ini?")) {
       try {
         const localStorageKey = `pages-${testId}`;
-        
+  
+        if (!multiplechoiceId || multiplechoiceId === "null") {
+          const response = await fetch(`http://localhost:2000/api/multiplechoice/previous-question/${testId}/${number}`, {
+            method: 'GET',
+          });
+  
+          if (!response.ok) {
+            throw new Error('Gagal mendapatkan soal sebelumnya.');
+          }
+        }
+  
         if (multiplechoiceId && multiplechoiceId !== "null") {
           const response = await fetch(`http://localhost:2000/api/multiplechoice/question/${multiplechoiceId}`, {
             method: 'DELETE',
@@ -190,45 +200,38 @@ const MembuatSoal = () => {
             throw new Error('Gagal menghapus soal dari database');
           }
         }
-
+  
         const savedPages = localStorage.getItem(localStorageKey);
   
         if (savedPages) {
           let pages = JSON.parse(savedPages);
           let deletedNumber = null;
-          let deletedPageIndex = -1;
-
-          pages.forEach((page, pageIndex) => {
+  
+          pages.forEach((page) => {
             const questionIndex = page.questions.indexOf(parseInt(number));
             if (questionIndex !== -1) {
               deletedNumber = parseInt(number);
-              deletedPageIndex = pageIndex;
               page.questions.splice(questionIndex, 1);
             }
           });
-
+  
           if (deletedNumber !== null) {
-            const allNumbers = pages.reduce((acc, page) => [...acc, ...page.questions], []);
-
             pages = pages.map(page => ({
               ...page,
-              questions: page.questions.map(num => 
-                num > deletedNumber ? num - 1 : num
-              ).sort((a, b) => a - b)
-            }));
-            pages = pages.filter(page => page.questions.length > 0);
-            localStorage.setItem(localStorageKey, JSON.stringify(pages));   
+              questions: page.questions.map(num => num > deletedNumber ? num - 1 : num).sort((a, b) => a - b),
+            })).filter(page => page.questions.length > 0);
+  
+            localStorage.setItem(localStorageKey, JSON.stringify(pages));
           }
         }
-
+  
         router.push(`/author/buatSoal?testId=${testId}`);
-        
       } catch (error) {
         console.error('Error saat menghapus soal:', error);
         alert('Terjadi kesalahan saat menghapus soal. Silakan coba lagi.');
       }
     }
-  };
+  };  
 
   const handleDeleteJawaban = async (index, optionId) => {
     const updatedOptions = options.filter((_, i) => i !== index);
