@@ -36,9 +36,10 @@ const MembuatSoal = () => {
   const [discussion, setDiscussion] = useState('');
   const [options, setOptions] = useState([{ optionDescription: '', isCorrect: false }]);
   const [pages, setPages] = useState([{ questions: [] }]);
+  const [kategori, setKategori] = useState("");
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('buattes'); 
-  const [isValid, setIsValid] = useState(true);
+  const [isValid, setIsValid] = useState(true); 
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -170,6 +171,33 @@ const MembuatSoal = () => {
     setOptions(newOptions);
   };
 
+    // Fungsi untuk menangani perubahan kategori
+    const handleKategoriChange = (event) => {
+      const selectedKategori = event.target.value;
+      setKategori(selectedKategori); // Update kategori
+    };
+
+  // Menggunakan useEffect untuk memperbarui options saat kategori berubah
+  useEffect(() => {
+    // Opsi wajib yang selalu ada
+    const baseOptions = [
+      { label: "Opsi 1", value: "", disabled: true }, // Menonaktifkan Opsi 1
+      { label: "Opsi 2", value: "", disabled: true }, // Menonaktifkan Opsi 2
+    ];
+
+    // Menambahkan opsi tambahan berdasarkan kategori
+    if (kategori === "TKP") {
+      setOptions([
+        ...baseOptions, // Menambahkan opsi wajib
+        { label: "Opsi 3", value: "" },
+        { label: "Opsi 4", value: "" },
+        { label: "Opsi 5", value: "" },
+      ]);
+    } else {
+      setOptions(baseOptions); // Menyederhanakan opsi jika kategori bukan TKP
+    }
+  }, [kategori]); // Hanya dijalankan ketika kategori berubah
+
   const handleCorrectOptionChange = (index) => {
     const newOptions = options.map((option, i) => ({
       ...option,
@@ -268,24 +296,31 @@ const MembuatSoal = () => {
     }
   };
 
+  // Fungsi untuk menangani penghapusan jawaban
   const handleDeleteJawaban = async (index, optionId) => {
+    // Cek apakah index opsi adalah 1 atau 2, jika ya, tidak perlu melanjutkan penghapusan
+    if (index < 2) {
+      console.log("Opsi 1 dan 2 tidak dapat dihapus.");
+      return; // Tidak lakukan apapun jika opsi 1 atau 2
+    }
+
+    // Logika penghapusan untuk opsi 3 dan seterusnya
     const updatedOptions = options.filter((_, i) => i !== index);
     setOptions(updatedOptions);
 
     try {
       if (optionId) {
         const response = await fetch(`http://localhost:2000/api/multiplechoice/option/${optionId}`, {
-            method: 'DELETE',
+          method: 'DELETE',
         });
-        
+
         if (!response.ok) {
-            console.error('Failed to delete option:', response.statusText);
-        } else {
-          console.log('Opsi berhasil dihapus dari server');
-        } 
+          throw new Error('Gagal menghapus option dari server');
+        }
+        console.log('Opsi berhasil dihapus dari server');
       }
     } catch (error) {
-        console.error('Error deleting option:', error);
+      console.error('Error saat menghapus opsi:', error);
     }
   };
 
@@ -366,6 +401,22 @@ const MembuatSoal = () => {
         discussion: discussion,
         options: formattedOptions
       };
+
+      if (!number || !question || !options.every(option => option.optionDescription && option.points) || !discussion) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Oops...',
+          text: 'Semua kolom wajib diisi!',
+          confirmButtonText: 'Tutup',
+          customClass: {
+            container: 'sm:max-w-xs max-w-sm',
+            title: 'text-lg sm:text-xl',
+            text: 'text-sm sm:text-base',
+            confirmButton: 'px-4 py-2 text-sm sm:text-base',
+          }
+        });
+        return; // Jangan lanjutkan submit jika ada yang kosong
+      }
   
       let response;
       let result;
@@ -563,8 +614,9 @@ const MembuatSoal = () => {
                         Bobot
                       </label>
                       <input
-                        type="text"  // Menggunakan type="text" agar fleksibel dalam menangani desimal
-                        min="0"
+                        type="number"  // Menggunakan type="text" agar fleksibel dalam menangani desimal
+                        min="1"
+                        max='5'
                         step="0.1"  // Langkah desimal menjadi 0.1 untuk satu angka setelah titik
                         id="weight"
                         value={weight}
