@@ -1,4 +1,5 @@
 'use client';
+
 import React, { useState } from 'react';
 import 'react-quill/dist/quill.snow.css';
 import { useEffect } from 'react';
@@ -35,10 +36,9 @@ const MembuatSoal = () => {
   const [discussion, setDiscussion] = useState('');
   const [options, setOptions] = useState([{ optionDescription: '', isCorrect: false }]);
   const [pages, setPages] = useState([{ questions: [] }]);
-  const [kategori, setKategori] = useState("");
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('buattes'); 
-  const [isValid, setIsValid] = useState(true); 
+  const [isValid, setIsValid] = useState(true);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -94,8 +94,11 @@ const MembuatSoal = () => {
           setOptions(data.option.map(opt => ({
             id: opt.id,
             optionDescription: opt.optionDescription,
-            isCorrect: opt.isCorrect
+            optionPhoto: opt.optionPhoto || null,
+            isCorrect: opt.isCorrect || false,
+            points: opt.points
           })));
+          console.log('Options sebelum mapping:', data.option);
         }
         
       } catch (error) {
@@ -107,52 +110,73 @@ const MembuatSoal = () => {
     fetchData();
   }, [multiplechoiceId]);
   
-    // Fungsi untuk menangani perubahan kategori
-  const handleKategoriChange = (event) => {
-    const selectedKategori = event.target.value;
-    setKategori(selectedKategori); // Update kategori
+  const addOption = () => {
+    setOptions((prevOptions) => {
+      if (prevOptions.length < 5) {
+        return [...prevOptions, { optionDescription: '', points: '' }];
+      } else {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Maksimal 5 opsi hanya diperbolehkan',
+          text: 'Anda tidak dapat menambahkan lebih dari 5 opsi.',
+          confirmButtonText: 'OK',
+        });
+        return prevOptions;
+      }
+    });
+    if (options.length < 6) {
+      setOptions([...options, { 
+        optionDescription: '', 
+        optionPhoto: null,
+        // points: ''
+        isCorrect: false 
+      }]);
+    }
   };
 
-  // Menggunakan useEffect untuk memperbarui options saat kategori berubah
-  useEffect(() => {
-    // Opsi wajib yang selalu ada
-    const baseOptions = [
-      { label: "Opsi 1", value: "", disabled: true }, // Menonaktifkan Opsi 1
-      { label: "Opsi 2", value: "", disabled: true }, // Menonaktifkan Opsi 2
-    ];
+  // const handleOptionChange = (index, field, value) => {
+  //   const newOptions = options.map((option, i) => 
+  //     i === index ? { ...option, [field]: value } : option
+  //   );
+  //   setOptions(newOptions);
+  // };
 
-    // Menambahkan opsi tambahan berdasarkan kategori
-    if (kategori === "TKP") {
-      setOptions([
-        ...baseOptions, // Menambahkan opsi wajib
-        { label: "Opsi 3", value: "" },
-        { label: "Opsi 4", value: "" },
-        { label: "Opsi 5", value: "" },
-      ]);
-    } else {
-      setOptions(baseOptions); // Menyederhanakan opsi jika kategori bukan TKP
+  const handleOptionChange = async (index, content, type) => {
+    const newOptions = [...options];
+    const currentOption = { ...newOptions[index] };
+    
+    switch (type) {
+      case 'text':
+        currentOption.optionDescription = content;
+        currentOption.optionPhoto = null;
+        break;
+      case 'image':
+        try {
+          const imageRef = ref(storage, `options/${content.name + v4()}`);
+          const snapshot = await uploadBytes(imageRef, content);
+          const imageUrl = await getDownloadURL(snapshot.ref);
+          currentOption.optionDescription = '';
+          currentOption.optionPhoto = imageUrl;
+        } catch (error) {
+          console.error('Error uploading image:', error);
+          return;
+        }
+        break;
+      case 'points':
+        currentOption.points = content;
+        break;
     }
-  }, [kategori]); // Hanya dijalankan ketika kategori berubah
-
-    // Fungsi untuk menangani perubahan nilai opsi
-    const handleOptionChange = (index, value) => {
-      const updatedOptions = [...options];
-      updatedOptions[index].value = value;
-      setOptions(updatedOptions);
-    };
+    newOptions[index] = currentOption;
+    setOptions(newOptions);
+  };
 
   const handleCorrectOptionChange = (index) => {
     const newOptions = options.map((option, i) => ({
       ...option,
-      isCorrect: i === index,
+      isCorrect: i === index, 
     }));
+    console.log('Options setelah perubahan isCorrect:', newOptions);
     setOptions(newOptions);
-  };
-
-  const validateForm = () => {
-    const allOptionsFilled = options.every(option => option.optionDescription.trim() !== '');
-    const atLeastOneCorrect = options.some(option => option.isCorrect);
-    return allOptionsFilled && atLeastOneCorrect;
   };
 
   const handleWeightChange = (e) => {
@@ -161,56 +185,6 @@ const MembuatSoal = () => {
       setWeight(value); 
     }
   }
-
-   const renderOptionContent = (option, index) => {
-      if (option.optionPhoto) {
-        return (
-          <div className="relative">
-            <img 
-              src={option.optionPhoto} 
-              alt={`Option ${index + 1}`} 
-              className="max-w-full h-auto"
-            />
-            <button
-              type="button"
-              onClick={() => handleOptionChange(index, '', 'text')}
-              className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded"
-            >
-              <AiOutlineCloseSquare className="w-4 h-4" />
-            </button>
-          </div>
-        );
-      }
-  
-      return (
-        <div className="relative w-full">
-          <textarea
-            value={option.optionDescription}
-            onChange={(e) => handleOptionChange(index, 'optionDescription', e.target.value)}
-            className="w-full p-2 border rounded min-h-[100px] sm:min-h-[120px] md:min-h-[140px]"
-            placeholder="Tulis opsi jawaban atau masukkan gambar..."
-          />
-          
-          {/* Tombol untuk upload gambar */}
-          <button
-            type="button"
-            onClick={() => document.getElementById(`optionInput-${index}`).click()}
-            className="absolute bottom-2 right-2 bg-gray-100 p-2 rounded-md sm:p-3 md:p-4"
-          >
-            <BsImage className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" />
-          </button>
-  
-          {/* Input file untuk memilih gambar */}
-          <input
-            id={`optionInput-${index}`}
-            type="file"
-            hidden
-            accept="image/*"
-            onChange={(e) => handleOptionChange(index, e.target.files[0], 'image')}
-          />
-        </div>
-      );
-    };
 
   const loadPagesFromLocalStorage = () => {
     if (testId && typeof window !== 'undefined') {
@@ -233,25 +207,26 @@ const MembuatSoal = () => {
     if (confirm("Apakah Anda yakin ingin menghapus soal ini?")) {
       try {
         const localStorageKey = `pages-${testId}`;
-
-        if (multiplechoiceId) {
+        
+        if (multiplechoiceId != null) {
           const response = await fetch(`http://localhost:2000/api/multiplechoice/question/${multiplechoiceId}`, {
             method: 'DELETE',
           });
-  
+    
           if (!response.ok) {
-            throw new Error('Gagal menghapus soal dari database');
+            router.push(`/author/buatSoal?testId=${testId}`);
           }
+          
         }
-
+  
         const savedPages = localStorage.getItem(localStorageKey);
-        console.log('Data sebelum dihapus:', savedPages); 
+        console.log('Data sebelum dihapus:', savedPages);
   
         if (savedPages) {
           let pages = JSON.parse(savedPages);
           let deletedNumber = null;
           let deletedPageIndex = -1;
-
+          
           pages.forEach((page, pageIndex) => {
             const questionIndex = page.questions.indexOf(parseInt(number));
             if (questionIndex !== -1) {
@@ -261,12 +236,8 @@ const MembuatSoal = () => {
             }
           });
   
-          console.log('Nomor yang dihapus:', deletedNumber); 
-          console.log('Data setelah splice:', pages); 
-
           if (deletedNumber !== null) {
             const allNumbers = pages.reduce((acc, page) => [...acc, ...page.questions], []);
-            console.log('Semua nomor setelah flatten:', allNumbers); 
 
             pages = pages.map(page => ({
               ...page,
@@ -277,8 +248,14 @@ const MembuatSoal = () => {
   
             console.log('Data setelah reorder:', pages); 
             pages = pages.filter(page => page.questions.length > 0);
-            localStorage.setItem(localStorageKey, JSON.stringify(pages));
-            console.log('Data final yang disimpan:', pages);
+            localStorage.setItem(localStorageKey, JSON.stringify(pages));   
+            console.log('Data final yang disimpan:', pages); 
+    
+            // Hapus halaman yang kosong
+            // pages = pages.filter(page => page.questions.length > 0);
+            
+            // // Simpan perubahan ke localStorage
+            // localStorage.setItem(localStorageKey, JSON.stringify(pages));
           }
         }
   
@@ -291,117 +268,108 @@ const MembuatSoal = () => {
     }
   };
 
-  // Fungsi untuk menangani penghapusan jawaban
   const handleDeleteJawaban = async (index, optionId) => {
-    // Cek apakah index opsi adalah 1 atau 2, jika ya, tidak perlu melanjutkan penghapusan
-    if (index < 2) {
-      console.log("Opsi 1 dan 2 tidak dapat dihapus.");
-      return; // Tidak lakukan apapun jika opsi 1 atau 2
-    }
-
-    // Logika penghapusan untuk opsi 3 dan seterusnya
     const updatedOptions = options.filter((_, i) => i !== index);
     setOptions(updatedOptions);
 
     try {
       if (optionId) {
         const response = await fetch(`http://localhost:2000/api/multiplechoice/option/${optionId}`, {
-          method: 'DELETE',
+            method: 'DELETE',
         });
-
+        
         if (!response.ok) {
-          throw new Error('Gagal menghapus option dari server');
-        }
-        console.log('Opsi berhasil dihapus dari server');
+            console.error('Failed to delete option:', response.statusText);
+        } else {
+          console.log('Opsi berhasil dihapus dari server');
+        } 
       }
     } catch (error) {
-      console.error('Error saat menghapus opsi:', error);
+        console.error('Error deleting option:', error);
     }
   };
-  
 
   const handleBack = () => {
-    if (testId && testCategory) {
-      router.push(`/author/buatSoal?testId=${testId}&category=${kategoriTes}`);
-    } else {
-      console.error('Test ID tidak ditemukan dalam respons:', result);
-    }
-  };
+    console.log("testId:", testId);
+    router.push(`/author/buatSoal?testId=${testId}`);
+  };
 
-const addOption = () => {
-    setOptions((prevOptions) => {
-      if (prevOptions.length < 5) {
-        return [...prevOptions, { optionDescription: '', points: '' }];
-      } else {
-        Swal.fire({
-          icon: 'warning',
-          title: 'Maksimal 5 opsi hanya diperbolehkan',
-          text: 'Anda tidak dapat menambahkan lebih dari 5 opsi.',
-          confirmButtonText: 'OK',
-        });
-        return prevOptions;
+  const validateForm = () => {
+    const validationErrors = [];
+    if (!question.trim()) {
+      validationErrors.push("Soal wajib diisi");
+    }
+    if (!weight || weight <= 0) {
+      validationErrors.push("Bobot harus diisi dengan nilai lebih dari 0");
+    }
+    if (options.length < 2) {
+      validationErrors.push("Minimal harus ada 2 opsi jawaban");
+    } else {
+      const emptyOptions = options.filter((option, index) => 
+        !option.optionDescription.trim() && !option.optionPhoto
+      );
+      
+      if (emptyOptions.length > 0) {
+        validationErrors.push("Semua opsi jawaban harus diisi");
       }
-    });
+    }
+    const correctOptionsCount = options.filter(option => option.isCorrect).length;
+    if (correctOptionsCount === 0) {
+      validationErrors.push("Pilih salah satu jawaban yang benar");
+    } else if (correctOptionsCount > 1) {
+      validationErrors.push("Hanya boleh memilih satu jawaban yang benar");
+    }
+    return {
+      isValid: validationErrors.length === 0,
+      errors: validationErrors
+    };
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
   
+    const valid = validateForm();
+    // setIsValid(valid);
+
+    if (!valid.isValid) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Membuat Soal',
+        html: valid.errors.map(error => `• ${error}`).join('<br>'),
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#0B61AA',
+      });
+      return;
+    }
+
     try {
       let uploadedImageUrl = questionPhoto;
-      if (questionPhoto) {
+      if (questionPhoto instanceof File) {
         const imageRef = ref(storage, `question/${questionPhoto.name + v4()}`);
         const snapshot = await uploadBytes(imageRef, questionPhoto);
         uploadedImageUrl = await getDownloadURL(snapshot.ref); 
       }
-  
+
       const formattedOptions = options.map(option => ({
         optionDescription: option.optionDescription,
+        optionPhoto: option.optionPhoto,
         points: parseFloat(option.points) || 0,
-        isCorrect: null,
+        isCorrect: option.isCorrect,
       }));
-      
+
       const questionData = {
         pageName,
         question: question,
         number: parseInt(number),
-        questionPhoto: uploadedImageUrl || null,
-        weight: null,
+        questionPhoto: uploadedImageUrl,
+        weight: parseFloat(weight),
         discussion: discussion,
-        isWeighted: true,
         options: formattedOptions
       };
-
-          // SweetAlert jika form tidak valid
-      if (!valid) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Oops...',
-          text: 'Semua opsi harus diisi dan satu opsi harus ditandai sebagai benar.',
-        });
-        return;
-      }
-  
-      // Validasi: Pastikan semua kolom wajib diisi
-      if (!number || !question || !options.every(option => option.optionDescription && option.points) || !discussion) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Oops...',
-          text: 'Semua kolom wajib diisi!',
-          confirmButtonText: 'Tutup',
-          customClass: {
-            container: 'sm:max-w-xs max-w-sm',
-            title: 'text-lg sm:text-xl',
-            text: 'text-sm sm:text-base',
-            confirmButton: 'px-4 py-2 text-sm sm:text-base',
-          }
-        });
-        return; // Jangan lanjutkan submit jika ada yang kosong
-      }
   
       let response;
       let result;
-  
+
       if (multiplechoiceId !== "null") {
         response = await fetch(`http://localhost:2000/api/multiplechoice/update-question/${multiplechoiceId}`, {
           method: 'PUT',
@@ -414,7 +382,7 @@ const addOption = () => {
         if (response.ok) {
           result = await response.json();
           console.log('Update successful:', result);
-  
+
           const existingPages = JSON.parse(localStorage.getItem(`pages_${testId}`)) || [];
           const updatedPages = existingPages.map(page => 
             page.id === multiplechoiceId 
@@ -440,7 +408,7 @@ const addOption = () => {
           console.log('Response dari API:', result);
           const newMultiplechoiceId = result.data[0].id;
           console.log('MultiplechoiceId:', newMultiplechoiceId);
-  
+
           localStorage.setItem('pageName', pageName);
           const existingPages = JSON.parse(localStorage.getItem(`pages_${testId}`)) || [];
           const newQuestion = { 
@@ -452,19 +420,76 @@ const addOption = () => {
         }
       }
   
-      // Jika validasi sukses, lanjutkan ke proses submit atau logic lain
-      console.log("Form submitted successfully!");
-  
       if (response.ok) {
         const encodedPageName = encodeURIComponent(pageName);
         router.push(`/author/buatSoal?testId=${testId}&pageName=${encodedPageName}`);
       } else {
         console.error('Failed to process request:', response.statusText);
       }
-  
+      Swal.fire({
+        icon: 'success',
+        title: 'Berhasil',
+        text: 'Soal berhasil disimpan!',
+        confirmButtonColor: '#0B61AA',
+      }).then(() => {
+        const encodedPageName = encodeURIComponent(pageName);
+        router.push(`/author/buatSoal?testId=${testId}&pageName=${encodedPageName}`);
+      });
     } catch (error) {
       console.error('Error:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Terjadi kesalahan saat menyimpan soal. Silakan coba lagi.',
+        confirmButtonColor: '#0B61AA',
+      });
     }
+  };
+
+  const renderOptionContent = (option, index) => {
+    if (option.optionPhoto) {
+      return (
+        <div className="relative">
+          <img 
+            src={option.optionPhoto} 
+            alt={`Option ${index + 1}`} 
+            className="max-w-full h-auto"
+          />
+          <button
+            type="button"
+            onClick={() => handleOptionChange(index, '', 'text')}
+            className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded"
+          >
+            <AiOutlineCloseSquare className="w-4 h-4" />
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="relative w-full">
+        <textarea
+          value={option.optionDescription}
+          onChange={(e) => handleOptionChange(index, e.target.value, 'text')}
+          className="w-full p-2 border rounded min-h-[100px]"
+          placeholder="Tulis opsi jawaban atau masukkan gambar..."
+        />
+        <button
+          type="button"
+          onClick={() => document.getElementById(`optionInput-${index}`).click()}
+          className="absolute bottom-2 right-2 bg-gray-100 p-2 rounded"
+        >
+          <BsImage className="w-5 h-5" />
+        </button>
+        <input
+          id={`optionInput-${index}`}
+          type="file"
+          hidden
+          accept="image/*"
+          onChange={(e) => handleOptionChange(index, e.target.files[0], 'image')}
+        />
+      </div>
+    );
   };
 
   return (
@@ -480,7 +505,7 @@ const addOption = () => {
           </Link>
         </div>
       </header>
-
+  
       <div className="w-full p-2">
         <nav className="bg-[#FFFFFF] text-black p-4">
           <ul className="grid grid-cols-2 gap-2 sm:flex sm:justify-around sm:gap-10">
@@ -532,6 +557,7 @@ const addOption = () => {
                       Soal Pilihan Ganda
                     </label>
                   </div>
+                    {/* Bobot */}
                     <div className="flex items-center w-full sm:w-auto">
                       <label className="font-medium-bold mr-2 text-sm sm:text-sm md:text-base">
                         Bobot
