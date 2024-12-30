@@ -34,7 +34,11 @@ const MembuatSoal = () => {
   const [questionPhoto, setQuestionPhoto] = useState(null);
   const [weight, setWeight] = useState();
   const [discussion, setDiscussion] = useState('');
-  const [options, setOptions] = useState([{ optionDescription: '', isCorrect: false }]);
+  // ini biar opsi langsung muncul 2
+  const [options, setOptions] = React.useState([
+    { optionDescription: '', optionPhoto: null, isCorrect: false },
+    { optionDescription: '', optionPhoto: null, isCorrect: false },
+  ]);
   const [pages, setPages] = useState([{ questions: [] }]);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('buattes'); 
@@ -113,7 +117,11 @@ const MembuatSoal = () => {
   const addOption = () => {
     setOptions((prevOptions) => {
       if (prevOptions.length < 5) {
-        return [...prevOptions, { optionDescription: '', points: '' }];
+        return [...prevOptions, { 
+          optionDescription: '', 
+          optionPhoto: null, 
+          isCorrect: false 
+        }];
       } else {
         Swal.fire({
           icon: 'warning',
@@ -124,15 +132,23 @@ const MembuatSoal = () => {
         return prevOptions;
       }
     });
-    if (options.length < 6) {
-      setOptions([...options, { 
-        optionDescription: '', 
-        optionPhoto: null,
-        // points: ''
-        isCorrect: false 
-      }]);
-    }
   };
+
+  // Fungsi untuk mencegah penghapusan opsi 1 dan 2
+  const removeOption = (index) => {
+    if (index < 2) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Opsi ini tidak dapat dihapus',
+        text: 'Minimal 2 opsi harus ada.',
+        confirmButtonText: 'OK',
+      });
+      return;
+    }
+
+    setOptions((prevOptions) => prevOptions.filter((_, i) => i !== index));
+  };
+  
 
   // const handleOptionChange = (index, field, value) => {
   //   const newOptions = options.map((option, i) => 
@@ -537,14 +553,11 @@ const MembuatSoal = () => {
     
           <div className="bg-[#FFFFFF] border border-black p-4 rounded-lg shadow-md w-full mb-6 " >
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className='mb-4'>
-                <label htmlFor="soal">No.      </label>
-                <input
-                  type="number"
-                  value={number}
-                  onChange={(e) => setNumber(e.target.value)}
-                  required
-                />
+              <div className="mb-4">
+                <label htmlFor="soal">No. </label>
+                <p className="inline-block text-black">
+                  {number}
+                </p>
               </div>
               <div className='m'>
                 <div className='border border-black bg-[#D9D9D9] p-2 rounded mb-4' style={{ maxWidth: '100%', height: 'auto' }}>
@@ -667,7 +680,8 @@ const MembuatSoal = () => {
                   />
                 )}
              </div>
-    
+
+             {/* bagian untuk opsi */}
              <div>
                 <h2 className="block text-sm sm:text-sm md:text-base font-medium mb-2">Jawaban</h2>
                 {options.map((option, index) => (
@@ -697,14 +711,13 @@ const MembuatSoal = () => {
                         <span>Benar</span>
                       </button>
 
-                      {/* Tombol Hapus hanya untuk opsi 3 dan seterusnya */}
+                      {/* Tombol Hapus hanya untuk opsi ke-3 dan seterusnya */}
                       {index >= 2 && (
                         <button
                           type="button"
                           onClick={() => handleDeleteJawaban(index, option.id)}
                           className="ml-4"
                         >
-                          {/* Ikon Hapus */}
                           <AiOutlineCloseSquare className="w-6 h-6" />
                         </button>
                       )}
@@ -713,15 +726,17 @@ const MembuatSoal = () => {
                 ))}
 
                 {/* Tombol Tambah Opsi */}
-                <button
-                  type="button"
-                  onClick={addOption}
-                  className="bg-[#7bb3b4] hover:bg-[#8CC7C8] border border-black px-1 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base font-poppins rounded-[10px] text-black font-bold"
-                >
-                  + Tambah
-                </button>
+                {options.length < 5 && (
+                  <button
+                    type="button"
+                    onClick={addOption}
+                    className="bg-[#7bb3b4] hover:bg-[#8CC7C8] border border-black px-1 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm md:text-base font-poppins rounded-[10px] text-black font-bold"
+                  >
+                    + Tambah
+                  </button>
+                )}
               </div>
-    
+
               <div className="mb-4">
                 <label className="block text-sm sm:text-sm md:text-base font-medium mb-2">Pembahasan</label>
                 <ReactQuill 
