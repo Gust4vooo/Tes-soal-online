@@ -516,15 +516,13 @@ const MembuatSoal = () => {
     
           <div className="bg-[#FFFFFF] border border-black p-4 rounded-lg shadow-md w-full mb-6 " >
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className='mb-4'>
-                <label htmlFor="soal">No.      </label>
-                <input
-                  type="number"
-                  value={number}
-                  onChange={(e) => setNumber(e.target.value)}
-                  required
-                />
+              <div className="mb-4">
+                <label htmlFor="soal">No. </label>
+                <p className="inline-block text-black">
+                  {number}
+                </p>
               </div>
+
               <div className='m'>
                 <div className='border border-black bg-[#D9D9D9] p-2 rounded mb-4' style={{ maxWidth: '1978px', height: '250px' }}>
                   <div className='p-4 flex justify-between items-center mb-0.5 w-full'>
@@ -611,6 +609,10 @@ const MembuatSoal = () => {
                           min="1"
                           max="5"
                           value={option.points || ''}
+                          onInput={(e) => {
+                            // Hapus karakter non-numerik langsung saat mengetik
+                            e.target.value = e.target.value.replace(/[^0-9]/g, '');
+                          }}
                           onChange={(e) => {
                             const value = parseInt(e.target.value, 10);
 
