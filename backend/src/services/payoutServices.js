@@ -115,3 +115,21 @@ export const getTransactionHistoryService = async (authorId) => {
       throw new Error('Failed to fetch transaction history');
     }
   };
+
+export const getPayoutStatus = async (referenceNumber) => {
+const headers = {
+    'Authorization': `Basic ${Buffer.from(`${process.env.IRIS_API_KEY}:`).toString('base64')}`,
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+};
+
+try {
+    const response = await axios.get(
+    `https://app.sandbox.midtrans.com/iris/api/v1/payouts/${referenceNumber}`,
+    { headers }
+    );
+    return response.data;
+} catch (error) {
+    throw new Error(`Failed to fetch payout status: ${error.message}`);
+}
+};

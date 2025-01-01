@@ -1,4 +1,4 @@
-import { getTransactionHistoryService, sendPayout } from '../services/payoutServices.js';
+import { getTransactionHistoryService, sendPayout, getPayoutStatus } from '../services/payoutServices.js';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -51,5 +51,35 @@ export const getTransactionHistory = async (req, res) => {
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: 'Failed to fetch transaction history' });
+    }
+  };
+
+  export const getStatus = async (req, res) => {
+    const { referenceNumber } = req.params;
+  
+    try {
+      if (!referenceNumber) {
+        return res.status(400).json({
+          success: false,
+          message: 'Reference number is required'
+        });
+      }
+  
+      const payoutStatus = await getPayoutStatus(referenceNumber);
+      
+      return res.status(200).json({
+        success: true,
+        data: {
+          status: payoutStatus.status,
+          lastUpdated: payoutStatus.updated_at
+        }
+      });
+    } catch (error) {
+      console.error('Payout status error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to fetch payout status',
+        error: error.message
+      });
     }
   };

@@ -34,6 +34,10 @@ export default function Home() {
     const [token, setToken] = useState('');
     const [authorProfit, setAuthorProfit] = useState(null);
     const [transactions, setTransactions] = useState([]);
+    const [showStatusModal, setShowStatusModal] = useState(false);
+    const [selectedTransaction, setSelectedTransaction] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [statusData, setStatusData] = useState(null);
 
     const banks = ['BCA', 'BNI', 'MANDIRI', 'Bank Lainnya'];
 
@@ -46,7 +50,7 @@ export default function Home() {
                 throw new Error('No authentication token found');
               }
               
-              const response = await fetch(`https://${URL}/api/withdrawals/history`, {
+              const response = await fetch(`http://localhost:2000/api/withdrawals/history`, {
                 method: 'GET',
                 headers: {
                   'Authorization': `Bearer ${token}`,
@@ -59,6 +63,7 @@ export default function Home() {
               }
     
               const data = await response.json();
+              console.log('Transaction history:', data);
               setTransactions(data); 
             } catch (error) {
               console.error('Error fetching transaction history:', error);
@@ -78,7 +83,7 @@ export default function Home() {
               throw new Error('No authentication token found');
             }
     
-            const response = await axios.get(`https://${URL}/author/authorID`, {
+            const response = await axios.get(`http://localhost:2000/author/authorID`, {
               headers: {
                 'Authorization': `Bearer ${token}`
               }
@@ -107,7 +112,7 @@ export default function Home() {
 
         try {
           setLoadingUser(true);
-          const response = await fetch(`https://${URL}/user/profile`, {
+          const response = await fetch(`http://localhost:2000/user/profile`, {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -215,7 +220,7 @@ export default function Home() {
             throw new Error('No authentication token found');
         }
 
-        const response = await fetch(`https://${URL}/api/withdrawals/payout`, {
+        const response = await fetch(`http://localhost:2000/api/withdrawals/payout`, {
             method: 'POST',
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -285,6 +290,35 @@ export default function Home() {
       console.error('Error during logout:', error);
     }
   };
+
+  const handleClick = async (transaction) => {
+    setIsLoading(true);
+    setShowStatusModal(true);
+    
+    try {
+      const response = await fetch(`http://localhost:2000/api/withdrawals/status/${transaction.reference}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch status');
+      }
+  
+      const data = await response.json();
+      setStatusData({
+        status: data.data.status,
+        lastUpdated: data.data.lastUpdated
+      });
+      
+    } catch (error) {
+      console.error('Error fetching status:', error);
+      setStatusData({
+        status: 'Error fetching status',
+        lastUpdated: '-'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
 
   return (
     <>
@@ -505,28 +539,74 @@ export default function Home() {
 
             {showHistory && (
             <div className="history-content relative mt-2 transition-all duration-300">
-                <div className="relative mt-5">
+              <div className="relative mt-5">
                 <table className="min-w-[500] lg:min-w-[930px] mx-8 border-collapse border border-gray-200 text-left rounded-lg bg-white shadow-lg">
-                <thead>
+                  <thead>
                     <tr className="bg-[#0b61aa] text-white">
-                    <th className="py-3 px-4">No. Reference</th>
-                    <th className="py-3 px-4">Tanggal</th>
-                    <th className="py-3 px-4">Jumlah</th>
+                      <th className="py-3 px-4">No. Reference</th>
+                      <th className="py-3 px-4">Tanggal</th>
+                      <th className="py-3 px-4">Jumlah</th>
+                      <th className="py-3 px-4">Status</th>
                     </tr>
-                </thead>
-                <tbody>
+                  </thead>
+                  <tbody>
                     {transactions.map((transaction) => (
-                    <tr key={transaction.id}>
+                      <tr key={transaction.reference}>
                         <td className="py-3 px-4">{transaction.reference}</td>
-                        <td className="py-3 px-4">{new Date(transaction.createdAt).toLocaleDateString()}</td>
+                        <td className="py-3 px-4">
+                          {new Date(transaction.createdAt).toLocaleDateString()}
+                        </td>
                         <td className="py-3 px-4">{transaction.amount.toLocaleString()}</td>
-                    </tr>
+                        <td className="py-3 px-4">
+                          <button
+                            className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-md"
+                            onClick={() => handleClick(transaction)}
+                          >
+                            Lihat Status
+                          </button>
+                        </td>
+                      </tr>
                     ))}
-                </tbody>
+                  </tbody>
                 </table>
-                </div>
+              </div>
             </div>
-            )}
+          )}
+
+          {showStatusModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+              <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold">Detail Status</h3>
+                  <button
+                    onClick={() => {
+                      setShowStatusModal(false);
+                      setStatusData(null);
+                    }}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    ×
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {isLoading ? (
+                    <p>Loading status...</p>
+                  ) : (
+                    <>
+                      <p className="text-gray-700">
+                        Status: <span className="font-medium">{statusData?.status || '-'}</span>
+                      </p>
+                      <p className="text-gray-700">
+                        Terakhir diupdate: <span className="font-medium">
+                          {statusData?.lastUpdated ? new Date(statusData.lastUpdated).toLocaleString() : '-'}
+                        </span>
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         {/* Notifikasi validasi */}
         {showNotification && (
