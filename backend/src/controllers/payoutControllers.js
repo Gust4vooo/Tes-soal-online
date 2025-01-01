@@ -1,4 +1,4 @@
-import { getTransactionHistoryService, sendPayout, getPayoutStatus } from '../services/payoutServices.js';
+import { getTransactionHistoryService, sendPayout, getPayoutStatus, handleFailedWithdrawal } from '../services/payoutServices.js';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -6,7 +6,6 @@ const prisma = new PrismaClient();
 export const createPayout = async (req, res) => {
     try {
         const {...bodyData } = req.body; // Ambil authorId dan data lainnya dari body
-        console.log("Body dari FE: ", bodyData);
 
         const token = req.headers.authorization?.split(' ')[1];
         if (!token) {
@@ -43,7 +42,6 @@ export const getTransactionHistory = async (req, res) => {
       });
 
       const authorId = author.id;
-      console.log('Author ID:', authorId);
   
       const transactions = await getTransactionHistoryService(authorId);
   
@@ -67,6 +65,22 @@ export const getTransactionHistory = async (req, res) => {
   
       const payoutStatus = await getPayoutStatus(referenceNumber);
       
+      // Check if status is failed
+      if (payoutStatus.status === 'failed') {
+        const result = await handleFailedWithdrawal(referenceNumber);
+        
+        return res.status(200).json({
+          success: true,
+          data: {
+            status: payoutStatus.status,
+            lastUpdated: payoutStatus.updated_at,
+            withdrawalUpdated: result.updated,
+            profitReturned: result.data?.profitReturned || false,
+            message: result.message
+          }
+        });
+      }
+  
       return res.status(200).json({
         success: true,
         data: {

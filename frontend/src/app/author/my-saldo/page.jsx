@@ -63,7 +63,6 @@ export default function Home() {
               }
     
               const data = await response.json();
-              console.log('Transaction history:', data);
               setTransactions(data); 
             } catch (error) {
               console.error('Error fetching transaction history:', error);
@@ -182,9 +181,6 @@ export default function Home() {
         bank: selectedBank === 'Bank Lainnya' ? otherBankName : selectedBank,
         notes, 
       };
-  
-      console.log('Mengirim data:', payload);
-      // Kirim ke backend
     } catch (error) {
       console.error('Error:', error);
     }
@@ -243,7 +239,6 @@ export default function Home() {
         setShowProcessNotification(true);
 
         const result = await response.json();
-        console.log('Response:', result);
         alert('Penarikan berhasil!');
     } catch (error) {
         console.error('Error:', error);
